@@ -274,7 +274,6 @@ def get_room(name):
   else:
     return None
 
-
 def get_player_info(name, info):
   player = users.find_one({"disc": int(name)})
   if player:

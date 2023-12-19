@@ -4,6 +4,15 @@ import database
 from discord.ui import View
 from database import RoomButton
 
+color_mapping = {
+  "red": discord.Color.red(),
+  "green": discord.Color.green(),
+  "blue": discord.Color.blue(),
+  "orange": discord.Color.orange(),
+  "purple": discord.Color.purple(),
+  "yellow": discord.Color.yellow(),
+}
+
 embed_messages = {
   "newgame": "you wake up in an unfamilliar place. The shiny hard floor underneath your feet stretches off into the horizon in a neat square grid. Between each square is a large grey divet about as deep as you are tall, and in the distance you can see walls miles high. You are incredilby small, stranded on the floor of an impossibly large kitchen.\nTo begin playing, try !info to look around the room you're in. For more commands, try !help",
   "alreadyplayer": "You are already playing in an adventure. !leave that one before trying to join another one.",
@@ -30,18 +39,7 @@ embed_messages = {
 
 def embed_message(disc, title, description, color):
   description = disc + ", " + embed_messages[description]
-  if color == "red":
-    color = discord.Color.red()
-  elif color == "green":
-    color = discord.Color.green()
-  elif color == "blue":
-    color = discord.Color.blue()
-  elif color == "orange":
-    color = discord.Color.orange()
-  elif color == "purple":
-    color = discord.Color.purple()
-  elif color == "yellow":
-    color = discord.Color.yellow()
+  color = color_mapping.get(color, discord.Color.default())
   embed = discord.Embed(title=title, description=description, color=color)
   return embed
 
