@@ -1,0 +1,11 @@
+main methods
+  methods that create new documents
+    newadventure
+    newroom
+    newitem
+    newpath
+
+  editing documents
+    editroom
+    editroompath
+    edititem
