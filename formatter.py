@@ -21,7 +21,7 @@ embed_messages = {
   "leavesuccess": "You have been removed from the adventure. Use !join <adventure name here> to start another.",
   "notplayer": "you are not a player. Try !join if you are a new player",
   "notsarnt": "only Ironically-Tall can make new architects. Ask him.",
-  "notarchitect": "you are not an architect. That command is only for people with that role. Talk to Ironically-Tall if you are interested.",
+  "notarchitect": "you are not an architect. That command is only for people with that role. Talk to a moderator if you are interested.",
   "alreadyarchitect": "that user is already an architect!",
   "needuser": "you need to specify a user to make an architect.\nTry !architect <username @mention>",
   "newarchitect": "User has successfully been made an architect.",
@@ -56,37 +56,14 @@ def button_text_test(text):
 
 def blank_embed(disc, title, description, color):
   description = disc + ", " + description
-  if color == "red":
-    color = discord.Color.red()
-  elif color == "green":
-    color = discord.Color.green()
-  elif color == "blue":
-    color = discord.Color.blue()
-  elif color == "orange":
-    color = discord.Color.orange()
-  elif color == "purple":
-    color = discord.Color.purple()
-  elif color == "yellow":
-    color = discord.Color.yellow()
+  color = color_mapping.get(color, discord.Color.default())
   embed = discord.Embed(title=title, description=description, color=color)
   return embed
 
 #used to send the player information about the room they are in
 def embed_room(all_items, new_items, title, room, color):
-  if color == "red":
-    color = discord.Color.red()
-  elif color == "green":
-    color = discord.Color.green()
-  elif color == "blue":
-    color = discord.Color.blue()
-  elif color == "orange":
-    color = discord.Color.orange()
-  elif color == "purple":
-    color = discord.Color.purple()
-  elif color == "yellow":
-    color = discord.Color.yellow()
-  descr = room["description"]
-  embed = discord.Embed(title=title, description=descr, color=color)
+  color = color_mapping.get(color, discord.Color.default())
+  embed = discord.Embed(title=title, description=room["description"], color=color)
   view = discord.ui.View()
   if new_items:
     for item in new_items:
@@ -142,23 +119,23 @@ def inventory(items):
 
 help_info = {
   "join" : "**!join <name_of_adventure>** - join an adventure if you aren't playing. Use this command first, if you're new. You can only play one adventure at a time.",
-  "leave" : "**!leave** - leave the game, erases player data.",
-  "info" : "**!info** - gets information about where you are in the adventure and gives you information about where to go next.",
-  "inventory" : "**!inventory** - tells you what items you have",
+  "leave" : "**/leave** - leave the game, erases player data.If you die you must leave the game to start a new one.",
+  "info" : "**/info** - gets information about where you are in the adventure and gives you information about where to go next.",
+  "inventory" : "**/inventory** - tells you what items you have",
   "combine" : "**!combine <item, item>** - tries to combine two or more items", 
   "deconstruct" : "**!deconstruct <item number>** - tries to break an item down",
-  "adventures" : "gives you a list of available adventures",
+  "adventures" : "**/adventures** - gives you a list of available adventures",
   "help" : "**!help <command>** - displays detailed help for a command",
 }
 
 help_more_info = {
-  "join" : " You must join an adventure before you can play. Type the name of the adventure as it appears, capitalization doesn't matter. More adventures will be added in the future",
-  "leave" : " This may clear errors from your player, but will erase all of your player data. You will need to !join again to resume playing.",
+  "join" : " You must join an adventure before you can play. When you join an adventure you will start your story in a thread! Type the name of the adventure as it appears, capitalization doesn't matter. More adventures will be added in the future",
+  "leave" : " This may clear errors from your player, but will erase all of your player data. You will need to !join again to resume playing. If you find a error where you must leave the game please screenshot the error for developers.",
   "adventures": "Each adventure has unique rooms and endings. More adventures will be available in the future, as well as functionality to create your own.",
-  "info" : " This command is the main command to move through the adventure. It will tell you which paths are available, and describe the current scene. This command is useful if you need to resent the embed in your thread.",
-  "inventory" : " Your inventory is organized by number. You can perform actions on the items in your inventory by their number. You can only have one of each item, and most items can only be picked up once",
-  "combine" : " Not every item is part of a combination. In order to combine items correctly, you must !combine them and only them together. Some items may hint at being able to be combined. Once combined, items can usually be broken down into the original parts with !deconstruct.", 
-  "deconstruct" : " Not all items can be broken down into smaller parts. Some items found in the adventure may start deconstructable. Most items you !combine will be deconstructable back to their original parts.",
+  "info" : " It will tell you which paths are available, and describe the current scene. This command is useful if you need to resent the embed in your thread. Please do not use this command in the main channel.",
+  "inventory" : " Your inventory is organized by number. You can perform actions on the items in your inventory by their number. You can only have one of each item, and most items can only be picked up once. Please do not use this command in the main channel.",
+  "combine" : " Not every item is part of a combination. In order to combine items correctly, you must !combine them and only them together. Some items may hint at being able to be combined. Once combined, items can usually be broken down into the original parts with !deconstruct.Please do not use this command in the main channel.", 
+  "deconstruct" : " Not all items can be broken down into smaller parts. Some items found in the adventure may start deconstructable. Most items you !combine will be deconstructable back to their original parts.Please do not use this command in the main channel.",
   "help" : " If you need more help than what this bot can provide, please contact Ironically-Tall or ❀LILLY❀. They created this bot, and it's their fault if something is wrong.",
 }
 
@@ -172,9 +149,8 @@ def help(helpword):
     description=
     help_info["join"] + "\n" +
     help_info["leave"] + "\n" +
-    help_info["newgame"] + "\n" +
+    help_info["adventures"] + "\n" +
     help_info["info"] + "\n" +
-    help_info["path"] + "\n" +
     help_info["inventory"] + "\n" +
     help_info["combine"] + "\n" + 
     help_info["deconstruct"] + "\n" +

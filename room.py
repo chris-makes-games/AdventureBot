@@ -1,3 +1,5 @@
+import database
+
 class Room:
   def __init__(self, 
                name, displayname, author, 
@@ -28,3 +30,22 @@ class Room:
     if unlockers is None:
       unlockers = []
       self.unlockers = unlockers
+
+  def generate_ascii_map(self, visited=None, indent=0):
+    if visited is None:
+        visited = set()
+
+    if self.name in visited:
+        return ""
+
+    visited.add(self.name)
+
+    result = " " * indent + f"{self.displayname} ({self.name})\n"
+
+    for exit_name, destination_name in zip(self.exits, [self.exit_destination]):
+        exit_room = database.get_room(destination_name)
+        if exit_room:
+            result += " " * (indent + 2) + f"{exit_name} -> {exit_room.displayname} ({destination_name})\n"
+            result += exit_room.generate_ascii_map(visited, indent + 4)
+
+    return result

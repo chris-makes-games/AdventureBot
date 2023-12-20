@@ -2,7 +2,6 @@ import os
 from collections import Counter
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 import database
@@ -10,6 +9,7 @@ import formatter
 from adventure import Adventure
 from database import RoomButton
 from player import Player
+from room import Room
 
 #token for use with discord API
 my_secret = os.environ['TOKEN']
@@ -22,19 +22,23 @@ protectedchannels = [
   1180274480807956631,
   1180315816294625291,
   1186398826148417707,
-  1186464529366921286
-]
+  1186464529366921286,
+  908522799772102739,
+  1183954110513414164
 
+]
 #bot will be the async client for running commands
 #remove help to replace with my own
 bot = commands.Bot(command_prefix='!', intents=intents)
 bot.remove_command('help')
+
+#guild IDs that the bot is in, for now
 guild_ids = [730468423586414624]
 
 #simple ping command for testing
-@bot.slash_command(name='ping', description='Ping the bot', guild_ids=guild_ids)
+@bot.command()
 async def ping(ctx):
-  await ctx.send('Pong!\n {0}'.format(round(bot.latency, 1)) + " seconds")
+  await ctx.reply('Pong!\n {0}'.format(round(bot.latency, 1)) + " seconds")
   
 def player_alive(name):
   player = database.get_player(name)
@@ -75,6 +79,12 @@ def give_player_items(new_items, old_items, taken):
       new_items.remove(item)
   database.pp("New Items:" + str(items_grouping))
   return items_grouping
+
+@bot.command()
+async def buttontest(ctx):
+  view = discord.ui.View()
+  view.add_item(RoomButton("Button 1", "test"))
+  await ctx.reply("Button Test", view=view)
   
 #creates new players and adds them to the database
 @bot.command()
@@ -131,203 +141,69 @@ async def join(ctx, *args):
     await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
 
 @bot.command()
-async def buttontest(ctx):
-  view = discord.ui.View()
-  view.add_item(RoomButton("Button 1", "test"))
-  await ctx.reply("Button Test", view=view)
-
-@bot.command()
-async def newroom(ctx):
-  truename = ctx.author.id
-  name = ctx.author.display_name
-  try:
-    database.create_blank_room(truename)
-    embed = formatter.blank_embed(name, "Success", "Room was created", "green")
-  except Exception as e:
-    embed = formatter.blank_embed(name, "Error", str(e), "red")
-  await ctx.reply(embed=embed)
-
-@bot.command()
-async def newitem(ctx):
-  name = ctx.author.display_name
-  try:
-    database.create_blank_item()
-    embed = formatter.blank_embed(name, "Success", "Item was created", "green")
-  except Exception as e:
-    embed = formatter.blank_embed(name, "Error", str(e), "red")
-  await ctx.reply(embed=embed)
-
-@bot.command()
-async def blankadventure(ctx):
-  truename = ctx.author.id
-  name = ctx.author.display_name
-  try:
-    database.create_blank_adventure(truename)
-    embed = formatter.blank_embed(name, "Success", "Adventure was created", "green")
-  except Exception as e:
-    embed = formatter.blank_embed(name, "Error", str(e), "red")
-  await ctx.reply(embed=embed)
-
-#removes players from the database
-@bot.command()
-async def leave(ctx):
-  truename = ctx.author.id
-  name = ctx.author.display_name
-  player = database.get_player(truename)
-  if player:
-    channel = bot.get_channel(player["channel"])
-    tuple = await database.confirm_embed("Leaving the game will delete all of your data and delete this thread. Click *Yes* to continue or *No* to cancel:", "leave" , channel)
-    embed = tuple[0]
-    view = tuple[1]
-  else:
-    embed = formatter.embed_message(name, "Error", "notplayer" , "red")
-    view = discord.ui.View()
-  await ctx.send(embed=embed, view=view)
-  await ctx.message.delete()
-
-@bot.command()
-async def roomtree(ctx, *args):
+async def create(ctx, *args):
   adventure_name = []
   truename = ctx.author.id
   name = ctx.author.display_name
-  all_rooms = database.get_all_rooms()
+  channel = ctx.channel
+  player = database.get_player(truename)
+  #delete comment to implememnt admin check
+  #if player and not player["architect"]:
+    #embed = formatter.embed_message(name, "Error", "notarchitect" , "red")
+    #await ctx.reply(embed=embed)
+    #return
   for arg in args:
     adventure_name.append(str(arg))
   adventure_name = " ".join(adventure_name)
-  adventure = database.get_adventure(adventure_name)
-  if adventure:
-    test_adventure = Adventure(name=adventure["name"], author=adventure["author"], description=adventure["description"], start=adventure["start"])
-    test_adventure.build_room_tree(adventure["start"])
-    print(test_adventure.room_tree)
-    tree = "\n".join(test_adventure.tree)
-    await ctx.reply("```" + tree + "```")
-  else:
+  all_adventures = database.get_adventures()
+  database.pp(all_adventures)
+  if adventure_name == "":
+    embed = discord.Embed(title="Error - Need adventure", description="You need to specify an adventure to begin creating. Use !create <adventure name here>\nRefer to this list of available adventures to edit:", color=discord.Color.red())
+    for adventure in all_adventures:
+      embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
+    embed.set_footer(text="If there is a different error, contact a moderator")
+    await ctx.reply(embed=embed)
     return
-  
-  
-#allows admin to add new architects
-@bot.command()
-async def architect(ctx, disc=None):
-  roles = ctx.author.roles
-  name = ctx.author.display_name
-  truename = ctx.author.id
-  if disc is None:
-    embed = formatter.embed_message(name, "Error", "needuser", "red")
+  adventure = database.get_adventure(adventure_name.lower())
+  if not adventure:
+    embed = discord.Embed(title="Error - No Such Adventure", description="Adventure '" + adventure_name + "' was not found. Please !create one of these adventures to begin creation mode:", color=discord.Color.red())
+    for adventure in all_adventures:
+      embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
+    embed.set_footer(text="If there is a different error, contact a moderator")
     await ctx.reply(embed=embed)
     return
   else:
-    id = disc[2:-1] if disc else 'ERROR'
-    arch_true = database.get_player_info(id, "architect")
-  if not player_architect(roles):
-    embed = formatter.embed_message(name, "Error", "notarchitect", "red")
-  elif arch_true:
-    embed = formatter.embed_message(name, "Error", "alreadyarchitect", "red")
-  else:
-    dict = {"disc": truename,"architect": True}
-    database.update_player(dict)
-    embed = formatter.embed_message(name, "Success", "newarchitect", "green")
-  await ctx.reply(embed=embed)
-  
-#resets a player back to the start, ressurects them
-@bot.command()
-async def newgame(ctx, *args):
-  truename = ctx.author.id
-  name = ctx.author.display_name
-  if database.get_player(truename):
-    player_update = {"disc": truename, "alive": True, "room": "kitchen", "inventory": [], "taken": []}
-    database.update_player(player_update)
-    embed = formatter.embed_message(name, "New Game", "newgame", "green")
-  else:
-    embed = formatter.embed_message(name, "Error", "notplayer", "red")
-  await ctx.reply(embed=embed)
-  
-#replies with the description of the current room to the player
-@bot.command()
-async def info(ctx):
-  truename = ctx.author.id
-  player = database.get_player(truename)
-  if player:
-    room_name = player["room"]
-    all_items = player["inventory"]
-    new_items = []
-    room = database.get_room(room_name)
-  else:
-    print("ERROR - PLAYER DATA NOT FOUND")
-    return
-  if room:
-    tuple = database.embed_room(all_items, new_items, room["displayname"], room)
-  else:
-    return
-  embed = tuple[0]
-  view = tuple[1]
-  await ctx.reply(embed=embed, view=view)
-
-#takes the path chosen by the player into the next room
-#if the player is dead, rejects message
-@bot.command()
-async def path(ctx, exit):
-  truename = ctx.author.id
-  name = ctx.author.display_name
-  try:
-    trueexit = int(exit) - 1 #makes sure the exit is valid int
-  except Exception as e:
-    embed = formatter.embed_message(name, "Error", "exitformat", "red")
-    print(e)
-    await ctx.reply(embed=embed)
-    return
-  room = database.get_player_room(truename) #current room
-  all_items = database.get_player_info(truename, "inventory")
-  taken = database.get_player_info(truename, "taken")
-  if taken is None:
-    taken = []
-  if room is None: #should not fire unless player is broken
-    print("Error - Room is None!")
-    embed = formatter.embed_message(name, "Error", "noroom", "red")
-    await ctx.reply(embed=embed)
-    return
-  #if player exists and is alive
-  if database.get_player(truename) and player_alive(truename) and room:
-    #is the exit is valid
-    if database.check_valid_exit(truename, trueexit):
-      newroomname = room["exit_destination"][trueexit]
-      newroom = database.get_room(newroomname)
-      new_items = []
-      #if the room has an item in it
-      if newroom and newroom["items"]:
-        items_list = give_player_items(newroom, all_items, taken)
-        new_items = items_list[0]
-        all_items = items_list[1]
-      dict = {"disc": truename,"room": newroomname, "inventory": all_items, "taken": taken}
-      database.update_player(dict)
-      tuple = formatter.embed_room(all_items, new_items, "You enter the " + newroomname, newroom, "purple")
-      embed = tuple[0]
-      view = tuple[1]
-    else:
-      embed = formatter.embed_message(name, "Path Blocked", "exitblocked", "red")
+    guild = ctx.guild
+    thread = await channel.create_thread(name=name + "'s " + adventure_name)
+    channel_id = thread.id
+    room = database.get_room(adventure["start"])
+    if room is None:
+      print("Error! RAdventure has no start room!")
+      embed = formatter.embed_message(name, "Error", "noroom", "red")
       await ctx.reply(embed=embed)
       return
-  else:
-    print("Error - Player is dead or not in a room!")
-    embed = formatter.embed_message(name, "Error", "exitformat", "red")
-    await ctx.reply(embed=embed)
-    return
-  await ctx.reply(embed=embed, view = view)
-  
-#allows player to kill themselves... for testing purposes
-@bot.command()
-async def kill(ctx):
-  truename = ctx.author.id
-  dict = {"disc": truename,"alive": False}
-  database.update_player(dict)
-  await ctx.reply(ctx.author.mention + " you died!")
+    tuple = await database.creation_mode()
+    embed = tuple[0]
+    view = tuple[1]
+    #un-comment to delete command after success
+    #await ctx.message.delete()
+    await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
 
-#returns a list of the truenames of items for the player
+
 @bot.command()
-async def inventory(ctx):
-  truename = ctx.author.id
-  real_items = database.get_player_info(truename, "inventory")
-  embed = formatter.inventory(real_items)
-  await ctx.reply(embed=embed)
+async def roomtree(ctx, *args):
+  room1 = Room(name="room1", displayname="Room 1", exits=["east"], exit_destination=["room2"], author="")
+  room2 = Room(name="room2", displayname="Room 2", exits=["west", "south"], exit_destination=["room1", "room3"], author="")
+  room3 = Room(name="room3", displayname="Room 3", exits=["north"], exit_destination=["room2"], author="")
+
+  adventure_rooms = [room1, room2, room3]
+  ascii_map = []
+
+  # Print ASCII map for each room
+  ascii_map = room1.generate_ascii_map()
+  await ctx.reply("```" + str(ascii_map) + "```")
+  
+  
 
 #attempts to combine two items or more together
 @bot.command()
@@ -418,57 +294,149 @@ async def deconstruct(ctx, item):
   await ctx.reply(embed=embed)
   return
   
-#allows any player to start a new adventure
-#really only makes a new room, adding that room to adventures
-@bot.command()
-async def newadventure(ctx, adventure_name):
-  roles = ctx.author.roles
-  if not player_architect(roles):
-    embed = formatter.embed_message(ctx.author.display_name, "Error", "notarchitect", "red")
-    await ctx.reply(embed=embed)
-    return
-  name = ctx.author.display_name
-  adventure_name = adventure_name.lower()
-  adventures = database.get_adventures()
-  adventure_names = []
-  for adventure in adventures:
-    adventure_names.append(adventure["name"])
-  if adventure_name in adventure_names:
-    embed = formatter.embed_message(name, "Error", "adventureexists", "red")
-    await ctx.reply(embed=embed)
-    return
-  pass
 
-@bot.command()
-async def adventures(ctx):
-  guild = ctx.guild
-  adventures = database.get_adventures()
-  adventure_names = []
-  descriptions = []
-  authors = []
-  for adventure in adventures:
-    adventure_names.append(adventure["name"])
-    descriptions.append(adventure["description"])
-    author = guild.get_member(adventure["author"])
-    authors.append(author.display_name)
-  embed = discord.Embed(title="Adventures", description="These are the adventures you can join. Use !join <name of the adventure> to start playing. More adventures will be available later!", color=0x00ff00)
-  for i in range(len(adventure_names)):
-    embed.add_field(name=adventure_names[i].title(), value=descriptions[i] + "\nCreated by: " + authors[i], inline=False)
-  await ctx.reply(embed=embed)
-  return
-  
 #basic help command, replies with embed
 #allows the user to optionally !help other commands
 @bot.command()
 async def help(ctx, *args):
   message = args[0] if len(args) > 0 else ""
   await ctx.reply(embed=formatter.help(message))
+#Slash commands start here!!!!
+#Slash commands start here!!!!
+#Slash commands start here!!!!
+#Slash commands start here!!!!
+#Slash commands start here!!!!
+
+#Makes a new room in the database
+@bot.tree.command(name= "newroom", description= "Create a new room")
+async def newroom(interaction: discord.Interaction):
+      truename = interaction.user.id
+      name = interaction.user.display_name  # Define the 'name' variable within the 'newroom' command
+      try:
+          database.create_blank_room(truename)
+          embed = formatter.blank_embed(name, "Success", "Room was created", "green")
+      except Exception as e:
+          embed = formatter.blank_embed(name, "Error", str(e), "red")
+      await interaction.response.send_message(embed=embed)
+
+#Makes a new item in the database
+@bot.tree.command(name= "newitem", description= "Create a new item")
+async def newitem(interaction: discord.Interaction):
+      name = interaction.user.display_name
+      try:
+        database.create_blank_item()
+        embed = formatter.blank_embed(name, "Success", "Item was created", "green")
+      except Exception as e:
+        embed = formatter.blank_embed(name, "Error", str(e), "red")
+      await interaction.response.send_message(embed=embed)
+
+#makes a new adventure in the database
+@bot.tree.command(name= "newadventure", description= "Create a new adventure")
+async def newadventure(interaction: discord.Interaction):
+      truename = interaction.user.id
+      name = interaction.user.display_name 
+      try:
+        database.create_blank_adventure(truename)
+        embed = formatter.blank_embed(name, "Success", "Adventure was created", "green")
+      except Exception as e:
+        embed = formatter.blank_embed(name, "Error", str(e), "red")
+      await interaction.response.send_message(embed=embed)
+
+#Leaves current game
+@bot.tree.command(name= "leave", description= "Use this command to leave the game! (You can only leave if you are the host of the game)")
+async def leave(interaction: discord.Interaction):
+    truename = interaction.user.id
+    name = interaction.user.display_name 
+    player = database.get_player(truename)
+    if player:
+      channel = bot.get_channel(player["channel"])
+      tuple = await database.confirm_embed("Leaving the game will delete all of your data and delete this thread. Click *Yes* to continue or *No* to cancel:", "leave" , channel)
+      embed = tuple[0]
+      view = tuple[1]
+    else:
+      embed = formatter.embed_message(name, "Error", "notplayer" , "red")
+      view = discord.ui.View()
+    await interaction.response.send_message(embed=embed, view=view)
+
+#replies with the description of the current room to the player
+@bot.tree.command(name= "info", description= "Learn about the room you are in")
+async def info(interaction: discord.Interaction):
+  truename = interaction.user.id
+  name = interaction.user.display_name 
+  player = database.get_player(truename)
+  if player:
+    if player.get("alive"):
+        room_name = player["room"]
+        all_items = player["inventory"]
+        new_items = []
+        room = database.get_room(room_name)
+    else:
+      await interaction.response.send_message(f"You are either dead or not in a adventure!")
+      return
+    if room:
+      tuple = database.embed_room(all_items, new_items, room["displayname"], room)
+    else:
+      return
+    embed = tuple[0]
+    view = tuple[1]
+    await interaction.response.send_message(embed=embed, view=view)
+
+    #allows player to kill themselves... for testing purposes
+@bot.tree.command(name= "kill", description= "A way out of the game")
+async def kill(interaction: discord.Interaction):
+      truename = interaction.user.id
+      name = interaction.user.display_name 
+      dict = {"disc": truename,"alive": False}
+      database.update_player(dict)
+      await interaction.response.send_message(f"You Died! Game over")
+
+  #returns a list of the truenames of items for the player
+@bot.tree.command(name= "inventory", description= "View your inventory")
+async def inventory(interaction: discord.Interaction):
+    truename = interaction.user.id
+    real_items = database.get_player_info(truename, "inventory")
+    player = database.get_player(truename)
+    embed = formatter.inventory(real_items)
+    if player.get("alive"):
+      await interaction.response.send_message(embed=embed)
+    else :
+      await interaction.response.send_message(f"You are either dead or not in a adventure!")
+
+#Lists the current adventures from the database
+@bot.tree.command(name= "adventures", description= "A list of all playable adventures")
+async def adventures(interaction: discord.Interaction):
+    guild = interaction.guild
+    adventures = database.get_adventures()
+    adventure_names = []
+    descriptions = []
+    authors = []
+    for adventure in adventures:
+        adventure_names.append(adventure["name"])
+        descriptions.append(adventure["description"])
+        author_id = adventure["author"]
+        print(f"Author ID: {author_id}")
+        author = guild.get_member(author_id)
+        if author:
+            authors.append(author.display_name)
+        else:
+            authors.append("Unknown Author")
+    embed = discord.Embed(title="Adventures", description="These are the adventures you can join. Use !newgame to start the test adventure. More adventures will be available later!", color=0x00ff00)
+    for i in range(len(adventure_names)):
+      embed.add_field(name=adventure_names[i].title(), value=descriptions[i] + "\nCreated by: " + authors[i], inline=False)
+    await interaction.response.send_message(embed=embed)
+    return
 
 
-#prints a connection message to the console for debugging
+    #prints a connection message to the console for debugging
 @bot.event
 async def on_ready():
-  print(f'{bot.user} has connected to Discord!')
+      print(f'{bot.user} has connected to Discord!')
+      #this syncs the bot slash commands
+      try: 
+          synced = await bot.tree.sync()
+          print(f'Synced {len(synced)} commands.')
+      except Exception as e:
+          print(e)
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels

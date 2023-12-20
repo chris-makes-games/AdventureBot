@@ -1,11 +1,20 @@
-main methods
-  methods that create new documents
-    newadventure
-    newroom
-    newitem
-    newpath
+player stuff
+  new invenotry system
+    inventory embed
+    combine items
+  admin privelages
+    new writer role
+  dead player updates
+  Need to block the player from using info in the main channel
+    need to make it so a role will unlock the players ability to create things
+    
+  
+room stuff
+  prevent dead players(info already blocked to players)
 
-  editing documents
-    editroom
-    editroompath
-    edititem
+adventure stuff
+  creation mode for new rooms to be added
+  room tree to show room connections
+
+command stuff
+  slash commands for everything(work in progress)

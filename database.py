@@ -17,8 +17,25 @@ class RoomButton(discord.ui.Button):
   async def callback(self, interaction: discord.Interaction):
       await move_player(interaction, self.destination)
 
+class CreateRoomButton(discord.ui.Button):
+  def __init__(self, label, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.primary)
+    self.disabled = disabled
+    self.row = row
+  async def callback(self, interaction: discord.Interaction):
+    await interaction.response.defer()
+    embed = discord.Embed(title="Create a new room", description="This will create a new room with the name you provide. Fill out all of the fields to create the room. Once the room is created, you can edit it.", color=0x00ff00)
+    embed.set_image(url="https://imgur.com/a/rnhBqRB")
+    view = discord.ui.View()
+    namefield = discord.ui.TextInput(label="Room Name", style=discord.TextStyle.short, row=0)
+    confirmbutton = ConfirmButton(label="Create Room", confirm=True, action="create_room", row=1)
+    action_row = discord.ActionRow()
+    view.add_item(namefield)
+    view.add_item(confirmbutton)
+    await interaction.response.send_message(embed=embed, view=view)
+
 class ConfirmButton(discord.ui.Button):
-  def __init__(self, label, confirm, action, channel, disabled=False, row=0):
+  def __init__(self, label, confirm, action, channel="", disabled=False, row=0):
     super().__init__(label=label)
     self.confirm = confirm
     self.action = action
@@ -37,6 +54,8 @@ class ConfirmButton(discord.ui.Button):
       await leave_game(interaction, self.channel)
     elif self.action == "cancel":
       await interaction.delete_original_response()
+    elif self.action == "create_room":
+      await interaction.response.send_message("Creating room... jk this isn't doing anything yet but it's working")
       return
     else:
       print("ERROR - confirmation button has no action!")
@@ -64,7 +83,9 @@ rooms = db.rooms
 users = db.users
 items = db.items
 adventures = db.adventures
-
+testrooms = db.testrooms
+testadventures = db.testadventures
+testitems = db.testitems
 def give_player_items(new_items, old_items, taken):
   items_grouping = [new_items, old_items, taken]
   for item in new_items:
@@ -173,6 +194,14 @@ async def confirm_embed(confirm_text, action, channel):
     embed.set_image(url="https://i.kym-cdn.com/entries/icons/mobile/000/028/033/Screenshot_7.jpg")
   return (embed, view)
 
+async def creation_mode():
+  view = discord.ui.View()
+  embed= discord.Embed(title="Creation Mode", description="You can use this thread to edit or create new rooms. Use the buttons below to select what you want to do.", color=discord.Color.blue())
+  new_room_button = CreateRoomButton("Create New Room")
+  view.add_item(new_room_button)
+  return (embed, view)
+  
+
 async def leave_game(interaction, channel):
     player = get_player(interaction.user.id)
     if player:
@@ -204,17 +233,17 @@ def get_item(name):
     return None
 
 def create_blank_room(author_name):
-  room = Room("test_room", "Test Room", author_name)
-  rooms.insert_one(room.__dict__)
-  return room
+    room = Room("test_room", "Test Room", author_name)
+    testrooms.insert_one(room.__dict__)
+    return room
 
 def create_blank_adventure(author):
-  adventure = Adventure("Test Adventure", "test_room", author, "This is a test advenure")
-  adventures.insert_one(adventure.__dict__)
+    adventure = Adventure("Test Adventure", "test_room", author, "This is a test advenure")
+    testadventures.insert_one(adventure.__dict__)
 
 def create_blank_item():
-  item = Item("test_item","Test Item", description="This is where the description goes")
-  items.insert_one(item.__dict__)
+    item = Item("test_item","Test Item", description="This is where the description goes")
+    testitems.insert_one(item.__dict__)
 
 def get_item_by_displayname(displayname):
   item = items.find_one({"displayname": displayname})
