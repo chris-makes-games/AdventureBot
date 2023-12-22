@@ -1,20 +1,30 @@
 player stuff
   new invenotry system
     inventory embed
-    combine items
+    combine items buttons/fields
   admin privelages
     new writer role
   dead player updates
-  Need to block the player from using info in the main channel
-    need to make it so a role will unlock the players ability to create things
-    
-  
+  admin role to unlock the players ability to create things
+
+item stuff
+  items as concepts that wont show in inventory (bool)
+  items also needs a author in the database
+
 room stuff
   prevent dead players(info already blocked to players)
 
 adventure stuff
   creation mode for new rooms to be added
   room tree to show room connections
+  renamed name field to name_ID
 
 command stuff
   slash commands for everything(work in progress)
+
+misc:
+  functions for pulling documents and updating all classes
+  add author fields to items, adventures
+  colledtion for master IDs(roomid, itemid)
+
+  Update and make roomid, itemid, nameid into the bot code in appropriate places.in the class's, the main.py, database.py 

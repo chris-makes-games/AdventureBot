@@ -1,15 +1,14 @@
-import os
-from collections import Counter
+import os #used to store secrets
+from collections import Counter #list comparing tool
 
-import discord
-from discord.ext import commands
+import discord #all bot functionality
+from discord.ext import commands #commands for bot
 
-import database
-import formatter
-from adventure import Adventure
-from database import RoomButton
-from player import Player
-from room import Room
+import database #mongodb database
+import formatter #formats embeds
+from adventure import Adventure #adventure class
+from player import Player #player class
+from room import Room #room class
 
 #token for use with discord API
 my_secret = os.environ['TOKEN']
@@ -17,6 +16,8 @@ my_secret = os.environ['TOKEN']
 #intents rescricts scope of discord bot
 intents = discord.Intents().all()
 
+#the channel ID needs to be in this list
+#bot ignores all other channels
 protectedchannels = [
   770017224844116031,
   1180274480807956631,
@@ -24,7 +25,8 @@ protectedchannels = [
   1186398826148417707,
   1186464529366921286,
   908522799772102739,
-  1183954110513414164
+  1183954110513414164,
+  1187417491576729620
 
 ]
 #bot will be the async client for running commands
@@ -39,20 +41,38 @@ guild_ids = [730468423586414624]
 @bot.command()
 async def ping(ctx):
   await ctx.reply('Pong!\n {0}'.format(round(bot.latency, 1)) + " seconds")
-  
-def player_alive(name):
-  player = database.get_player(name)
-  if player:
-    return player["alive"]
-  else:
-    return None
-  
-def player_architect(roles):
-  role_names = []
-  for role in roles:
-    role_names.append(role.name)
-  return 'architect' in role_names
 
+#generate unique ID and send for testing purposes
+@bot.command()
+async def randomid(ctx, *args):
+  arg = int(''.join(args))
+  await ctx.reply(database.generate_unique_id(arg))
+
+@bot.command()
+async def updaterooms(ctx):
+  room_list = []
+  all_rooms = database.rooms.find()
+  for room in all_rooms:
+    room_object = Room(dict=room)
+    room_id = room_object.id
+    room_name = room_object.name
+    print("checking room " + room_name)
+    print("room ID: " + str(room_id))
+    dict = room_object.__dict__
+    database.update_room(dict)
+    await ctx.send("room " + room_name + " updated with ID " + str(room_id) + " but still has a name")
+
+#NUCLEAR DELETION OF ROOM FIELDS
+#@bot.command()
+#async def deleteroomfields(ctx, *args):
+  #arg = ''.join(args)
+  #database.delete_room_fields(arg)
+  #await ctx.send(str(arg) + " removed from all rooms")
+
+#old version, new version is handled by database
+#injests items a room has, player inventory, player taken
+#determines if the player needs to be given the item
+#prevents duplicate items, returns a tuple
 def give_player_items(new_items, old_items, taken):
   items_grouping = [new_items, old_items, taken]
   for item in new_items:
@@ -79,12 +99,6 @@ def give_player_items(new_items, old_items, taken):
       new_items.remove(item)
   database.pp("New Items:" + str(items_grouping))
   return items_grouping
-
-@bot.command()
-async def buttontest(ctx):
-  view = discord.ui.View()
-  view.add_item(RoomButton("Button 1", "test"))
-  await ctx.reply("Button Test", view=view)
   
 #creates new players and adds them to the database
 @bot.command()
@@ -140,13 +154,15 @@ async def join(ctx, *args):
     #await ctx.message.delete()
     await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
 
+#creation mode for adding anything new or editing rooms
+#edits one adventure at a time
+#works similar to join, creates a private thread
 @bot.command()
 async def create(ctx, *args):
   adventure_name = []
   truename = ctx.author.id
   name = ctx.author.display_name
   channel = ctx.channel
-  player = database.get_player(truename)
   #delete comment to implememnt admin check
   #if player and not player["architect"]:
     #embed = formatter.embed_message(name, "Error", "notarchitect" , "red")
@@ -174,22 +190,17 @@ async def create(ctx, *args):
     return
   else:
     guild = ctx.guild
-    thread = await channel.create_thread(name=name + "'s " + adventure_name)
+    thread = await channel.create_thread(name=name + " editing " + adventure_name)
     channel_id = thread.id
-    room = database.get_room(adventure["start"])
-    if room is None:
-      print("Error! RAdventure has no start room!")
-      embed = formatter.embed_message(name, "Error", "noroom", "red")
-      await ctx.reply(embed=embed)
-      return
     tuple = await database.creation_mode()
     embed = tuple[0]
     view = tuple[1]
     #un-comment to delete command after success
     #await ctx.message.delete()
-    await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
+    await thread.send(ctx.author.mention + "This is create mode",embed=embed, view=view)
 
-
+#currenetly unused, room trees are hard
+#WIP for creating a map of an adventure
 @bot.command()
 async def roomtree(ctx, *args):
   room1 = Room(name="room1", displayname="Room 1", exits=["east"], exit_destination=["room2"], author="")
@@ -206,6 +217,7 @@ async def roomtree(ctx, *args):
   
 
 #attempts to combine two items or more together
+#soon to be removed, in favor of embed function
 @bot.command()
 async def combine(ctx, *args):
   truename = ctx.author.id
@@ -253,6 +265,7 @@ async def combine(ctx, *args):
   return
 
 #deconstructs an item, if such a thing is possible for that item
+#soon to be removed, in favor of embed function
 @bot.command()
 async def deconstruct(ctx, item):
   truename = ctx.author.id
@@ -293,7 +306,6 @@ async def deconstruct(ctx, item):
   embed = formatter.blank_embed(name, "You deconstruct the " + scrap_item["displayname"], "after deconstruction the following items are added to your inventory:\n" + items_string, "green")
   await ctx.reply(embed=embed)
   return
-  
 
 #basic help command, replies with embed
 #allows the user to optionally !help other commands
@@ -301,6 +313,7 @@ async def deconstruct(ctx, item):
 async def help(ctx, *args):
   message = args[0] if len(args) > 0 else ""
   await ctx.reply(embed=formatter.help(message))
+
 #Slash commands start here!!!!
 #Slash commands start here!!!!
 #Slash commands start here!!!!
@@ -381,7 +394,7 @@ async def info(interaction: discord.Interaction):
     view = tuple[1]
     await interaction.response.send_message(embed=embed, view=view)
 
-    #allows player to kill themselves... for testing purposes
+#allows player to kill themselves... for testing purposes
 @bot.tree.command(name= "kill", description= "A way out of the game")
 async def kill(interaction: discord.Interaction):
       truename = interaction.user.id
@@ -390,7 +403,7 @@ async def kill(interaction: discord.Interaction):
       database.update_player(dict)
       await interaction.response.send_message(f"You Died! Game over")
 
-  #returns a list of the truenames of items for the player
+#returns a list of the truenames of items for the player
 @bot.tree.command(name= "inventory", description= "View your inventory")
 async def inventory(interaction: discord.Interaction):
     truename = interaction.user.id
@@ -426,8 +439,7 @@ async def adventures(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
     return
 
-
-    #prints a connection message to the console for debugging
+#prints a connection message to the console for debugging
 @bot.event
 async def on_ready():
       print(f'{bot.user} has connected to Discord!')
@@ -437,6 +449,7 @@ async def on_ready():
           print(f'Synced {len(synced)} commands.')
       except Exception as e:
           print(e)
+          return
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels

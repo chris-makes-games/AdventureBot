@@ -190,3 +190,18 @@ async def newroom(ctx):
     except Exception as e:
       embed = formatter.blank_embed(name, "Error", str(e), "red")
     await ctx.reply(embed=embed)
+
+#inefficiant way of determining player alive
+def player_alive(name):
+player = database.get_player(name)
+if player:
+  return player["alive"]
+else:
+  return None
+
+inefficient way of determining player admin status
+def player_architect(roles):
+role_names = []
+for role in roles:
+  role_names.append(role.name)
+return 'architect' in role_names
