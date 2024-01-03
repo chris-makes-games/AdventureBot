@@ -20,6 +20,21 @@ class RoomButton(discord.ui.Button):
   async def callback(self, interaction: discord.Interaction):
       await move_player(interaction, self.destination)
 
+class CupidModal(discord.ui.Modal):
+  def __init__(self, title="Valentines Event Sign-up", *args):
+    super().__init__(title=title)
+    self.likes = discord.ui.TextInput(label="What short story would you like?", placeholder="remember that it should stay within 3k words", style=discord.TextStyle.long, required=True)
+    self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="these topics will not be included in the story you recieve.", style=discord.TextStyle.short, required=True)
+    self.willing = discord.ui.TextInput(label="What are you willing to write?", placeholder="please include any limits you may have.", style=discord.TextStyle.long, required=True)
+    self.add_item(self.likes)
+    self.add_item(self.limits)
+    self.add_item(self.willing)
+  async def on_submit(self, interaction: discord.Interaction):
+    await interaction.response.defer()
+    dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.limits.value}
+    new_cupid(dict)
+    await interaction.response.send_message(f"{interaction.user.mention} Your have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine.", ephemeral=True)
+
 class CreateRoomModal(discord.ui.Modal):
   def __init__(self):
     super().__init__(title="Create New Room")
@@ -46,12 +61,18 @@ class CreateItemModal(discord.ui.Modal):
     self.add_item(self.description)
   async def on_submit(self, interaction: discord.Interaction):
     user_id = interaction.user.id
-    item = Item(displayname= self.name.value, description = self.description.value, items = self.items.value, author=user_id)
-    create_new_room(room.__dict__)
-    await interaction.response.send_message(f"Room created:\nRoom display name: {self.name}\n description:\n{self.description}\nItems:\n{self.items}", ephemeral=True)
+    item = Item(displayname= self.name.value, description = self.description.value, author=user_id)
+    create_new_item(item.__dict__)
+    await interaction.response.send_message(f"Item created:\nItem display name: {self.name}\n description:\n{self.description}", ephemeral=True)
 
+class CupidButton(discord.ui.Button):
+  def __init__(self, label, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.primary)
+    self.disabled = disabled
+    self.row = row
+    async def callback(self, interaction: discord.Interaction):
+      await interaction.response.send_modal(CupidModal())
 
-#WIP button class for creating a room from an embed
 #generates an embed with fields for the room
 #when clicked, the room making embed is sent to the channel
 class CreateRoomButton(discord.ui.Button):
@@ -62,6 +83,25 @@ class CreateRoomButton(discord.ui.Button):
   #callback is for when the button is clicked
   async def callback(self, interaction: discord.Interaction):
     await interaction.response.send_modal(CreateRoomModal())
+
+class CreateItemButton(discord.ui.Button):
+  def __init__(self, label, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.primary)
+    self.disabled = disabled
+    self.row = row
+  #callback is for when the button is clicked
+  async def callback(self, interaction: discord.Interaction):
+    await interaction.response.send_modal(CreateItemModal())
+
+class ExitButton(discord.ui.Button):
+  def __init__(self, label, channel, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.primary)
+    self.channel = channel
+    self.disabled = disabled
+    self.row = row
+  #callback is for when the button is clicked
+  async def callback(self, interaction: discord.Interaction):
+    await self.channel.delete()
 
 #simple button class to confirm or cancel any action
 #can be placed on any embed that requires a confirmation
@@ -124,11 +164,25 @@ testrooms = db.testrooms
 testadventures = db.testadventures
 testitems = db.testitems
 ids = db.ids
+botinfo = db.botinfo
+cupid = db.cupid
 
 #lists for generating a random ID
 all_numbers = ["0️", "1️", "2️", "3️", "4️", "5" ,"6️", "7️", "8️", "9️"]
 all_upper_letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 all_lower_letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
+
+#registers the channel to restrict commands to that location
+def register_channel(channel_id, guild_id):
+  bot_info_dict = {
+      "channel": channel_id,
+      "guild": guild_id  
+  }
+  if botinfo.find_one({"guild": guild_id}):
+    return False
+  else:
+    botinfo.insert_one(bot_info_dict)
+    return True
 
 #creates an ID that does not exist in the master ID document
 #optionally allows you to generate more IDs at once
@@ -160,7 +214,7 @@ def give_player_items(new_items, old_items, taken):
   items_grouping = [new_items, old_items, taken]
   for item in new_items:
     item_object = None
-    item_object = items.find_one({"name" : item})
+    item_object = items.find_one({"itemid" : item})
     if not item_object:
       print("ERROR - Room item not found!")
       print(str(item) + " does not exist as an item name")
@@ -194,7 +248,7 @@ async def move_player(interaction, destination):
     taken = player["taken"]
     print("inventory: " + str(inventory))
     print("taken: " + str(taken))
-    newroomname = new_room["name"]
+    newroomname = new_room["roomid"]
   else:
     print("ERROR - None Object during database.moveplayer()")
     print("player: " + str(player))
@@ -270,14 +324,31 @@ async def confirm_embed(confirm_text, action, channel):
     embed.set_image(url="https://i.kym-cdn.com/entries/icons/mobile/000/028/033/Screenshot_7.jpg")
   return (embed, view)
 
+async def cupid_embed(user):
+  embed = discord.Embed(title="Valentines Event Sign-Up")
+  view = discord.ui.View()
+  if cupid.find_one({"disc": user}):
+    embed.description = "You have already signed up for the Valentines Event. If you submit this form again, it will overwrite your previous valentines sign-up."
+    cupid_button = CupidButton(label="I understand, I want to resubmit")
+    view.add_item(cupid_button)
+  else:
+    embed.description = "Please only sign up for this event if you plan to write something for someone else. It is a few thousand words over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know so a replacement can be written"
+    cupid_button = CupidButton(label="I understand, I want to sign up")
+    view.add_item(cupid_button)
+  return (embed, view)
+
 #WIP for creation mode
 #this embed is just the creation mode tutorial
 #buttons on this embed allow user to create/edit rooms/items
-async def creation_mode():
+async def creation_mode(channel):
   view = discord.ui.View()
   embed= discord.Embed(title="Creation Mode", description="You can use this thread to edit or create new rooms. Use the buttons below to select what you want to do.", color=discord.Color.blue())
   new_room_button = CreateRoomButton("Create New Room")
+  new_item_button = CreateItemButton("Create New Item")
+  exit_button = ExitButton("Exit", channel)
   view.add_item(new_room_button)
+  view.add_item(new_item_button)
+  view.add_item(exit_button)
   return (embed, view)
   
 #removes player from the game, deleting the database entry
@@ -294,10 +365,23 @@ async def leave_game(interaction, channel):
         print("ERROR - Player does not exist")
         return
 
+async def delete_thread(interaction, thread_id):
+  pp("deleting channel:")
+  await thread_id.delete()
+
 #used to add a new player into the database
 #requires a player object that has been turned to a dict
 def new_player(dict):
   users.insert_one(dict)
+
+def new_cupid(dict):
+  if cupid.find_one({"disc": dict["disc"]}):
+    print(f"cupid found: {dict['disc']}")
+    cupid.updaate_one({"disc": dict["disc"]}, {"$set": dict})
+    print("cupid updated")
+  else:
+    cupid.insert_one(dict)
+    print("new cupid created")
 
 #returns a dict of player info for a given discord id
 def get_player(name):
@@ -309,8 +393,8 @@ def get_player(name):
     return None
 
 #returns a dict of item info for given item name
-def get_item(name):
-  item = items.find_one({"name": name})
+def get_item(id):
+  item = items.find_one({"itemid": id})
   if item:
     return item
   else:
@@ -326,13 +410,13 @@ def create_blank_room(author_name):
 #creates a blank adventure for testing purposes
 #useful for showing adventure structure to new database
 def create_blank_adventure(author):
-    adventure = Adventure("Test Adventure", "test_room", author, "This is a test advenure")
-    testadventures.insert_one(adventure.__dict__)
+  adventure = Adventure(nameid="New Advenuture", author=author, start= "", description="Blank Description")
+  testadventures.insert_one(adventure.__dict__)
 
 #creates a blank item for testing purposes
 #useful for showing item structure to new database
-def create_blank_item():
-    item = Item("test_item","Test Item", description="This is where the description goes")
+def create_blank_item(author):
+    item = Item("test_item","Test Item", description="This is where the description goes", author=author)
     testitems.insert_one(item.__dict__)
 
 #finds all the players currently in a given room
@@ -354,7 +438,14 @@ def create_new_room(dict):
   print("creating new room:")
   pp(str(dict))
   rooms.insert_one(dict)
-  id = {"id": dict["id"]}
+  id = {"roomid": dict["roomid"]}
+  ids.insert_one(id)
+
+def create_new_item(dict):
+  print("creating new item:")
+  pp(str(dict))
+  items.insert_one(dict)
+  id = {"itemid": dict["itemid"]}
   ids.insert_one(id)
 
 #updates room in databse
@@ -363,19 +454,19 @@ def update_room(dict, delete=""):
   if delete == "":
     print("updating room:")
     pp(str(dict))
-    rooms.update_one({"name": dict["name"]}, {"$set": dict})
+    rooms.update_one({"roomid": dict["roomid"]}, {"$set": dict})
   else:
     print("updating room:")
     pp(str(dict))
     print("deleting field from room:" + delete)
-    rooms.update_one({"name": dict["name"]}, {"$set": dict}, {"$unset": {delete: ""}})
+    rooms.update_one({"roomid": dict["roomid"]}, {"$set": dict}, {"$unset": {delete: ""}})
 
-def delete_room(id):
-  room = rooms.find_one({"id": id})
+def delete_room(roomid):
+  room = rooms.find_one({"roomid": roomid})
   if room:
-    print(f"Deleteing room " + room["displayname"] + " with id " + room[id])
-    rooms.delete_one({"id": id})
-    ids.delete_one({"id": id})
+    print(f"Deleteing room " + room["displayname"] + " with id " + room["roomid"])
+    rooms.delete_one({"roomid": roomid})
+    ids.delete_one({"id": roomid})
   else:
     print(f"ERROR - Room {id} does not exist")
 
@@ -403,8 +494,8 @@ def get_adventures():
   return adventures.find()
 
 #gets an adventure by name
-def get_adventure(name):
-  adventure = adventures.find_one({"name": name})
+def get_adventure(nameid):
+  adventure = adventures.find_one({"nameid": nameid})
   if adventure:
     return adventure
   else:
@@ -415,8 +506,8 @@ def kill_player(name):
   users.update_one({"disc": name}, {"$set": {"alive": False}})
 
 #returns a room dict of a room by room name
-def get_room(id):
-  room = rooms.find_one({"id": id})
+def get_room(roomid):
+  room = rooms.find_one({"roomid": roomid})
   if room:
     return room
   else:
@@ -436,7 +527,7 @@ def get_player_room(name):
   player = users.find_one({"disc" : name})
   if player:
     print(str(player))
-    room = rooms.find_one({"id": player["room"]})
+    room = rooms.find_one({"roomid": player["room"]})
     if room:
       return room
   else:

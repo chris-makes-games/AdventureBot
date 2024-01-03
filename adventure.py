@@ -1,8 +1,8 @@
 import database
 
 class Adventure:
-  def __init__(self, name, start, author, description):
-      self.name = name
+  def __init__(self, nameid, start, author, description):
+      self.nameid = nameid
       self.start = start
       self.author = author
       self.description = description

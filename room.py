@@ -3,13 +3,13 @@ import database
 
 class Room:
   def __init__(self, 
-               id="", displayname="", author="", 
+               roomid="", displayname="", author="", 
                description="", 
                kill=False, exits=None, items=None, 
                exit_destination=None, 
                secrets=None, unlockers=None, url="", dict=None):
     if dict is not None:
-      self.id = database.generate_unique_id()
+      self.roomid = database.generate_unique_id()
       for key, value in dict.items():
           setattr(self, key, value)
       if self.description == "":
@@ -19,7 +19,7 @@ class Room:
       if self.author == "":
         self.author = "INVALID AUTHOR"
     else:
-      self.id = database.generate_unique_id()
+      self.roomid = database.generate_unique_id()
       self.description = description
       self.kill = kill
       self.displayname = displayname

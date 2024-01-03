@@ -1,0 +1,6 @@
+main
+  register
+  new adventure(command, now checks to see if the player has a edit adventure already, , then it checks that the player is in the example adventure,   if both do not exist it then makes a new adventure in testadventures and makes a thread then it looks for the thread id for the edit adventure and logs the information on the players user database )
+database
+  register_channel
+  create blank adventure ( turns into a object and inserts one)

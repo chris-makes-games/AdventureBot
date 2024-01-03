@@ -1,14 +1,13 @@
-import os #used to store secrets
-from collections import Counter #list comparing tool
+import os  #used to store secrets
+from collections import Counter  #list comparing tool
 
-import discord #all bot functionality
-from discord.ext import commands #commands for bot
+import discord  #all bot functionality
+from discord.ext import commands  #commands for bot
 
-import database #mongodb database
-import formatter #formats embeds
-from adventure import Adventure #adventure class
-from player import Player #player class
-from room import Room #room class
+import database  #mongodb database
+import formatter  #formats embeds
+from player import Player  #player class
+from room import Room  #room class
 
 #token for use with discord API
 my_secret = os.environ['TOKEN']
@@ -26,7 +25,7 @@ protectedchannels = [
   1186464529366921286,
   908522799772102739,
   1183954110513414164,
-  1187417491576729620
+  1187417491576729620,
 
 ]
 #bot will be the async client for running commands
@@ -42,6 +41,17 @@ guild_ids = [730468423586414624]
 async def ping(ctx):
   await ctx.reply('Pong!\n {0}'.format(round(bot.latency, 1)) + " seconds")
 
+@bot.tree.command(name="register", description="Register a bot to a channel")
+async def register(interaction: discord.Interaction):
+    channel_id = interaction.channel_id
+    guild_id = interaction.guild_id
+    if database.register_channel(channel_id, guild_id):
+      await interaction.response.send_message("Bot has been registered to this channel.", ephemeral=True)
+      print(f"Bot has been registered to channel: {channel_id}")
+    else:
+      await interaction.response.send_message("Failed to register the bot: guild already has a channel registered.", ephemeral=True)
+      print("Error in register command: guild already has a channel in the database")
+
 #generate unique ID and send for testing purposes
 @bot.command()
 async def randomid(ctx, *args):
@@ -50,12 +60,11 @@ async def randomid(ctx, *args):
 
 @bot.command()
 async def updaterooms(ctx):
-  room_list = []
   all_rooms = database.rooms.find()
   for room in all_rooms:
     room_object = Room(dict=room)
-    room_id = room_object.id
-    room_name = room_object.name
+    room_id = room_object.roomid
+    room_name = room_object.displayname
     print("checking room " + room_name)
     print("room ID: " + str(room_id))
     dict = room_object.__dict__
@@ -118,7 +127,7 @@ async def join(ctx, *args):
   if adventure_name == "":
     embed = discord.Embed(title="Error - Need adventure", description="You need to specify an adventure to join. Use !join <adventure name here>\nRefer to this list of available adventures:", color=discord.Color.red())
     for adventure in all_adventures:
-      embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
+      embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
     embed.set_footer(text="If there is a different error, contact a moderator")
     await ctx.reply(embed=embed)
     return
@@ -126,7 +135,7 @@ async def join(ctx, *args):
   if not adventure:
     embed = discord.Embed(title="Error - No Such Adventure", description="Adventure '" + adventure_name + "' was not found. Please !join one of these adventures to begin:", color=discord.Color.red())
     for adventure in all_adventures:
-      embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
+      embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
     embed.set_footer(text="If there is a different error, contact a moderator")
     await ctx.reply(embed=embed)
     return
@@ -160,7 +169,6 @@ async def join(ctx, *args):
 @bot.command()
 async def create(ctx, *args):
   adventure_name = []
-  truename = ctx.author.id
   name = ctx.author.display_name
   channel = ctx.channel
   #delete comment to implememnt admin check
@@ -176,7 +184,7 @@ async def create(ctx, *args):
   if adventure_name == "":
     embed = discord.Embed(title="Error - Need adventure", description="You need to specify an adventure to begin creating. Use !create <adventure name here>\nRefer to this list of available adventures to edit:", color=discord.Color.red())
     for adventure in all_adventures:
-      embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
+      embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
     embed.set_footer(text="If there is a different error, contact a moderator")
     await ctx.reply(embed=embed)
     return
@@ -184,37 +192,18 @@ async def create(ctx, *args):
   if not adventure:
     embed = discord.Embed(title="Error - No Such Adventure", description="Adventure '" + adventure_name + "' was not found. Please !create one of these adventures to begin creation mode:", color=discord.Color.red())
     for adventure in all_adventures:
-      embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
+      embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
     embed.set_footer(text="If there is a different error, contact a moderator")
     await ctx.reply(embed=embed)
     return
   else:
-    guild = ctx.guild
     thread = await channel.create_thread(name=name + " editing " + adventure_name)
-    channel_id = thread.id
-    tuple = await database.creation_mode()
+    channel = bot.get_channel(thread.id)
+    tuple = await database.creation_mode(channel)
     embed = tuple[0]
     view = tuple[1]
-    #un-comment to delete command after success
-    #await ctx.message.delete()
+    await ctx.message.delete()
     await thread.send(ctx.author.mention + "This is create mode",embed=embed, view=view)
-
-#currenetly unused, room trees are hard
-#WIP for creating a map of an adventure
-@bot.command()
-async def roomtree(ctx, *args):
-  room1 = Room(name="room1", displayname="Room 1", exits=["east"], exit_destination=["room2"], author="")
-  room2 = Room(name="room2", displayname="Room 2", exits=["west", "south"], exit_destination=["room1", "room3"], author="")
-  room3 = Room(name="room3", displayname="Room 3", exits=["north"], exit_destination=["room2"], author="")
-
-  adventure_rooms = [room1, room2, room3]
-  ascii_map = []
-
-  # Print ASCII map for each room
-  ascii_map = room1.generate_ascii_map()
-  await ctx.reply("```" + str(ascii_map) + "```")
-  
-  
 
 #attempts to combine two items or more together
 #soon to be removed, in favor of embed function
@@ -254,7 +243,7 @@ async def combine(ctx, *args):
       if Counter(combining_items) == Counter(item["subitems"]):
         for olditem in combining_items:
           inventory.remove(olditem)
-        inventory.append(item["name"])
+        inventory.append(item["itemid"])
         dict = {"disc": truename,"inventory": inventory}
         database.update_player(dict)
         embed = formatter.embed_message(name, "You created a " + item["displayname"] + "!", "combo", "green")
@@ -323,37 +312,67 @@ async def help(ctx, *args):
 #Makes a new room in the database
 @bot.tree.command(name= "newroom", description= "Create a new room")
 async def newroom(interaction: discord.Interaction):
-      truename = interaction.user.id
-      name = interaction.user.display_name  # Define the 'name' variable within the 'newroom' command
-      try:
-          database.create_blank_room(truename)
-          embed = formatter.blank_embed(name, "Success", "Room was created", "green")
-      except Exception as e:
-          embed = formatter.blank_embed(name, "Error", str(e), "red")
-      await interaction.response.send_message(embed=embed)
+    truename = interaction.user.id
+    name = interaction.user.display_name  # Define the 'name' variable within the 'newroom' command
+    try:
+        database.create_blank_room(truename)
+        embed = formatter.blank_embed(name, "Success", "Room was created, use the get room command /getroom  to view the room you just made.", "green")
+    except Exception as e:
+        embed = formatter.blank_embed(name, "Error", str(e), "red")
+    await interaction.response.send_message(embed=embed)
 
-#Makes a new item in the database
+#Makes a new blank item in the database
 @bot.tree.command(name= "newitem", description= "Create a new item")
 async def newitem(interaction: discord.Interaction):
+      author_id = interaction.user.id  # capture the user ID of the person interacting
       name = interaction.user.display_name
       try:
-        database.create_blank_item()
+        database.create_blank_item(author_id)  # pass the user ID to create_blank_item
         embed = formatter.blank_embed(name, "Success", "Item was created", "green")
       except Exception as e:
         embed = formatter.blank_embed(name, "Error", str(e), "red")
       await interaction.response.send_message(embed=embed)
 
 #makes a new adventure in the database
-@bot.tree.command(name= "newadventure", description= "Create a new adventure")
+@bot.tree.command(name="newadventure", description="Create a new adventure")
 async def newadventure(interaction: discord.Interaction):
-      truename = interaction.user.id
-      name = interaction.user.display_name 
-      try:
+    truename = interaction.user.id
+    name = interaction.user.display_name
+    channel = interaction.channel
+    # Check if the author already has an adventure
+    if database.testadventures.find_one({"author": truename}):
+        embed = formatter.blank_embed(name, "Error", "You already have an existing adventure. You cannot create more than one.", "red")
+        await interaction.response.send_message(embed=embed)
+        return
+    # Check for existing edit thread
+    player_info = database.get_player(truename)
+    if player_info and player_info["edit_thread_id"] != "":
+        embed = formatter.blank_embed(name, "Error", "You already have an existing thread for editing adventures. Please use that for editing your adventure.", "red")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    # Check for the player existing in the database
+    elif not player_info:
+        embed = formatter.blank_embed(name, "Error", "You are not a player. Please use /join Example Adventure to begin", "red")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    # Checks for the player having joined the example adventure
+    elif player_info["current_adventure"] != "example adventure":
+        embed = formatter.blank_embed(name, "Error", "You are not in the Example Adventure. Please use /join Example Adventure to begin", "red")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        return
+    else:
+        # Create the adventure first
         database.create_blank_adventure(truename)
-        embed = formatter.blank_embed(name, "Success", "Adventure was created", "green")
-      except Exception as e:
-        embed = formatter.blank_embed(name, "Error", str(e), "red")
-      await interaction.response.send_message(embed=embed)
+        # Then, create a new thread for editing this adventure
+        database.pp("creating adventure edit channel:\n" + str(channel))
+        if channel and channel.type == discord.ChannelType.text:
+          thread = await channel.create_thread(name=f"{name} editing an adventure")
+          await thread.send(interaction.user.mention + " is editing an adventure.")
+          edit_thread_id = channel.id
+        # Update the player's editthread field with the new thread ID
+          database.update_player({'disc': truename, 'edit_thread_id': edit_thread_id})
+          embed = formatter.blank_embed(name, "Success", f"Adventure was created and your edit thread is ready! Thread ID: {edit_thread_id}", "green")
+          await interaction.response.send_message(embed=embed, ephemeral=True)
 
 #Leaves current game
 @bot.tree.command(name= "leave", description= "Use this command to leave the game! (You can only leave if you are the host of the game)")
@@ -375,16 +394,15 @@ async def leave(interaction: discord.Interaction):
 @bot.tree.command(name= "info", description= "Learn about the room you are in")
 async def info(interaction: discord.Interaction):
   truename = interaction.user.id
-  name = interaction.user.display_name 
   player = database.get_player(truename)
   if player:
-    if player.get("alive"):
+    if player["alive"]:
         room_name = player["room"]
         all_items = player["inventory"]
         new_items = []
         room = database.get_room(room_name)
     else:
-      await interaction.response.send_message(f"You are either dead or not in a adventure!")
+      await interaction.response.send_message("You are either dead or not in a adventure!")
       return
     if room:
       tuple = database.embed_room(all_items, new_items, room["displayname"], room)
@@ -398,10 +416,9 @@ async def info(interaction: discord.Interaction):
 @bot.tree.command(name= "kill", description= "A way out of the game")
 async def kill(interaction: discord.Interaction):
       truename = interaction.user.id
-      name = interaction.user.display_name 
       dict = {"disc": truename,"alive": False}
       database.update_player(dict)
-      await interaction.response.send_message(f"You Died! Game over")
+      await interaction.response.send_message("You Died! Game over")
 
 #returns a list of the truenames of items for the player
 @bot.tree.command(name= "inventory", description= "View your inventory")
@@ -410,10 +427,20 @@ async def inventory(interaction: discord.Interaction):
     real_items = database.get_player_info(truename, "inventory")
     player = database.get_player(truename)
     embed = formatter.inventory(real_items)
-    if player.get("alive"):
+    if player and player["alive"]:
       await interaction.response.send_message(embed=embed)
     else :
-      await interaction.response.send_message(f"You are either dead or not in a adventure!")
+      await interaction.response.send_message("You are either dead or not in a adventure!")
+
+#cupid for giantessworld valentines event
+@bot.tree.command(name= "cupid", description= "Use this to submit your valentines request")
+async def cupid(interaction: discord.Interaction):
+  truename = interaction.user.id
+  tuple = await database.cupid_embed(truename)
+  embed = tuple[0]
+  view = tuple[1]
+  await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+  
 
 #Lists the current adventures from the database
 @bot.tree.command(name= "adventures", description= "A list of all playable adventures")
@@ -423,8 +450,10 @@ async def adventures(interaction: discord.Interaction):
     adventure_names = []
     descriptions = []
     authors = []
+    if guild is None:
+      return
     for adventure in adventures:
-        adventure_names.append(adventure["name"])
+        adventure_names.append(adventure["nameid"])
         descriptions.append(adventure["description"])
         author_id = adventure["author"]
         print(f"Author ID: {author_id}")
@@ -442,14 +471,13 @@ async def adventures(interaction: discord.Interaction):
 #prints a connection message to the console for debugging
 @bot.event
 async def on_ready():
-      print(f'{bot.user} has connected to Discord!')
-      #this syncs the bot slash commands
-      try: 
-          synced = await bot.tree.sync()
-          print(f'Synced {len(synced)} commands.')
-      except Exception as e:
-          print(e)
-          return
+    print(f'{bot.user} has connected to Discord!')
+    #this syncs the bot slash commands
+    try: 
+        synced = await bot.tree.sync()
+        print(f'Synced {len(synced)} commands.')
+    except Exception as e:
+        print(e)
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels
@@ -460,9 +488,15 @@ async def on_message(message):
     return
   if not message.content.startswith("!"):
     return
+  if message.content.contains("cupid"):
+    if message.channel.id == 1192186126623064084:
+      await bot.process_commands(message)
+    else:
+      return
   if message.channel.id in protectedchannels:
     await bot.process_commands(message)
   else:
+    # makes sure that player can only respond to specific thread
     player_id = message.author.id
     player_channel_id = database.get_player_info(player_id, "channel")
     if message.channel.id != player_channel_id:

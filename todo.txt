@@ -4,27 +4,33 @@ player stuff
     combine items buttons/fields
   admin privelages
     new writer role
-  dead player updates
-  admin role to unlock the players ability to create things
+    admin role to unlock the players ability to create things
+  Player death
+    log death events
+    player info persistence on leaving
+    player info delete function
+  
+  
 
 item stuff
-  items as concepts that wont show in inventory (bool)
-  items also needs a author in the database
+  
 
 room stuff
   prevent dead players(info already blocked to players)
+  rooms optionally allow dead players
 
 adventure stuff
   creation mode for new rooms to be added
   room tree to show room connections
   renamed name field to name_ID
+  dead player able to roam bool
 
 command stuff
   slash commands for everything(work in progress)
+  rework info command (currently unusable)
 
 misc:
   functions for pulling documents and updating all classes
-  add author fields to items, adventures
-  colledtion for master IDs(roomid, itemid)
+  change bot buttons to always be clickable (no downtime issues)
 
   Update and make roomid, itemid, nameid into the bot code in appropriate places.in the class's, the main.py, database.py 
