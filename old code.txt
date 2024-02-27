@@ -1,3 +1,27 @@
+#replies with the description of the current room to the player
+@bot.tree.command(name= "info", description= "Learn about the room you are in")
+async def info(interaction: discord.Interaction):
+  truename = interaction.user.id
+  player = database.get_player(truename)
+  if player:
+    if player["alive"]:
+        room_name = player["room"]
+        all_items = player["inventory"]
+        new_items = []
+        room = database.get_room(room_name)
+    else:
+      await interaction.response.send_message("You are either dead or not in a adventure!")
+      return
+    if room:
+      tuple = database.embed_room(all_items, new_items, room["displayname"], room)
+    else:
+      return
+    embed = tuple[0]
+    view = tuple[1]
+    await interaction.response.send_message(embed=embed, view=view)
+
+
+
 @bot.command()
 async def blankadventure(ctx):
   truename = ctx.author.id

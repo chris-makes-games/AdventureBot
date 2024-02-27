@@ -9,8 +9,7 @@ player stuff
     log death events
     player info persistence on leaving
     player info delete function
-  
-  
+
 
 item stuff
   
@@ -20,6 +19,7 @@ room stuff
   rooms optionally allow dead players
 
 adventure stuff
+  join and leave commands need to affect adventures and not delete/create players
   creation mode for new rooms to be added
   room tree to show room connections
   renamed name field to name_ID

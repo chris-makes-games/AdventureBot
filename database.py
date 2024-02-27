@@ -1,13 +1,14 @@
-import os #stores secrets
-from pprint import pprint as pp #pretty printing
+import os  #stores secrets
+import random as rand  #random number generator
+from pprint import pprint as pp  #pretty printing
 
-import discord #discord api
-import pymongo #mongo db api
-import random as rand #random number generator
+import discord  #discord api
+import pymongo  #mongo db api
 
-from adventure import Adventure #adventure class
-from item import Item #item class
-from room import Room #room class
+from adventure import Adventure  #adventure class
+from item import Item  #item class
+from room import Room  #room class
+
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -77,15 +78,16 @@ class ExitButton(discord.ui.Button):
     self.disabled = disabled
     self.row = row
   #callback is for when the button is clicked
-  async def callback(self, interaction: discord.Interaction):
+  async def callback(self):
     await self.channel.delete()
 
 #simple button class to confirm or cancel any action
 #can be placed on any embed that requires a confirmation
 #action is the name of the action to be taken
 class ConfirmButton(discord.ui.Button):
-  def __init__(self, label, confirm, action, channel="", disabled=False, row=0):
+  def __init__(self, label, confirm, action, channel="", id=None, disabled=False, row=0):
     super().__init__(label=label)
+    self.id = id
     self.confirm = confirm
     self.action = action
     self.disabled = disabled
@@ -106,7 +108,12 @@ class ConfirmButton(discord.ui.Button):
       await interaction.delete_original_response()
     elif self.action == "create_room":
       await interaction.response.send_message("Creating room... jk this isn't doing anything yet but it's working")
-      return
+    elif self.action == "delete_item":
+      await interaction.response.send_message(f"This would delete item {self.id} but it's not implemented yet! Check database.ConfirmButton")
+    elif self.action == "delete_room":
+      await interaction.response.send_message(f"This would delete room {self.id} but it's not implemented yet! Check database.ConfirmButton")
+    elif self.action == "delete_adventure":
+      await interaction.response.send_message(f"This would delete adventure {self.id} but it's not implemented yet! Check database.ConfirmButton")
     else:
       print("ERROR - confirmation button has no action!")
       return
@@ -252,6 +259,11 @@ async def move_player(interaction, destination):
     print("inventory: " + str(inventory))
     print("taken: " + str(taken))
     newroomname = new_room["roomid"]
+    newroomauthor = new_room["author"]
+    guild = interaction.guild
+    author = guild.get_member(newroomauthor)
+    if not author:
+      author = "Unknown"
   else:
     print("ERROR - None Object during database.moveplayer()")
     print("player: " + str(player))
@@ -266,18 +278,19 @@ async def move_player(interaction, destination):
     taken = items_list[2]
   dict = {"disc": player["disc"],"room": newroomname, "inventory": inventory, "taken": taken}
   update_player(dict)
-  tuple = embed_room(inventory, new_items, "You enter the " + newroomname, new_room)
+  tuple = embed_room(inventory, new_items, "You enter the " + newroomname, new_room, author)
   embed = tuple[0]
   view = tuple[1]
   await interaction.response.edit_message(embed=embed, view=view)
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view
-def embed_room(all_items, new_items, title, room, color=0):
+def embed_room(all_items, new_items, title, room, author, color=0):
   if color == "":
     color = discord.Color.blue()
   descr = room["description"]
   embed = discord.Embed(title=title, description=descr, color=color)
+  embed.set_footer(text="This room was created by " + author)
   if "url" in room:
     embed.set_image(url=room["url"])
   elif "URL" in room:
@@ -316,9 +329,9 @@ def embed_room(all_items, new_items, title, room, color=0):
 #generic confirmation embed for when an action requires confirmation
 #adds a ConfirmButton to itself at the bottom
 #action is the action that the button will do
-async def confirm_embed(confirm_text, action, channel):
-  embed = discord.Embed(title="Are you Sure?", description=confirm_text, color=discord.Color.orange())
-  confirm_button = ConfirmButton(label="Yes", confirm=True, action=action, channel=channel)
+async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id=None):
+  embed = discord.Embed(title=title, description=confirm_text, color=discord.Color.orange())
+  confirm_button = ConfirmButton(label="Yes", confirm=True, action=action, channel=channel, id=id)
   deny_button = ConfirmButton(label="No", confirm=False, action="cancel", channel=channel)
   view = discord.ui.View()
   view.add_item(confirm_button)
@@ -343,11 +356,10 @@ async def creation_mode(channel):
   
 #removes player from the game, deleting the database entry
 #deletes the thread associated with the player's game
-async def leave_game(interaction, thread, bot_name):
+async def leave_game(interaction, thread):
     player = get_player(interaction.user.id)
-    bot_name = botinfo.find_one({"name": bot_name})
     if player:
-        # Assuming you have a key named "game_thread_id" in the player's data
+      # Assuming you have a key named "game_thread_id" in the player's data
         game_thread_id = player.get("game_thread_id")
 
         if game_thread_id:
@@ -387,17 +399,21 @@ async def leave_game(interaction, thread, bot_name):
 #     view.add_item(cupid_button)
 #   return (embed, view)
 
+#can be used to give any player a new discord role
 async def give_role(interaction, role):
   guild = interaction.guild
   id = interaction.user.id
   member = discord.utils.get(guild.members, id=id)
   print(f"id: {member.id}")
   print(f"member: {member}")
-  role = discord.utils.get(guild.roles, name=role)
-  await member.add_roles(role)
+  new_role = discord.utils.get(guild.roles, name=role)
+  if not role:
+    print(f"ERROR - Role {role} not found")
+    return
+  await member.add_roles(new_role)
   print(f"role {role.name} added to {member.name}")
 
-
+#old valentines function
 def new_cupid(dict):
   if cupid.find_one({"disc": dict["disc"]}):
     print(f"cupid found: {dict['disc']}")
@@ -500,7 +516,7 @@ def update_room(dict, delete=""):
 def delete_room(roomid):
   room = rooms.find_one({"roomid": roomid})
   if room:
-    print(f"Deleteing room " + room["displayname"] + " with id " + room["roomid"])
+    print("Deleteing room " + room["displayname"] + " with id " + room["roomid"])
     rooms.delete_one({"roomid": roomid})
     ids.delete_one({"id": roomid})
   else:

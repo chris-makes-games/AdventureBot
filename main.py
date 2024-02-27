@@ -1,11 +1,11 @@
 import os  #used to store secrets
+import pathlib  #to get commands from command folder
+import re  #for regex
 from collections import Counter  #list comparing tool
 
-import re #for regex
-
 import discord  #all bot functionality
+from discord import app_commands  #slash commands
 from discord.ext import commands  #commands for bot
-from discord import app_commands #slash commands
 
 import database  #mongodb database
 import formatter  #formats embeds
@@ -40,23 +40,29 @@ bot.remove_command('help')
 #guild IDs that the bot is in, for now
 guild_ids = [730468423586414624]
 
+#sets the parent directory of the bot
+BASE_DIR = pathlib.Path(__file__).parent
+
+#this is the command folder directory
+CMDS_DIR = BASE_DIR / "commands"
+
 #simple ping command for testing
 @bot.command()
 async def ping(ctx):
   await ctx.reply('Pong!\n {0}'.format(round(bot.latency, 1)) + " seconds")
 
 @bot.tree.command(name="load", description="loads a command")
-async def load(ctx, command):
+async def load(interaction: discord.Interaction, command: str):
   print("loading " + str(command))
   await bot.reload_extension(f"commands.{command}")
-  await ctx.reply("reloaded " + command)
+  await interaction.response.send_message(f"loaded {command}")
   await bot.tree.sync()
 
 @bot.tree.command(name="unload", description="unloads a command")
-async def unload(ctx, command):
+async def unload(interaction: discord.Interaction, command: str):
   print("unloading " + str(command))
   await bot.reload_extension(f"commands.{command}")
-  await ctx.reply("unloaded " + command)
+  await interaction.response.send_message(f"unloaded {command}")
   await bot.tree.sync()
 
 #deactivated valentines command, saving for later use just in case
@@ -68,17 +74,17 @@ async def unload(ctx, command):
 #   view = tuple[1]
 #   await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-
+#allows the bot to post messages in the channel
 @bot.tree.command(name="register", description="Register a bot to a channel")
 async def register(interaction: discord.Interaction):
-    channel_id = interaction.channel_id
-    guild_id = interaction.guild_id
-    if database.register_channel(channel_id, guild_id):
-      await interaction.response.send_message("Bot has been registered to this channel.", ephemeral=True)
-      print(f"Bot has been registered to channel: {channel_id}")
-    else:
-      await interaction.response.send_message("Failed to register the bot: guild already has a channel registered.", ephemeral=True)
-      print("Error in register command: guild already has a channel in the database")
+  channel_id = interaction.channel_id
+  guild_id = interaction.guild_id
+  if database.register_channel(channel_id, guild_id):
+    await interaction.response.send_message("Bot has been registered to this channel.", ephemeral=True)
+    print(f"Bot has been registered to channel: {channel_id}")
+  else:
+    await interaction.response.send_message("Failed to register the bot: guild already has a channel registered.", ephemeral=True)
+    print("Error in register command: guild already has a channel in the database")
 
 #generate unique ID and send for testing purposes
 @bot.command()
@@ -138,58 +144,80 @@ def give_player_items(new_items, old_items, taken):
   return items_grouping
   
 #creates new players and adds them to the database
-@bot.command()
-async def join(ctx, *args):
+@bot.tree.command(name="join", description="Join an adventure")
+async def join(interaction: discord.Interaction, nameid : str):
   adventure_name = []
-  truename = ctx.author.id
-  name = ctx.author.display_name
-  channel = ctx.channel
-  if database.get_player(truename):
-    embed = formatter.embed_message(name, "Error", "alreadyplayer" , "red")
-    await ctx.reply(embed=embed)
+  truename = interaction.user.id
+  name = interaction.user.display_name
+  channel = interaction.channel
+  player = database.get_player(truename)
+  if not player:
+    embed = formatter.embed_message(name, "Error", "notplayer" , "red")
+    await interaction.response.send_message(embed=embed)
     return
-  for arg in args:
-    adventure_name.append(str(arg))
-  adventure_name = " ".join(adventure_name)
-  all_adventures = database.get_adventures()
+  adventure_name = nameid
   if adventure_name == "":
+    all_adventures = database.get_adventures()
     embed = discord.Embed(title="Error - Need adventure", description="You need to specify an adventure to join. Use !join <adventure name here>\nRefer to this list of available adventures:", color=discord.Color.red())
     for adventure in all_adventures:
       embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
     embed.set_footer(text="If there is a different error, contact a moderator")
-    await ctx.reply(embed=embed)
+    await interaction.response.send_message(embed=embed)
     return
-  adventure = database.get_adventure(adventure_name.lower())
+  adventure = database.get_adventure(nameid)
   if not adventure:
+    all_adventures = database.get_adventures()
     embed = discord.Embed(title="Error - No Such Adventure", description="Adventure '" + adventure_name + "' was not found. Please !join one of these adventures to begin:", color=discord.Color.red())
     for adventure in all_adventures:
       embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
     embed.set_footer(text="If there is a different error, contact a moderator")
-    await ctx.reply(embed=embed)
+    await interaction.response.send_message(embed=embed)
     return
   else:
-    guild = ctx.guild
-    thread = await channel.create_thread(name=name + "'s " + adventure_name)
+    guild = interaction.guild
+    channel = interaction.channel
+    if not channel:
+      await interaction.response.send_message("Error - Channel not found")
+      return
+    if channel.type == discord.ChannelType.text:
+      thread = await channel.create_thread(name=name + "'s " + adventure_name)
+    else:
+      await interaction.response.send_message("Error - Channel is not a text channel")
+      return
     channel_id = thread.id
-    player = Player(truename, name, adventure["start"], channel_id)
+    player = Player(truename, name, adventure["start"], channel_id, current_adventure=nameid)
     database.new_player(player.__dict__)
     room = database.get_player_room(truename)
     if room is None:
       print("Error! Room is None!")
       embed = formatter.embed_message(name, "Error", "noroom", "red")
-      await ctx.reply(embed=embed)
+      await interaction.response.send_message(embed=embed)
       return
-    room_author = guild.get_member(room["author"])
-    room_author_displayname = 'ERROR' if room_author is None else str(room_author.display_name)
+    if guild is None:
+      print("Error! Guild is None!")
+      embed = formatter.embed_message(name, "Error", "noguild", "red")
+      await interaction.response.send_message(embed=embed)
+      return
+    room_author = room["author"]
+    author = guild.get_member(room_author)
+    if not author:
+      author = "Unknown"
     all_items = []
     new_items = []
-    tuple = database.embed_room(all_items, new_items, room["displayname"], room)
+    tuple = database.embed_room(all_items, new_items, room["displayname"], room, author)
     embed = tuple[0]
     view = tuple[1]
-    embed.set_footer(text="This room was created by " + room_author_displayname)
-    #un-comment to delete command after success
-    #await ctx.message.delete()
-    await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
+    #comment to delete command after success:
+    await interaction.delete_original_response()
+    await thread.send(interaction.user.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
+
+# Autocompletion function for adventure_name in join command
+@join.autocomplete('nameid')
+async def autocomplete_join(interaction: discord.Interaction, current: str):
+    # Query the database for adventure names and filter based on the current input
+    adventures_query = database.get_adventures()
+    possible_adventures = [adv["name"] for adv in adventures_query if current.lower() in adv["name"].lower()]
+    return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_adventures[:25]]
 
 #creation mode for adding anything new or editing rooms
 #edits one adventure at a time
@@ -337,235 +365,63 @@ async def help(ctx, *args):
 #Slash commands start here!!!!
 #Slash commands start here!!!!
 
-
-
-class ConfirmKillButton(discord.ui.Button):
-  def __init__(self, label, confirm, action, player_info, thread, style=discord.ButtonStyle.gray, disabled=False, row=0):
-      custom_id = f'confirm_kill_{confirm}'  # Added custom_id for interaction handling
-      super().__init__(label=label, style=style, disabled=disabled, row=row, custom_id=custom_id)
-      self.confirm = confirm
-      self.action = action
-      self.player_info = player_info
-      self.thread = thread
-      if confirm:
-          self.style = discord.ButtonStyle.green
-      else:
-          self.style = discord.ButtonStyle.red
-  async def callback(self, interaction: discord.Interaction):
-      if self.confirm:
-          # Code to handle the player death
-          database.kill_player(self.player_info['disc'])
-          await self.thread.send(f"{self.player_info['displayname']} has died in the game.")
-          # Fetch the channel from the bot's registration details in the database
-          bot_info = database.botinfo.find_one({"name": self.player_info['bot_name']})
-          if bot_info and 'channel' in bot_info:
-              channel_id = bot_info['channel']
-              channel = bot.get_channel(channel_id)
-              if channel:
-                  await channel.send(f"{self.player_info['displayname']} has died in the game.")
-              else:
-                  print(f"Channel with ID {channel_id} not found.")
-          else:
-              print(f"Bot info for {self.player_info['bot_name']} not found in database.")
-          # Send a response back to the interaction
-          await interaction.response.send_message(f"{self.player_info['displayname']} you have chosen another way out of the game, but you must still use the command /leave before starting another adventure.", ephemeral=True)
-      else:
-          await interaction.response.send_message("You have chosen to stay in the game.", ephemeral=False)
-
-
-
-# In your kill command, you should display player stats and the confirmation button without deleting the player data upfront.
-@bot.tree.command(name="kill", description="A way out of the game")
-async def kill(interaction: discord.Interaction):
-      truename = interaction.user.id
-      player_info = database.get_player(truename)
-      if not player_info:
-          await interaction.response.send_message("You are not currently in a game.", ephemeral=True)
-          return
-      # Get the thread ID using the get_thread function
-      thread_id = database.get_thread(truename)
-      if not thread_id:
-          await interaction.response.send_message("Game thread not found.", ephemeral=True)
-          return
-      # Verify that the command is used in the player's thread
-      if interaction.channel_id != thread_id:
-          await interaction.response.send_message("The /kill command can only be used in your game thread.", ephemeral=True)
-          return
-
-      thread = interaction.guild.get_thread(thread_id)
-      if not thread:
-          await interaction.response.send_message("Game thread not found or may have already been deleted.", ephemeral=True)
-          return
-      # Construct an embed with the confirmation
-      embed = discord.Embed(title="Confirm Kill", description=f"Player: {player_info.get('displayname', 'Unknown')}\nAre you sure you want to do this?", color=discord.Color.red())
-      # Create confirmation view with the 'leave_game' logic
-      view = discord.ui.View()
-      view.add_item(ConfirmKillButton(label="Yes", confirm=True, action="leave_game", player_info=player_info, thread=thread))
-      view.add_item(ConfirmKillButton(label="No, stay in game", confirm=False, action="cancel", player_info=player_info, thread=thread))
-      await interaction.response.send_message(embed=embed, view=view)
-
-
-
-
-
-
-@bot.tree.command(name="join", description="Join an adventure")
-async def join(interaction: discord.Interaction, adventure_name: str):
-          truename = interaction.user.id
-          name = interaction.user.display_name
-          channel = interaction.channel
-          command_channel = interaction.channel
-          if database.get_player(truename):
-            embed = formatter.embed_message(name, "Error", "alreadyplayer" , "red")
-            await interaction.response.send_message(embed=embed)
-            return
-          all_adventures = database.get_adventures()
-          if adventure_name == "":
-            embed = discord.Embed(title="Error - Need adventure", description="You need to specify an adventure to join. Use /join <adventure name here>\nRefer to this list of available adventures:", color=discord.Color.red())
-            for adventure in all_adventures:
-              embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
-            embed.set_footer(text="If there is a different error, contact a moderator")
-            await interaction.response.send_message(embed=embed)
-            return
-          adventure = database.get_adventure(adventure_name.lower())
-          if not adventure:
-            embed = discord.Embed(title="Error - No Such Adventure", description="Adventure '" + adventure_name + "' was not found. Please /join one of these adventures to begin:", color=discord.Color.red())
-            for adventure in all_adventures:
-              embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
-            embed.set_footer(text="If there is a different error, contact a moderator")
-            await interaction.response.send_message(embed=embed)
-            return
-          else:
-            guild = interaction.guild
-            thread = await channel.create_thread(name=name + "'s " + adventure_name)
-            channel_id = thread.id
-            player = Player(truename, name, adventure["start"], channel_id, game_thread_id=thread.id)
-            database.new_player(player.__dict__)
-            room = database.get_player_room(truename)
-            if room is None:
-              print("Error! Room is None!")
-              embed = formatter.embed_message(name, "Error", "noroom", "red")
-              await interaction.response.send_message(embed=embed)
-              return
-            room_author = guild.get_member(room["author"])
-            room_author_displayname = 'ERROR' if room_author is None else str(room_author.display_name)
-            all_items = []
-            new_items = []
-            tuple = database.embed_room(all_items, new_items, room["displayname"], room)
-            embed = tuple[0]
-            view = tuple[1]
-            embed.set_footer(text="This room was created by " + room_author_displayname)
-            await thread.send(interaction.user.mention + "You have successfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
-            await command_channel.send(interaction.user.mention + "You have successfully begun an adventure. If you have questions, ask a moderator")
-
-
-# Autocompletion function for adventure_name in join command
-@join.autocomplete('adventure_name')
-async def autocomplete_adventure_name(interaction: discord.Interaction, current: str):
-    # Query the database for adventure names and filter based on the current input
-    adventures_query = database.get_adventures()
-    possible_adventures = [adv["name"] for adv in adventures_query if current.lower() in adv["name"].lower()]
-    return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_adventures[:25]]
-
-
-
-
-
-
-
-class ConfirmDeleteRoomButton(discord.ui.Button):
-    def __init__(self, label: str, room_id: str, style: discord.ButtonStyle = discord.ButtonStyle.danger, row: int = 0):
-        super().__init__(label=label, style=style, row=row)
-        self.room_id = room_id
-    async def callback(self, interaction: discord.Interaction):
-        # Assuming 'database' is your database handler and 'testrooms' is the collection for rooms
-        room = database.testrooms.find_one({"roomid": self.room_id})
-        if room and interaction.user.id == int(room.get("author")):
-            delete_result = database.testrooms.delete_one({"roomid": self.room_id})
-            if delete_result.deleted_count > 0:
-                await interaction.response.send_message(f"Room with ID '{self.room_id}' has been deleted.", ephemeral=True)
-            else:
-                await interaction.response.send_message("No room found with that ID to delete.", ephemeral=True)
-        else:
-            await interaction.response.send_message("You do not have permission to delete this room or it does not exist.", ephemeral=True)
-# Update the deleteroom command to include a confirmation button
-
-
 @bot.tree.command(name="deleteroom", description="Delete a room by its ID")
 async def deleteroom(interaction: discord.Interaction, room_id: str):
-    # Retrieve room information from the database based on room_id
-    room = database.testrooms.find_one({"roomid": room_id})
-    if room:
-        # Check if the user has permission to delete the room
-        if interaction.user.id == int(room.get("author")):
-            view = discord.ui.View()
-            # Add the confirm delete room button to the view
-            view.add_item(ConfirmDeleteRoomButton(label=f"Confirm Deletion of {room_id}", room_id=room_id))
-            await interaction.response.send_message(f"Are you sure you want to delete room '{room_id}'?", view=view, ephemeral=True)
-        else:
-            await interaction.response.send_message("You do not have permission to delete this room.", ephemeral=True)
-    else:
-        await interaction.response.send_message("Room not found.", ephemeral=True)
+  # Retrieve room information from the database based on room_id
+  room = database.testrooms.find_one({"roomid": room_id})
+  if not room:
+    await interaction.response.send_message("Error: Room not found! Double check your room ID!", ephemeral=True)
+    # Check if the user has permission to delete the room
+  if interaction.user.id == int(room["author"]):
+    confirm = database.confirm_embed(confirm_text="This will delete the room permenantly, are you sure you want to do this?", title="Confirm Room Deletion", action="delete_room", channel=interaction.channel, id=room_id)
+    await interaction.response.send_message(confirm)
+  else:
+    await interaction.response.send_message("Error: You do not have permission to delete this room!", ephemeral=True)
 
 @deleteroom.autocomplete('room_id')
 async def autocomplete_room_id_deletion(interaction: discord.Interaction, current: str):
-            # Query the database for room IDs created by the user, using regex for filtering based on the current input
-            room_ids_query = database.testrooms.find(
-                {"author": interaction.user.id, "roomid": {"$regex": re.escape(current), "$options": "i"}},
-                {"roomid": 1, "_id": 0}
-            )
-            # Fetch up to 25 room IDs for the autocomplete suggestions
-            room_ids = [room["roomid"] for room in room_ids_query.limit(25)]
-            # Create choices for each suggestion
-            return [app_commands.Choice(name=room_id, value=room_id) for room_id in room_ids]
-
-
-
-class ConfirmDeleteButton(discord.ui.Button):
-  def __init__(self, label: str, item_id: str, style: discord.ButtonStyle = discord.ButtonStyle.danger, row: int = 0):
-      super().__init__(label=label, style=style, row=row)
-      self.item_id = item_id
-  async def callback(self, interaction: discord.Interaction):
-      item = database.testitems.find_one({"itemid": self.item_id})
-      if item and interaction.user.id == item.get("author"):
-          delete_result = database.testitems.delete_one({"itemid": self.item_id})
-          if delete_result.deleted_count > 0:
-              await interaction.response.send_message(f"Item with ID '{self.item_id}' has been deleted.", ephemeral=True)
-          else:
-              await interaction.response.send_message("No item found with that ID to delete.", ephemeral=True)
-      else:
-          await interaction.response.send_message("You do not have permission to delete this item or it does not exist.", ephemeral=True)
-
-
-class ConfirmDeleteItemButton(discord.ui.Button):
-  def __init__(self, label: str, item_id: str, style: discord.ButtonStyle = discord.ButtonStyle.danger, row: int = 0):
-      super().__init__(label=label, style=style, row=row)
-      self.item_id = item_id
-  async def callback(self, interaction: discord.Interaction):
-      item = database.testitems.find_one({"itemid": self.item_id})
-      if item and interaction.user.id == item.get("author"):
-          delete_result = database.testitems.delete_one({"itemid": self.item_id})
-          if delete_result.deleted_count > 0:
-              await interaction.response.send_message(f"Item with ID '{self.item_id}' has been deleted.", ephemeral=True)
-          else:
-              await interaction.response.send_message("No item found with that ID to delete.", ephemeral=True)
-      else:
-          await interaction.response.send_message("You do not have permission to delete this item or it does not exist.", ephemeral=True)
+# Query the database for room IDs created by the user, using regex for filtering based on the current input
+  room_ids_query = database.testrooms.find(
+  {
+  "author": interaction.user.id, 
+  "roomid": {"$regex": re.escape(current), "$options": "i"}
+  },
+  {
+  "roomid": 1, 
+  "_id": 0
+  }
+  )
+  # Fetch up to 25 room IDs for the autocomplete suggestions
+  room_ids = [room["roomid"] for room in room_ids_query.limit(25)]
+  # Create choices for each suggestion
+  return [app_commands.Choice(name=room_id, value=room_id) for room_id in room_ids]
+        
 @bot.tree.command(name="deleteitem", description="Delete an item by its ID")
 async def deleteitem(interaction: discord.Interaction, item_id: str):
   item = database.testitems.find_one({"itemid": item_id})
+  if not item:
+    await interaction.response.send_message("Error: Item not found! Double check your item ID!", ephemeral=True)
+    return
   if item and interaction.user.id == item.get("author"):
-      view = discord.ui.View()
-      view.add_item(ConfirmDeleteItemButton(label=f"Confirm Deletion of {item_id}", item_id=item_id))
-      await interaction.response.send_message(f"Are you sure you want to delete item '{item_id}'?", view=view, ephemeral=True)
+    confirm = database.confirm_embed(confirm_text="This will delete the item permenantly, are you sure you want to do this?", title="Confirm Item Deletion", action="delete_item", channel=interaction.channel, id=item_id)
+    await interaction.response.send_message(confirm)
+    return
   else:
-      await interaction.response.send_message("You do not have permission to delete this item or it does not exist.", ephemeral=True)
+    await interaction.response.send_message("Error: You do not have permission to delete this item!", ephemeral=True)
+    return
+
 @deleteitem.autocomplete('item_id')
 async def autocomplete_item_id_deletion(interaction: discord.Interaction, current: str):
-  # Query the database for item IDs created by the user, using regex for filtering based on the current input
+# Query the database for item IDs created by the user, using regex for filtering based on the current input
   item_ids_query = database.testitems.find(
-      {"author": interaction.user.id, "itemid": {"$regex": re.escape(current), "$options": "i"}},
-      {"itemid": 1, "_id": 0}
+  {
+  "author": interaction.user.id, 
+  "itemid": {"$regex": re.escape(current), "$options": "i"}
+  },
+  {
+  "itemid": 1,
+  "_id": 0
+  }
   )
   # Fetch up to 25 item IDs for the autocomplete suggestions
   item_ids = [item["itemid"] for item in item_ids_query.limit(25)]
@@ -576,127 +432,53 @@ async def autocomplete_item_id_deletion(interaction: discord.Interaction, curren
 @app_commands.choices(field=[
   app_commands.Choice(name="Name", value="nameid"),
   app_commands.Choice(name="Starting Room", value="start"),
-  app_commands.Choice(name="Description", value="description")
-])
+  app_commands.Choice(name="Description", value="description")])
 async def editadventure(interaction: discord.Interaction, nameid: str, field: app_commands.Choice[str], value: str):
   # Retrieve adventure and verify author
   adventure = database.testadventures.find_one({"nameid": nameid})
-  if adventure and interaction.user.id == adventure.get("author"):
-      button_label = f"Confirm editing {field.name}"  # Use field.name for a human-readable label
-      view = discord.ui.View()
-      view.add_item(ConfirmEditAdventureButton(
-          label=button_label, nameid=nameid, field=field, value=value  # Pass the entire 'field' choice
-      ))
-      await interaction.response.send_message(f"Are you sure you want to change '{field.name}' to '{value}'?", view=view, ephemeral=True)
+  if not adventure:
+    await interaction.response.send_message("Error: Adventure not found! Double check your adventure ID!", ephemeral=True)
+    return
+  if interaction.user.id == adventure.get("author"):
+    confirm = database.confirm_embed(confirm_text=f"This will edit the {field.name} to '{value}'", title="Confirm Adventure Edit", action="edit_adventure", channel=interaction.channel, id=nameid)
+    await interaction.response.send_message(confirm)
+    return
   else:
-      await interaction.response.send_message("Adventure not found or you do not have permission to edit this adventure.", ephemeral=True)
-class ConfirmEditAdventureButton(discord.ui.Button):
-  def __init__(self, label: str, nameid: str, field: app_commands.Choice[str], value: str, style: discord.ButtonStyle = discord.ButtonStyle.success, row: int = 0):
-      super().__init__(label=label, style=style, row=row)
-      self.nameid = nameid
-      self.field = field.value  # Use the 'value' as it contains the field key for DB operations
-      self.value = value
-      self.field_name = field.name  # Store the field name for display purposes
-  async def callback(self, interaction: discord.Interaction):
-      if self.disabled:
-          return
-      # Update the adventure in the database using the field value
-      update_result = database.testadventures.update_one(
-          {"nameid": self.nameid},
-          {"$set": {self.field: self.value}}
-      )
-      if update_result.modified_count > 0:
-          await interaction.response.edit_message(content=f"Adventure '{self.nameid}' successfully updated: {self.field_name} set to {self.value}.", view=None)
-      else:
-          await interaction.response.edit_message(content=f"Update failed or no changes made to the adventure '{self.nameid}'.", view=None)
-      self.disabled = True  # Disable the button after the action
-      await interaction.message.edit(view=self.view)  # Refresh the view to show the disabled button state
+    await interaction.response.send_message("You do not have permission to edit this adventure.", ephemeral=True)
+    return
+
 # Autocompletion for nameid parameter in editadventure
 @editadventure.autocomplete('nameid')
 async def autocomplete_adventure_nameid(interaction: discord.Interaction, current: str):
-  # Query the database for adventure nameids, filtering based on the current input
+  # Query the database for adventure nameids, filtering by author and nameid
   adventures_query = database.testadventures.find(
-      {"nameid": {"$regex": "^" + re.escape(current), "$options": "i"}},
-      {"nameid": 1, "_id": 0},
-  ).limit(25)
-  adventure_nameids = [adv["nameid"] for adv in adventures_query]
-  return [app_commands.Choice(name=nameid, value=nameid) for nameid in adventure_nameids]
-
-
-class ConfirmDeleteAdventureButton(discord.ui.Button):
-def __init__(self, label: str, style: discord.ButtonStyle = discord.ButtonStyle.danger, row: int = 0):
-    super().__init__(label=label, style=style, row=row)
-
-async def callback(self, interaction: discord.Interaction):
-    # Assuming 'database' is your database handler and 'testadventures' is the collection for adventures
-    adventure = database.testadventures.find_one({"nameid": self.view.nameid})
-    if adventure and interaction.user.id == adventure.get("author"):
-        delete_result = database.testadventures.delete_one({"nameid": self.view.nameid})
-        if delete_result.deleted_count > 0:
-            await interaction.response.send_message(f"Adventure '{self.view.nameid}' has been deleted.", ephemeral=True)
-        else:
-            await interaction.response.send_message("No adventure found with that ID to delete.", ephemeral=True)
-    else:
-        await interaction.response.send_message("You do not have permission to delete this adventure or it does not exist.", ephemeral=True)
-class ConfirmDeleteAdventureView(discord.ui.View):
-def __init__(self, nameid: str):
-    super().__init__()
-    self.nameid = nameid
-    self.add_item(ConfirmDeleteAdventureButton(label=f"Confirm Deletion"))
-
+  {
+  "author": interaction.user.id, 
+  "nameid": {"$regex": re.escape(current), "$options": "i"}
+  },
+  {
+  "nameid": 1,
+  "_id": 0
+  }
+  )
+  # Fetch up to 25 item IDs for the autocomplete suggestions
+  adventure_ids = [adventure["nameid"] for adventure in adventures_query.limit(25)]
+  # Create choices for each suggestion
+  return [app_commands.Choice(name=nameid, value=nameid) for nameid in adventure_ids]
 
 @bot.tree.command(name="deleteadventure", description="Delete an adventure by its name ID")
 async def deleteadventure(interaction: discord.Interaction, nameid: str):
-adventure = database.testadventures.find_one({"nameid": nameid})
-if adventure and interaction.user.id == adventure.get("author"):
-    view = ConfirmDeleteAdventureView(nameid=nameid)
-    await interaction.response.send_message(f"Are you sure you want to delete adventure '{nameid}'?", view=view, ephemeral=True)
-else:
-    await interaction.response.send_message("You do not have permission to delete this adventure or it does not exist.", ephemeral=True)
-
-@bot.tree.command(name="leave", description="Leave the current adventure")
-async def leave(interaction: discord.Interaction):
-  author_id = interaction.user.id
-  player_info = database.get_player(author_id)
-  if player_info:
-      thread_id = player_info.get("game_thread_id")
-      if thread_id:
-          # Create a view and add the ConfirmLeaveButton
-          view = discord.ui.View()
-          view.add_item(ConfirmLeaveButton(label="Confirm Leave", style=discord.ButtonStyle.danger, thread_id=thread_id, bot_name=player_info.get('bot_name')))
-          await interaction.response.send_message("Are you sure you want to leave the adventure?", view=view, ephemeral=True)
-      else:
-          await interaction.response.send_message("You don't seem to be in any active game thread.", ephemeral=True)
+  adventure = database.testadventures.find_one({"nameid": nameid})
+  if not adventure:
+    await interaction.response.send_message("Error: Adventure not found! Double check your adventure ID!", ephemeral=True)
+    return
+  if interaction.user.id == adventure.get("author"):
+    confirm = database.confirm_embed(confirm_text="This will delete the adventure permenantly, are you sure you want to do this?", title="Confirm Adventure Deletion", action="delete_adventure", channel=interaction.channel, id=nameid)
+    await interaction.response.send_message(confirm)
+    return
   else:
-      await interaction.response.send_message("You are not part of any adventure to leave.", ephemeral=True)
-
-
-
-class ConfirmLeaveButton(discord.ui.Button):
-  def __init__(self, label, style, thread_id, bot_name, row=0):
-      super().__init__(label=label, style=style, row=row)
-      self.thread_id = thread_id
-      self.bot_name = bot_name
-  async def callback(self, interaction: discord.Interaction):
-      # Retrieve the thread object using the thread ID
-      thread = interaction.guild.get_thread(self.thread_id)
-      if thread:
-          # Assuming `leave_game` is a coroutine that handles leaving logic:
-          await leave_game(interaction, thread, self.bot_name)
-          # Delete the thread after the player has left the game
-          await interaction.response.send_message("You have left the adventure, and the game thread has been deleted.", ephemeral=True)
-          await thread.delete()
-      else:
-          await interaction.response.send_message("Failed to find the game thread to leave.", ephemeral=True)
-
-      # Disable the button after it has been used
-      self.disabled = True
-      # Update the button's appearance on the message
-      await interaction.message.edit(view=self.view)
-
-
-
-
+    await interaction.response.send_message("You do not have permission to delete this adventure!", ephemeral=True)
+    return
 
 @bot.tree.command(name="edititem", description="Edit item properties")
 @app_commands.describe(itemid="The ID of the item to edit", field="The property to edit", value="The new value for the property")
@@ -831,7 +613,6 @@ async def editroomarrays(interaction: discord.Interaction, roomid: str, field: s
               await interaction.response.send_message("Invalid input parameters.")
               return
           # Process updates for a single array field
-          array_updates = {}
           array_fields = ["exits", "exit_destination", "secrets", "unlockers"]
           if field.lower() in array_fields:
               # Update information in the database
@@ -865,31 +646,30 @@ async def autocomplete_roomid_arrays(interaction: discord.Interaction, current: 
 
 @bot.tree.command(name="exampleroom", description="Show an example room")
 async def exampleroom(interaction: discord.Interaction, roomid: str):
-          # Retrieve information from the database
-          result = database.examples.find_one({"roomid": roomid })
-          if result:
-              embed = discord.Embed(title=result["roomid"], description="this is the example.", color=0x00ff00)
-              fields = ["displayname", "description", "kill","URL", "items"]
-              arrayfields = ["exits", "exit_destination"] 
-              arrayfieldss = ["secrets", "unlockers"]
-              for field in fields: 
-                embed.add_field(name= field, value=result[field], inline=False)
-              for field in arrayfields: 
-                embed.add_field(name= field, value="\n".join(result[field]), inline=True)
-              embed.add_field(name = "", value = "", inline=False )
-              for field in arrayfieldss: 
-                embed.add_field(name= field, value="\n".join(result[field]), inline=True)
-              await interaction.response.send_message(embed=embed)
-              followup_message = "**/exampleroom**  **exampleroom1** to see a reference on what each section of the room is for. **/exampleroom**  **exampleroom2** to see a reference on what the code will look like when updating the fields that are strings( roomid displayname description kill URL item ). **/exampleroom** **exampleroom3** to see how to update the arrays( exits exit_destination secrets unlockers) Use **/exampleroom** + **exampleroom4** to see the last master example room. To view any of the rooms shown in the Example Adventure, Simply use the roomid as follows **/exampleroom**  **roomid**.\nAlso you should /join the **Example Adventure** to see step by step visuals on how to edit rooms. This will also show you the players perspective when they play your adventure you are creating."
-              await interaction.followup.send(followup_message)
-          else:
-              await interaction.response.send_message("Room not found in the database.")
+  # Retrieve information from the database
+  result = database.testrooms.find_one({"roomid": roomid })
+  if result:
+    embed = discord.Embed(title=result["roomid"], description="this is the example.", color=0x00ff00)
+    fields = ["displayname", "description", "kill","URL", "items"]
+    arrayfields = ["exits", "exit_destination"] 
+    arrayfieldss = ["secrets", "unlockers"]
+    for field in fields: 
+      embed.add_field(name= field, value=result[field], inline=False)
+    for field in arrayfields: 
+      embed.add_field(name= field, value="\n".join(result[field]), inline=True)
+    for field in arrayfieldss: 
+      embed.add_field(name= field, value="\n".join(result[field]), inline=True)
+    await interaction.response.send_message(embed=embed)
+    followup_message = "**/exampleroom**  **exampleroom1** to see a reference on what each section of the room is for. **/exampleroom**  **exampleroom2** to see a reference on what the code will look like when updating the fields that are strings( roomid displayname description kill URL item ). **/exampleroom** **exampleroom3** to see how to update the arrays( exits exit_destination secrets unlockers) Use **/exampleroom** + **exampleroom4** to see the last master example room. To view any of the rooms shown in the Example Adventure, Simply use the roomid as follows **/exampleroom**  **roomid**.\nAlso you should /join the **Example Adventure** to see step by step visuals on how to edit rooms. This will also show you the players perspective when they play your adventure you are creating."
+    await interaction.followup.send(followup_message)
+  else:
+    await interaction.response.send_message("Room not found in the database.")
 
 # Autocompletion function for roomid in exampleroom command
 @exampleroom.autocomplete('roomid')
 async def autocomplete_exampleroom(interaction: discord.Interaction, current: str):
     # Modify the query to also return the displayname field
-    example_room_ids_query = database.examples.find(
+    example_room_ids_query = database.testrooms.find(
         {},
         {"roomid": 1, "displayname": 1, "_id": 0}
     )
@@ -1018,30 +798,6 @@ async def leave(interaction: discord.Interaction):
       view = discord.ui.View()
     await interaction.response.send_message(embed=embed, view=view)
 
-#replies with the description of the current room to the player
-@bot.tree.command(name= "info", description= "Learn about the room you are in")
-async def info(interaction: discord.Interaction):
-  truename = interaction.user.id
-  player = database.get_player(truename)
-  if player:
-    if player["alive"]:
-        room_name = player["room"]
-        all_items = player["inventory"]
-        new_items = []
-        room = database.get_room(room_name)
-    else:
-      await interaction.response.send_message("You are either dead or not in a adventure!")
-      return
-    if room:
-      tuple = database.embed_room(all_items, new_items, room["displayname"], room)
-    else:
-      return
-    embed = tuple[0]
-    view = tuple[1]
-    await interaction.response.send_message(embed=embed, view=view)
-
-
-
 #returns a list of the truenames of items for the player
 @bot.tree.command(name= "inventory", description= "View your inventory")
 async def inventory(interaction: discord.Interaction):
@@ -1054,33 +810,30 @@ async def inventory(interaction: discord.Interaction):
     else :
       await interaction.response.send_message("You are either dead or not in a adventure!")
 
-  
-
 #Lists the current adventures from the database
 @bot.tree.command(name= "adventures", description= "A list of all playable adventures")
 async def adventures(interaction: discord.Interaction):
-    guild = interaction.guild
-    adventures = database.get_adventures()
-    adventure_names = []
-    descriptions = []
-    authors = []
-    if guild is None:
-      return
-    for adventure in adventures:
-        adventure_names.append(adventure["nameid"])
-        descriptions.append(adventure["description"])
-        author_id = adventure["author"]
-        print(f"Author ID: {author_id}")
-        author = guild.get_member(author_id)
-        if author:
-            authors.append(author.display_name)
-        else:
-            authors.append("Unknown Author")
-    embed = discord.Embed(title="Adventures", description="These are the adventures you can join. Use !newgame to start the test adventure. More adventures will be available later!", color=0x00ff00)
-    for i in range(len(adventure_names)):
-      embed.add_field(name=adventure_names[i].title(), value=descriptions[i] + "\nCreated by: " + authors[i], inline=False)
-    await interaction.response.send_message(embed=embed)
+  guild = interaction.guild
+  adventures = database.get_adventures()
+  adventure_names = []
+  descriptions = []
+  authors = []
+  if guild is None:
     return
+  for adventure in adventures:
+    adventure_names.append(adventure["nameid"])
+    descriptions.append(adventure["description"])
+    author_id = adventure["author"]
+    author = guild.get_member(author_id)
+    if author:
+      authors.append(author.display_name)
+    else:
+      authors.append("Unknown")
+  embed = discord.Embed(title="Adventures", description="These are the adventures you can join. Use /join to start an adventure. More adventures will be available later!", color=0x00ff00)
+  for i in range(len(adventure_names)):
+    embed.add_field(name=adventure_names[i].title(), value=descriptions[i] + "\n*Created by: " + authors[i] + "*", inline=False)
+  await interaction.response.send_message(embed=embed)
+  return
 
 #prints a connection message to the console for debugging
 @bot.event
@@ -1092,6 +845,10 @@ async def on_ready():
         print(f'Synced {len(synced)} commands.')
     except Exception as e:
         print(e)
+    #this should load all commands from commands folder
+    for cmds in CMDS_DIR.glob("*.py"):
+      if cmds.name != "__init__.py":
+        await bot.load_extension(f"commands.{cmds.name[:-3]}")
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels

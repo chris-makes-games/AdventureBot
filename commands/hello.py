@@ -1,4 +1,3 @@
-import discord
 from discord.ext import commands
 
 @commands.hybrid_command()
