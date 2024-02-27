@@ -32,5 +32,6 @@ command stuff
 misc:
   functions for pulling documents and updating all classes
   change bot buttons to always be clickable (no downtime issues)
+  swap everything over to Cogs - all slash commands in command folder
 
   Update and make roomid, itemid, nameid into the bot code in appropriate places.in the class's, the main.py, database.py 

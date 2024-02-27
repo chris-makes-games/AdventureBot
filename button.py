@@ -2,6 +2,23 @@ import discord
 
 from database import move_player, get_item, get_player, get_room, get_player_info, pp
 
+class ConfirmEditRoomButton(discord.ui.Button):
+  def __init__(self, style=discord.ButtonStyle.success, label=None, room_id=None, field=None, value=None, disabled=False, row=None):
+      super().__init__(style=style, label=label, disabled=disabled, row=row)  # Add additional arguments if needed
+      self.room_id = room_id
+      self.field = field
+      self.value = value
+  async def callback(self, interaction: discord.Interaction):
+      self.disabled = True  # Disable this button
+      view = discord.ui.View()  # Create a new view
+      view.add_item(self)  # Add the disabled button to the view
+      # Update the message with the new view that has the disabled button
+      await interaction.message.edit(view=view)
+      # Here you would add the logic to handle the room edit confirmation
+      # Possibly involving updating the room in the database with the new values
+      # Ensure that you have logic that performs the update based on the button's attributes
+
+
 
 class Button(discord.ui.Button):
   def __init__(self, label, destination, disabled=False, row=0):

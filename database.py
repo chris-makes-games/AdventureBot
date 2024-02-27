@@ -20,21 +20,6 @@ class RoomButton(discord.ui.Button):
   async def callback(self, interaction: discord.Interaction):
       await move_player(interaction, self.destination)
 
-class CupidModal(discord.ui.Modal):
-  def __init__(self, title="Valentines Event Sign-up", *args):
-    super().__init__(title=title)
-    self.likes = discord.ui.TextInput(label="What short story would you like?", placeholder="remember that it should stay within 3k words", style=discord.TextStyle.long, required=True)
-    self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="these topics will not be included in the story you recieve.", style=discord.TextStyle.short, required=True)
-    self.willing = discord.ui.TextInput(label="What are you willing to write?", placeholder="please include any limits you may have.", style=discord.TextStyle.long, required=True)
-    self.add_item(self.likes)
-    self.add_item(self.limits)
-    self.add_item(self.willing)
-  async def on_submit(self, interaction: discord.Interaction):
-    await interaction.response.defer()
-    dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.limits.value}
-    new_cupid(dict)
-    await interaction.response.send_message(f"{interaction.user.mention} Your have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine.", ephemeral=True)
-
 class CreateRoomModal(discord.ui.Modal):
   def __init__(self):
     super().__init__(title="Create New Room")
@@ -64,14 +49,6 @@ class CreateItemModal(discord.ui.Modal):
     item = Item(displayname= self.name.value, description = self.description.value, author=user_id)
     create_new_item(item.__dict__)
     await interaction.response.send_message(f"Item created:\nItem display name: {self.name}\n description:\n{self.description}", ephemeral=True)
-
-class CupidButton(discord.ui.Button):
-  def __init__(self, label, disabled=False, row=0):
-    super().__init__(label=label, style=discord.ButtonStyle.primary)
-    self.disabled = disabled
-    self.row = row
-    async def callback(self, interaction: discord.Interaction):
-      await interaction.response.send_modal(CupidModal())
 
 #generates an embed with fields for the room
 #when clicked, the room making embed is sent to the channel
@@ -133,6 +110,32 @@ class ConfirmButton(discord.ui.Button):
     else:
       print("ERROR - confirmation button has no action!")
       return
+
+#deactivated valentines function
+# class CupidModal(discord.ui.Modal):
+#   def __init__(self, title="Valentines Event Sign-up", *args):
+#     super().__init__(title=title)
+#     self.likes = discord.ui.TextInput(label="What short story would you like?", placeholder="remember that it should stay within 3k words", style=discord.TextStyle.long, required=True)
+#     self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="these topics will not be included in the story you recieve.", style=discord.TextStyle.long, required=True)
+#     self.willing = discord.ui.TextInput(label="What are you willing to write?", placeholder="please include any limits you may have.", style=discord.TextStyle.long, required=True)
+#     self.add_item(self.likes)
+#     self.add_item(self.limits)
+#     self.add_item(self.willing)
+#   async def on_submit(self, interaction: discord.Interaction):
+#     await interaction.response.defer()
+#     dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.willing.value}
+#     new_cupid(dict)
+#     await give_role(interaction, "Valentine")
+#     await interaction.followup.send(f"{interaction.user.mention} Your have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine and begin writing.", ephemeral=True)
+
+#deactivated valentines function
+# class CupidButton(discord.ui.Button):
+#   def __init__(self, label, disabled=False, row=0):
+#     super().__init__(label=label, style=discord.ButtonStyle.primary)
+#     self.disabled = disabled
+#     self.row = row
+#   async def callback(self, interaction: discord.Interaction):
+#     await interaction.response.send_modal(CupidModal())
 
 db_name = os.environ['DB_NAME']
 db_pass = os.environ['DB_PASS']
@@ -324,19 +327,6 @@ async def confirm_embed(confirm_text, action, channel):
     embed.set_image(url="https://i.kym-cdn.com/entries/icons/mobile/000/028/033/Screenshot_7.jpg")
   return (embed, view)
 
-async def cupid_embed(user):
-  embed = discord.Embed(title="Valentines Event Sign-Up")
-  view = discord.ui.View()
-  if cupid.find_one({"disc": user}):
-    embed.description = "You have already signed up for the Valentines Event. If you submit this form again, it will overwrite your previous valentines sign-up."
-    cupid_button = CupidButton(label="I understand, I want to resubmit")
-    view.add_item(cupid_button)
-  else:
-    embed.description = "Please only sign up for this event if you plan to write something for someone else. It is a few thousand words over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know so a replacement can be written"
-    cupid_button = CupidButton(label="I understand, I want to sign up")
-    view.add_item(cupid_button)
-  return (embed, view)
-
 #WIP for creation mode
 #this embed is just the creation mode tutorial
 #buttons on this embed allow user to create/edit rooms/items
@@ -353,17 +343,69 @@ async def creation_mode(channel):
   
 #removes player from the game, deleting the database entry
 #deletes the thread associated with the player's game
-async def leave_game(interaction, channel):
+async def leave_game(interaction, thread, bot_name):
     player = get_player(interaction.user.id)
+    bot_name = botinfo.find_one({"name": bot_name})
     if player:
-      pp("deleting channel: " + str(player["channel"]))
-      await channel.delete()
-      pp("deleting player: " + str(player["displayname"]))
-      delete_player(player["disc"])
-      return
+        # Assuming you have a key named "game_thread_id" in the player's data
+        game_thread_id = player.get("game_thread_id")
+
+        if game_thread_id:
+            # Attempt to get the game thread
+            game_thread = interaction.guild.get_thread(game_thread_id)
+
+            if game_thread:
+                try:
+                    # Delete the game thread
+                    await game_thread.delete()
+                    await interaction.response.send_message("Game thread deleted successfully.", ephemeral=True)
+                except Exception as e:
+                    print(f"Error deleting game thread: {e}")
+                    await interaction.response.send_message("An error occurred while deleting the game thread.", ephemeral=True)
+
+                # Delete player entry from the database
+                delete_player(interaction.user.id)
+                
+            else:
+                await interaction.response.send_message("ERROR - Game thread not found.", ephemeral=True)
+        else:
+            await interaction.response.send_message("ERROR - Game thread ID not found in player data.", ephemeral=True)
     else:
-        print("ERROR - Player does not exist")
-        return
+        await interaction.response.send_message("You are not part of any adventure to leave.", ephemeral=True)
+
+#deactivated valentines function
+# async def cupid_embed(user):
+#   embed = discord.Embed(title="Valentines Event Sign-Up")
+#   view = discord.ui.View()
+#   if cupid.find_one({"disc": user}):
+#     embed.description = "You have already signed up for the Valentines Event. If you submit this form again, it will overwrite your previous valentines sign-up."
+#     cupid_button = CupidButton(label="I understand, I want to resubmit")
+#     view.add_item(cupid_button)
+#   else:
+#     embed.description = "Please only sign up for this event if you plan to write something for someone else. It is a few thousand words over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know so a replacement can be written"
+#     cupid_button = CupidButton(label="I understand, I want to sign up")
+#     view.add_item(cupid_button)
+#   return (embed, view)
+
+async def give_role(interaction, role):
+  guild = interaction.guild
+  id = interaction.user.id
+  member = discord.utils.get(guild.members, id=id)
+  print(f"id: {member.id}")
+  print(f"member: {member}")
+  role = discord.utils.get(guild.roles, name=role)
+  await member.add_roles(role)
+  print(f"role {role.name} added to {member.name}")
+
+
+def new_cupid(dict):
+  if cupid.find_one({"disc": dict["disc"]}):
+    print(f"cupid found: {dict['disc']}")
+    cupid.update_one({"disc": dict["disc"]}, {"$set": dict})
+    print("cupid updated")
+  else:
+    cupid.insert_one(dict)
+    print("new cupid created")
 
 async def delete_thread(interaction, thread_id):
   pp("deleting channel:")
@@ -373,15 +415,6 @@ async def delete_thread(interaction, thread_id):
 #requires a player object that has been turned to a dict
 def new_player(dict):
   users.insert_one(dict)
-
-def new_cupid(dict):
-  if cupid.find_one({"disc": dict["disc"]}):
-    print(f"cupid found: {dict['disc']}")
-    cupid.updaate_one({"disc": dict["disc"]}, {"$set": dict})
-    print("cupid updated")
-  else:
-    cupid.insert_one(dict)
-    print("new cupid created")
 
 #returns a dict of player info for a given discord id
 def get_player(name):
@@ -427,6 +460,9 @@ def get_players_in_room(room):
   for player in players:
     players_in_room.append(player["disc"])
   return players_in_room
+
+def player_exists(name):
+   return bool(users.find_one({"disc": name}))
 
 #updates the player in the databse with a dict of info
 def update_player(dict):
@@ -548,6 +584,27 @@ def check_valid_exit(name, attempt):
       return True
     return keys[attempt] in items
 
-  
+def get_item_by_displayname(displayname):
+  item = items.find_one({"displayname": displayname})
+  if item:
+    return item
+  else:
+    return None
 
-  
+def get_thread(player_id):
+  """
+  Retrieves the game thread ID associated with a player.
+  :param player_id: The discord ID of the player.
+  :return: The game thread ID for the player or None if not found.
+  """
+  player = users.find_one({"disc": player_id})
+  return player.get('game_thread_id') if player else None
+
+def get_all_testrooms():
+  return testrooms.find()
+
+def get_all_testitems():
+  return testitems.find()
+
+def get_all_testadventures():
+  return testadventures.find()
