@@ -27,10 +27,10 @@ adventure stuff
 
 command stuff
   slash commands for everything(work in progress)
-  rework info command (currently unusable)
+  rework info command (currently deleted)
 
 misc:
-  functions for pulling documents and updating all classes
+  functions for pulling documents and updating all classes (done for rooms)
   change bot buttons to always be clickable (no downtime issues)
   swap everything over to Cogs - all slash commands in command folder
 

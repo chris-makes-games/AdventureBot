@@ -83,8 +83,8 @@ async def register(interaction: discord.Interaction):
     await interaction.response.send_message("Bot has been registered to this channel.", ephemeral=True)
     print(f"Bot has been registered to channel: {channel_id}")
   else:
-    await interaction.response.send_message("Failed to register the bot: guild already has a channel registered.", ephemeral=True)
-    print("Error in register command: guild already has a channel in the database")
+    await interaction.response.send_message("Failed to register the bot: guild already has this channel registered.", ephemeral=True)
+    print("Error in register command: guild already has this channel in the database")
 
 #generate unique ID and send for testing purposes
 @bot.command()
@@ -92,6 +92,7 @@ async def randomid(ctx, *args):
   arg = int(''.join(args))
   await ctx.reply(database.generate_unique_id(arg))
 
+#pulls all rooms and updates them according to class attributes
 @bot.command()
 async def updaterooms(ctx):
   all_rooms = database.rooms.find()
@@ -125,10 +126,7 @@ def give_player_items(new_items, old_items, taken):
       print("ERROR - Room item not found!")
       print(str(item) + " does not exist as an item name")
       continue
-    elif item in old_items:
-      new_items.remove(item)
-      continue
-    elif item in taken and not item_object["infinite"]:
+    elif item in old_items or item in taken and not item_object["infinite"]:
       new_items.remove(item)
       continue
     elif item_object["infinite"] and item not in old_items:
@@ -142,8 +140,54 @@ def give_player_items(new_items, old_items, taken):
       new_items.remove(item)
   database.pp("New Items:" + str(items_grouping))
   return items_grouping
+
+#creates a new player to add to the database
+#used to be join command
+@bot.tree.command(name="newplayer", description="Create a new player")
+async def newplayer(interaction: discord.Interaction):
+  player_id = interaction.user.id
+  player_name = interaction.user.display_name
+  player = database.get_player(player_id)
+  if player:
+    await interaction.response.send_message(player_name + ", You are already a player!", ephemeral=True)
+    return
+  player = Player(discord=player_id, displayname=player_name, room=None, inventory=[], taken=[], architect=False)
+  database.new_player(player)
+  await interaction.response.send_message(player_name + ", You are now a player! You can /join an adventure now. Try /adventures to see the list of available adventures.", ephemeral=True)
+
+#deletes a player from the database
+#uses displayname of player to search
+#admins can delete any player, players can delete themselves
+@bot.tree.command(name="deleteplayer", description="Delete a player")
+async def deleteplayer(interaction: discord.Interaction, player_name: str):
+  player_id = interaction.user.id
+  guild = interaction.guild
+  if not guild:
+    return
+  guild_member = guild.get_member(player_id)
+  if not guild_member:
+    return
+  #allows players to delete themselves, bypasses permissions check
+  if player_name == guild_member.display_name:
+    confirm = database.confirm_embed(confirm_text="This will delete all of your data, are you sure you want to do this?", title="Confirm Deletion", action="delete_player", channel=interaction.channel, id=interaction.user.id)
+    await interaction.response.send_message(confirm)
+    return
+  #if player is not trying to delete themselves, check permissions
+  permissions = guild_member.guild_permissions
+  is_server_admin = permissions.administrator
+  is_game_admin = database.get_player_info(player_id, "admin")
+  if not is_game_admin and not is_server_admin:
+    await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+    print(f"User [{guild_member.display_name}] tried to delete player [{player_name}] but does not have permission!")
+    return
+  else:
+    player_id = database.get_player_info_by_displayname(player_name, "disc")
+    confirm = database.confirm_embed(confirm_text="This will delete all of " + player_name + "'s data, are you sure you want to do this?", title="Confirm Deletion", action="delete_player", channel=interaction.channel, id=player_id)
+    await interaction.response.send_message(confirm)
+    return
   
-#creates new players and adds them to the database
+#players join an adventure
+#players may only be in one adventure at a time, per server
 @bot.tree.command(name="join", description="Join an adventure")
 async def join(interaction: discord.Interaction, nameid : str):
   adventure_name = []
@@ -153,6 +197,10 @@ async def join(interaction: discord.Interaction, nameid : str):
   player = database.get_player(truename)
   if not player:
     embed = formatter.embed_message(name, "Error", "notplayer" , "red")
+    await interaction.response.send_message(embed=embed)
+    return
+  if player["adventure"]:
+    embed = formatter.embed_message(name, "Error", "alreadyadventure" , "red")
     await interaction.response.send_message(embed=embed)
     return
   adventure_name = nameid
@@ -214,9 +262,9 @@ async def join(interaction: discord.Interaction, nameid : str):
 # Autocompletion function for adventure_name in join command
 @join.autocomplete('nameid')
 async def autocomplete_join(interaction: discord.Interaction, current: str):
-    # Query the database for adventure names and filter based on the current input
+#query the database for adventure names and filter based on the current input
     adventures_query = database.get_adventures()
-    possible_adventures = [adv["name"] for adv in adventures_query if current.lower() in adv["name"].lower()]
+    possible_adventures = [adv["nameid"] for adv in adventures_query if current.lower() in adv["nameid"].lower()]
     return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_adventures[:25]]
 
 #creation mode for adding anything new or editing rooms
@@ -846,9 +894,9 @@ async def on_ready():
     except Exception as e:
         print(e)
     #this should load all commands from commands folder
-    for cmds in CMDS_DIR.glob("*.py"):
-      if cmds.name != "__init__.py":
-        await bot.load_extension(f"commands.{cmds.name[:-3]}")
+    for commands in CMDS_DIR.glob("*.py"):
+      if commands.name != "__init__.py":
+        await bot.load_extension(f"commands.{commands.name[:-3]}")
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels
@@ -869,7 +917,6 @@ async def on_message(message):
       return
     else:
       await bot.process_commands(message)
-  
 
 #runs the bot and throws generic errors
 try:

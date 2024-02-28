@@ -114,6 +114,8 @@ class ConfirmButton(discord.ui.Button):
       await interaction.response.send_message(f"This would delete room {self.id} but it's not implemented yet! Check database.ConfirmButton")
     elif self.action == "delete_adventure":
       await interaction.response.send_message(f"This would delete adventure {self.id} but it's not implemented yet! Check database.ConfirmButton")
+    elif self.action == "delete_player":
+      await interaction.response.send_message(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton")
     else:
       print("ERROR - confirmation button has no action!")
       return
@@ -229,10 +231,7 @@ def give_player_items(new_items, old_items, taken):
       print("ERROR - Room item not found!")
       print(str(item) + " does not exist as an item name")
       continue
-    elif item in old_items:
-      new_items.remove(item)
-      continue
-    elif item in taken and not item_object["infinite"]:
+    elif item in taken and not item_object["infinite"] or item in old_items:
       new_items.remove(item)
       continue
     elif item_object["infinite"] and item not in old_items:
@@ -569,6 +568,14 @@ def get_room(roomid):
 #can return any valid player info
 def get_player_info(name, info):
   player = users.find_one({"disc": int(name)})
+  if player:
+    return player[info]
+  else:
+    return None
+
+#gets any player info from only the player displayname
+def get_player_info_by_displayname(name, info):
+  player = users.find_one({"displayname": name})
   if player:
     return player[info]
   else:

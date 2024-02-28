@@ -15,3 +15,8 @@ database
   - Updated the deleteitem slash command. It was previously trying to use the broken ConfirmDeleteItem class, which was deleted. Instead, it now uses the database.confirm_embed class and sends the item data there to be deleted upon confirmation.
   - Updated deleteroom slash command same as deleteitem, and fixed the autocomplete function for it. Still needs some testing, I dunno if the AI did the regex correctly.
   - Removed the /info command. It doesn't really serve a purpose anymore. Kept it in old_code.txt just in case.
+  - Added /newplayer command. This does what old !join does. Someone can use this to add their own player info to the database, needs testing!
+  - Added /deleteplayer command, needs testing!
+  - Added a few parameters to the player class:
+      - channel is now channels, a list of channels
+      - admin boolean to discern who has privelages
