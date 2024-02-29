@@ -20,3 +20,7 @@ database
   - Added a few parameters to the player class:
       - channel is now channels, a list of channels
       - admin boolean to discern who has privelages
+  - Added a few parameters to the adventure class:
+      - Rooms is now a list of strings of room IDs
+      - Epilogue boolean to determine if dead players can explore the adventure
+  - Fiddled around with a mapper to make a map, had some success. Removed the map generation from the adventure class

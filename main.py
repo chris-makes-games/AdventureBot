@@ -3,6 +3,8 @@ import pathlib  #to get commands from command folder
 import re  #for regex
 from collections import Counter  #list comparing tool
 
+import mapper  #for ascii map
+
 import discord  #all bot functionality
 from discord import app_commands  #slash commands
 from discord.ext import commands  #commands for bot
@@ -922,6 +924,7 @@ async def on_message(message):
 try:
   print("running")
   database.ping()
+  mapper.example()
   bot.run(my_secret)
 except Exception as e:
   print(e)

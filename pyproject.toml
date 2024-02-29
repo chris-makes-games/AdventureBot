@@ -19,6 +19,8 @@ adventure = "^1.6"
 alien-invasion1 = "^1.0.0"
 discord = "^2.3.2"
 discord-py = "^2.3.2"
+networkx = "^3.2.1"
+requests = "^2.31.0"
 
 [tool.pyright]
 # https://github.com/microsoft/pyright/blob/main/docs/configuration.md
