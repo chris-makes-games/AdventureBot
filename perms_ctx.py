@@ -13,10 +13,10 @@ def has_role(ctx, role_name):
   return discord.utils.get(ctx.author.roles, name=role_name) is not None
 
 def is_maintainer(ctx):
-  return database.check_permissions(ctx.user.id)[0]
+  return database.check_permissions(ctx.author.id)[0]
 
 def is_assistant(ctx):
-  return database.check_permissions(ctx.user.id)[1]
+  return database.check_permissions(ctx.author.id)[1]
 
 def check_all(ctx):
   return is_admin(ctx) or is_owner(ctx) or is_maintainer(ctx) or is_assistant(ctx)

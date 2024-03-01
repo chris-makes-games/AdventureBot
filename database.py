@@ -196,9 +196,9 @@ def register_channel(channel_id, guild_id):
     botinfo.insert_one(bot_info_dict)
     return True
 
-def check_permissions(ctx):
-  maintainer = bool(botinfo.find_one({"maintainers": ctx.author.id}))
-  assistant = bool(botinfo.find_one({"assistants": ctx.author.id}))
+def check_permissions(id):
+  maintainer = bool(botinfo.find_one({"maintainers": id}))
+  assistant = bool(botinfo.find_one({"assistants": id}))
   tuple = (maintainer, assistant)
   return tuple
 
