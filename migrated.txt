@@ -8,8 +8,8 @@ database
 ---------------------------------------------------------------
 
   changes made post valentines:
-  - command folder loader is now working! Commands need to be transferred to the folder one at a time and tested. The first command, /hello is in there now.
-      -NOTE: once a command is added, user's discord needs to be restarted in order to be able to use it.
+  - command folder loader is now working! Commands need to be transferred to the folder one at a time and tested.
+  - added /load, /unload, and most importantly /reload. Reload allows the bot to unload and reload a command, getting any updates from the file if it has been changed. This does not require a discord app restart or bot restart.
   - I saw a few new classes created in main.py, they seemed to be trying to create confirmation buttons when a player tries different commands but they were not formatted correctly. There is also already a confirm button class (database.ConfirmButton) which performs the desired functionality. I deleted the button classes in main and did some cleanup around them to make the code executable.
 (in general, no classes should be getting defined at the bottom of main. For organization purposes, classes should have their own file and then import to main. I have a few custom classes in database but they need to be in database to access other functions.)
   - Removed kill command and confirm kill button (not really relevant to current design goals, need to create a command to leave an adventure without deleting player data)
@@ -26,3 +26,6 @@ database
       - Rooms is now a list of strings of room IDs
       - Epilogue boolean to determine if dead players can explore the adventure
   - Fiddled around with a mapper to make a map, had some success. Removed the map generation from the adventure class
+  - added perms_ctx and perms_interactions in order to streamline permissions checks for different commands and add more in the future as needed.
+  - added documents to botinfo database for bot maintainers and bot assistants, who will have access to most commands for testing purposes.
+      - /newmaintainer and /newassistant to add new people to that document
