@@ -1,20 +1,22 @@
 import database
 
+
 class Item:
-    def __init__(self, itemid="",
-          displayname="", subitems=None, author="", 
+    def __init__(self, itemid=None,
+          displayname="", subitems=None, author=None, 
           description="", event_marker=False, 
           infinite=False, deconstructable=False, dict=None):
 
       if dict is not None:
-        self.itemid = database.generate_unique_id()
+        if not itemid:
+          self.itemid = database.generate_unique_id()
         for key, value in dict.items():
             setattr(self, key, value)
         if self.displayname == "":
           self.displayname = "NO DISPLAY NAME GIVEN"
         if self.description == "":
           self.description = "NO DESCRIPTION GIVEN"
-        if self.author == "":
+        if author is None:
           self.author = "INVALID AUTHOR"
       else:
         self.itemid = database.generate_unique_id()

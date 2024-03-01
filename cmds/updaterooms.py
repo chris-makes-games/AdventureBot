@@ -8,8 +8,8 @@ from room import Room
 #pulls all rooms and updates them according to class attributes
 @commands.hybrid_command(description="Updates all rooms in the database according to the room class")
 async def updaterooms(ctx):
-  #user must be admin or an architect to use command
-  if not permissions.has_role(ctx, "architect") or not permissions.is_admin(ctx):
+  #user must be admin, owner, or an architect to use command
+  if not permissions.is_maintainer(ctx):
     await ctx.reply("You do not have permission to use this command.", ephemeral=True)
     return
   all_rooms = database.rooms.find()

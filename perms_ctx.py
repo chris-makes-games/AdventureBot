@@ -1,5 +1,7 @@
 import discord
 
+import database
+
 
 def is_admin(ctx):
   return ctx.author.guild_permissions.administrator
@@ -9,3 +11,12 @@ def is_owner(ctx):
 
 def has_role(ctx, role_name):
   return discord.utils.get(ctx.author.roles, name=role_name) is not None
+
+def is_maintainer(ctx):
+  return database.check_permissions(ctx.user.id)[0]
+
+def is_assistant(ctx):
+  return database.check_permissions(ctx.user.id)[1]
+
+def check_all(ctx):
+  return is_admin(ctx) or is_owner(ctx) or is_maintainer(ctx) or is_assistant(ctx)

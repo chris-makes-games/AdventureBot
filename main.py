@@ -31,8 +31,8 @@ protectedchannels = [
   1183954110513414164,
   1187417491576729620,
   1192186126623064084
-
 ]
+
 #bot will be the async client for running commands
 #remove help to replace with my own
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -43,14 +43,8 @@ guild_ids = [730468423586414624]
 
 #sets the parent directory of the bot
 BASE_DIR = pathlib.Path(__file__).parent
-
 #this is the command folder directory
 CMDS_DIR = BASE_DIR / "cmds"
-
-#simple ping command for testing
-@bot.command()
-async def ping(ctx):
-  await ctx.reply('Pong!\n {0}'.format(round(bot.latency, 1)) + " seconds")
 
 #unloads then reloads a command
 #can be used to update any changes to command file
@@ -97,18 +91,6 @@ async def unload(interaction: discord.Interaction, command: str):
 #   embed = tuple[0]
 #   view = tuple[1]
 #   await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-#allows the bot to post messages in the channel
-@bot.tree.command(name="register", description="Register a bot to a channel")
-async def register(interaction: discord.Interaction):
-  channel_id = interaction.channel_id
-  guild_id = interaction.guild_id
-  if database.register_channel(channel_id, guild_id):
-    await interaction.response.send_message("Bot has been registered to this channel.", ephemeral=True)
-    print(f"Bot has been registered to channel: {channel_id}")
-  else:
-    await interaction.response.send_message("Failed to register the bot: guild already has this channel registered.", ephemeral=True)
-    print("Error in register command: guild already has this channel in the database")
 
 #generate unique ID and send for testing purposes
 @bot.command()

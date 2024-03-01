@@ -33,8 +33,8 @@ class CreateRoomModal(discord.ui.Modal):
     #removed items from form, for now
     #self.add_item(self.items)
   async def on_submit(self, interaction: discord.Interaction):
-    user_id = interaction.user.id
-    room = Room(displayname= self.name.value, description = self.description.value, items = self.items.value, author=user_id)
+    user_displayname = interaction.user.display_name
+    room = Room(displayname= self.name.value, description = self.description.value, items = self.items.value, author=user_displayname)
     create_new_room(room.__dict__)
     await interaction.response.send_message(f"Room created:\nRoom display name: {self.name}\n description:\n{self.description}\nItems:\n{self.items}", ephemeral=True)
 
@@ -46,8 +46,8 @@ class CreateItemModal(discord.ui.Modal):
     self.add_item(self.name)
     self.add_item(self.description)
   async def on_submit(self, interaction: discord.Interaction):
-    user_id = interaction.user.id
-    item = Item(displayname= self.name.value, description = self.description.value, author=user_id)
+    user_displayname = interaction.user.display_name
+    item = Item(displayname= self.name.value, description = self.description.value, author=user_displayname)
     create_new_item(item.__dict__)
     await interaction.response.send_message(f"Item created:\nItem display name: {self.name}\n description:\n{self.description}", ephemeral=True)
 
@@ -195,6 +195,18 @@ def register_channel(channel_id, guild_id):
   else:
     botinfo.insert_one(bot_info_dict)
     return True
+
+def check_permissions(ctx):
+  maintainer = bool(botinfo.find_one({"maintainers": ctx.author.id}))
+  assistant = bool(botinfo.find_one({"assistants": ctx.author.id}))
+  tuple = (maintainer, assistant)
+  return tuple
+
+def add_maintainer(user_id):
+  botinfo.update_one({"maintainers": user_id}, {"$set": {"maintainers": user_id}})
+
+def add_assistant(user_id):
+  botinfo.update_one({"assistants": user_id}, {"$set": {"assistants": user_id}})
 
 #creates an ID that does not exist in the master ID document
 #optionally allows you to generate more IDs at once

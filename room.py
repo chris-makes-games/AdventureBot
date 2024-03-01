@@ -3,7 +3,7 @@ import database
 
 class Room:
   def __init__(self, 
-               roomid="", displayname="", author="", 
+               roomid="", displayname="", author=None, 
                description="", 
                kill=False, exits=None, items=None, 
                exit_destination=None, 
@@ -16,7 +16,7 @@ class Room:
         self.description = "NO DESCRIPTION GIVEN"
       if self.displayname == "":
         self.displayname = "NO DISPLAY NAME GIVEN"
-      if self.author == "":
+      if self.author == None:
         self.author = "INVALID AUTHOR"
     else:
       self.roomid = database.generate_unique_id()
