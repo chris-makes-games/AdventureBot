@@ -1,4 +1,5 @@
 import os  #stores secrets
+import pathlib
 import random as rand  #random number generator
 from pprint import pprint as pp  #pretty printing
 
@@ -9,6 +10,10 @@ from adventure import Adventure  #adventure class
 from item import Item  #item class
 from room import Room  #room class
 
+#sets the parent directory of the bot
+BASE_DIR = pathlib.Path(__file__).parent
+#this is the command folder directory
+CMDS_DIR = BASE_DIR / "cmds"
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -207,6 +212,15 @@ def add_maintainer(user_id):
 
 def add_assistant(user_id):
   botinfo.update_one({"assistants": user_id}, {"$set": {"assistants": user_id}})
+
+#gets all commands in file
+#this was a necessary workaround for the autocomplete function
+def get_all_commands():
+  all_commands = []
+  for cmd_file in CMDS_DIR.glob("*.py"):
+    if cmd_file.name != "__init__.py":
+      all_commands.append(cmd_file.name[:-3])
+  return all_commands
 
 #creates an ID that does not exist in the master ID document
 #optionally allows you to generate more IDs at once

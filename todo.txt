@@ -16,22 +16,18 @@ item stuff
 
 room stuff
   prevent dead players(info already blocked to players)
-  rooms optionally allow dead players
+  rooms optionally allow dead players (added epilogue to adventure)
+  finish room creation mode buttons
 
 adventure stuff
-  join and leave commands need to affect adventures and not delete/create players
-  creation mode for new rooms to be added
-  room tree to show room connections
-  renamed name field to name_ID
-  dead player able to roam bool
+  creation mode for new rooms to be added (WIP)
+  room tree to show room connections (WIP)
 
 command stuff
-  slash commands for everything(work in progress)
-  rework info command (currently deleted)
+  all commands reworked to files (WIP)
 
 misc:
   functions for pulling documents and updating all classes (done for rooms)
   change bot buttons to always be clickable (no downtime issues)
-  swap everything over to Cogs - all slash commands in command folder
 
-  Update and make roomid, itemid, nameid into the bot code in appropriate places.in the class's, the main.py, database.py 
+  Update and make roomid, itemid, nameid into the bot code in appropriate places.in the class's, the main.py, database.py (i think this is done - sarnt)

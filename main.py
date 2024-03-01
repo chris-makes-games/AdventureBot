@@ -46,43 +46,6 @@ BASE_DIR = pathlib.Path(__file__).parent
 #this is the command folder directory
 CMDS_DIR = BASE_DIR / "cmds"
 
-#unloads then reloads a command
-#can be used to update any changes to command file
-@bot.tree.command(name="reload", description="reloads a command")
-async def reload(interaction: discord.Interaction, command: str):
-  print(f"reloading {command}")
-  try:
-    await bot.reload_extension(f"cmds.{command.lower()}")
-    await interaction.response.send_message(f"reloaded /{command} command")
-    await bot.tree.sync()
-  except Exception as e:
-    await interaction.response.send_message(f"failed to reload {command}:\n{e}")
-
-#loads a command from the folder
-#will probably need a discord restart
-@bot.tree.command(name="load", description="loads a command")
-async def load(interaction: discord.Interaction, command: str):
-  print(f"loading {command}")
-  try:
-    await bot.reload_extension(f"cmds.{command.lower()}")
-    await interaction.response.send_message(f"loaded /{command} command")
-    await bot.tree.sync()
-  except Exception as e:
-    await interaction.response.send_message(f"failed to load {command}:\n{e}")
-
-#unloads a command, can unload any command
-#command will not work until reloaded
-#probably better to use reload command
-@bot.tree.command(name="unload", description="unloads a command")
-async def unload(interaction: discord.Interaction, command: str):
-  print("unloading " + str(command))
-  try:
-    await bot.unload_extension(f"cmds.{command}")
-    await interaction.response.send_message(f"unloaded {command}")
-    await bot.tree.sync()
-  except Exception as e:
-    await interaction.response.send_message(f"failed to unload {command}:\n{e}")
-
 #deactivated valentines command, saving for later use just in case
 # @bot.tree.command(name= "cupid", description= "Use this to submit your valentine for the event")
 # async def cupid(interaction: discord.Interaction):

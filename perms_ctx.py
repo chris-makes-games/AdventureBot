@@ -18,5 +18,8 @@ def is_maintainer(ctx):
 def is_assistant(ctx):
   return database.check_permissions(ctx.author.id)[1]
 
+def is_assistant_or_maintainer(ctx):
+  return is_maintainer(ctx) or is_assistant(ctx)
+
 def check_all(ctx):
   return is_admin(ctx) or is_owner(ctx) or is_maintainer(ctx) or is_assistant(ctx)
