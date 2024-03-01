@@ -1,0 +1,27 @@
+from discord.ext import commands
+
+import database
+import perms_ctx as permissions
+from room import Room
+
+
+#pulls all rooms and updates them according to class attributes
+@commands.hybrid_command(description="Updates all rooms in the database according to the room class")
+async def updaterooms(ctx):
+  #user must be admin or an architect to use command
+  if not permissions.has_role(ctx, "architect") or not permissions.is_admin(ctx):
+    await ctx.reply("You do not have permission to use this command.", ephemeral=True)
+    return
+  all_rooms = database.rooms.find()
+  for room in all_rooms:
+    room_object = Room(dict=room)
+    room_id = room_object.roomid
+    room_name = room_object.displayname
+    print(f"checking room {room_name}")
+    print(f"room ID: {room_id}")
+    dict = room_object.__dict__
+    database.update_room(dict)
+    await ctx.send(f"room {room_name} with ID {room_id} updated")
+
+async def setup(bot):
+  bot.add_command(updaterooms)

@@ -1,9 +1,7 @@
 import os  #used to store secrets
 import pathlib  #to get commands from command folder
-import re  #for regex
+import re  #for regex autocompletion
 from collections import Counter  #list comparing tool
-
-import mapper  #for ascii map
 
 import discord  #all bot functionality
 from discord import app_commands  #slash commands
@@ -11,6 +9,7 @@ from discord.ext import commands  #commands for bot
 
 import database  #mongodb database
 import formatter  #formats embeds
+import mapper  #for ascii map
 from player import Player  #player class
 from room import Room  #room class
 
@@ -46,26 +45,49 @@ guild_ids = [730468423586414624]
 BASE_DIR = pathlib.Path(__file__).parent
 
 #this is the command folder directory
-CMDS_DIR = BASE_DIR / "commands"
+CMDS_DIR = BASE_DIR / "cmds"
 
 #simple ping command for testing
 @bot.command()
 async def ping(ctx):
   await ctx.reply('Pong!\n {0}'.format(round(bot.latency, 1)) + " seconds")
 
+#unloads then reloads a command
+#can be used to update any changes to command file
+@bot.tree.command(name="reload", description="reloads a command")
+async def reload(interaction: discord.Interaction, command: str):
+  print(f"reloading {command}")
+  try:
+    await bot.reload_extension(f"cmds.{command.lower()}")
+    await interaction.response.send_message(f"reloaded /{command} command")
+    await bot.tree.sync()
+  except Exception as e:
+    await interaction.response.send_message(f"failed to reload {command}:\n{e}")
+
+#loads a command from the folder
+#will probably need a discord restart
 @bot.tree.command(name="load", description="loads a command")
 async def load(interaction: discord.Interaction, command: str):
-  print("loading " + str(command))
-  await bot.reload_extension(f"commands.{command}")
-  await interaction.response.send_message(f"loaded {command}")
-  await bot.tree.sync()
+  print(f"loading {command}")
+  try:
+    await bot.reload_extension(f"cmds.{command.lower()}")
+    await interaction.response.send_message(f"loaded /{command} command")
+    await bot.tree.sync()
+  except Exception as e:
+    await interaction.response.send_message(f"failed to load {command}:\n{e}")
 
+#unloads a command, can unload any command
+#command will not work until reloaded
+#probably better to use reload command
 @bot.tree.command(name="unload", description="unloads a command")
 async def unload(interaction: discord.Interaction, command: str):
   print("unloading " + str(command))
-  await bot.reload_extension(f"commands.{command}")
-  await interaction.response.send_message(f"unloaded {command}")
-  await bot.tree.sync()
+  try:
+    await bot.unload_extension(f"cmds.{command}")
+    await interaction.response.send_message(f"unloaded {command}")
+    await bot.tree.sync()
+  except Exception as e:
+    await interaction.response.send_message(f"failed to unload {command}:\n{e}")
 
 #deactivated valentines command, saving for later use just in case
 # @bot.tree.command(name= "cupid", description= "Use this to submit your valentine for the event")
@@ -93,20 +115,6 @@ async def register(interaction: discord.Interaction):
 async def randomid(ctx, *args):
   arg = int(''.join(args))
   await ctx.reply(database.generate_unique_id(arg))
-
-#pulls all rooms and updates them according to class attributes
-@bot.command()
-async def updaterooms(ctx):
-  all_rooms = database.rooms.find()
-  for room in all_rooms:
-    room_object = Room(dict=room)
-    room_id = room_object.roomid
-    room_name = room_object.displayname
-    print("checking room " + room_name)
-    print("room ID: " + str(room_id))
-    dict = room_object.__dict__
-    database.update_room(dict)
-    await ctx.send("room " + room_name + " updated with ID " + str(room_id) + " but still has a name")
 
 #NUCLEAR DELETION OF ROOM FIELDS
 #@bot.command()
@@ -483,6 +491,7 @@ async def autocomplete_item_id_deletion(interaction: discord.Interaction, curren
   app_commands.Choice(name="Name", value="nameid"),
   app_commands.Choice(name="Starting Room", value="start"),
   app_commands.Choice(name="Description", value="description")])
+
 async def editadventure(interaction: discord.Interaction, nameid: str, field: app_commands.Choice[str], value: str):
   # Retrieve adventure and verify author
   adventure = database.testadventures.find_one({"nameid": nameid})
@@ -888,17 +897,22 @@ async def adventures(interaction: discord.Interaction):
 #prints a connection message to the console for debugging
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
-    #this syncs the bot slash commands
-    try: 
-        synced = await bot.tree.sync()
-        print(f'Synced {len(synced)} commands.')
+  print(f'{bot.user} has connected to Discord!')
+  #this should load all commands from commands folder
+  for cmd_file in CMDS_DIR.glob("*.py"):
+    try:
+      if cmd_file.name != "__init__.py":
+        print(f"Loading command: /{cmd_file.name[:-3]}...")
+        await bot.load_extension(f"cmds.{cmd_file.name[:-3]}")
     except Exception as e:
-        print(e)
-    #this should load all commands from commands folder
-    for commands in CMDS_DIR.glob("*.py"):
-      if commands.name != "__init__.py":
-        await bot.load_extension(f"commands.{commands.name[:-3]}")
+      print(f"Failed to load command: /{cmd_file.name[:-3]}")
+      print(e)
+  #this syncs the bot slash commands
+  try: 
+    synced = await bot.tree.sync()
+    print(f'Synced {len(synced)} commands.')
+  except Exception as e:
+    print(e)
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels
