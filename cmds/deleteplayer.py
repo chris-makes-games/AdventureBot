@@ -13,7 +13,7 @@ async def deleteplayer(ctx, player_name: str):
   deletedplayer = database.users.find_one({"displayname": player_name})
   #checks if player is in the database
   if not deletedplayer:
-    await ctx.send(f"ERROR: Player '{player_name}' not found.")
+    await ctx.send(f"ERROR: Player '{player_name}' not found.", ephemeral=True)
     return
   #allows players to delete themselves, bypasses permissions check
   if ctx.user.id == deletedplayer["disc"]:
@@ -21,16 +21,14 @@ async def deleteplayer(ctx, player_name: str):
     await ctx.reply(confirm, ephemral=True)
     return
   #if player is not trying to delete themselves, check permissions
-  is_server_admin = permissions.is_admin(ctx)
-  is_game_admin = permissions.is_maintainer(ctx)
-  if not is_game_admin and not is_server_admin:
-    await ctx.reply("You do not have permission to use this command.", ephemeral=True)
+  if not permissions.is_admin and not permissions.is_maintainer:
+    await ctx.reply("You do not have permission to use this command. Contact a server admin or bot maintainer.", ephemeral=True)
     print(f"User [{ctx.user.display_name}] tried to delete player [{player_name}] but does not have permission!")
     return
   else:
-    player_id = deletedplayer["disc"]
-    confirm = database.confirm_embed(confirm_text="This will delete all of " + player_name + "'s data, are you sure you want to do this?", title="Confirm Deletion", action="delete_player", channel=ctx.channel, id=player_id)
-    await ctx.response.send_message(confirm)
+  #send the confirmation embed with buttons to click
+    confirm = database.confirm_embed(confirm_text="This will delete all of " + player_name + "'s data, are you sure you want to do this?", title="Confirm Deletion", action="delete_player", channel=ctx.channel, id=deletedplayer["disc"])
+    await ctx.response.send_message(confirm, ephemeral=True)
     return
 
 # returns ten players that match the typing of the player name

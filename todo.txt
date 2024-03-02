@@ -28,6 +28,7 @@ adventure stuff
 
 command stuff
   all commands reworked to files (WIP)
+  double check that commands from players only work in threads (new player has multiple possible channels. Things might break if commands can be ran outside of the correct channels)
 
 misc:
   functions for pulling documents and updating all classes (done for rooms)
