@@ -11,8 +11,8 @@ from player import Player
 #players may only be in one adventure at a time, per server
 @commands.hybrid_command(name="join", description="Join an adventure")
 async def join(ctx, adventure_name : str):
-  truename = ctx.user.id
-  displayname = ctx.user.display_name
+  truename = ctx.author.id
+  displayname = ctx.author.display_name
   channel = ctx.channel
   player = database.get_player(truename)
   #cancel if no player is found in the database
@@ -20,12 +20,9 @@ async def join(ctx, adventure_name : str):
     embed = formatter.embed_message(displayname, "Error", "notplayer" , "red")
     await ctx.reply.send_message(embed=embed, ephemeral=True)
     return
-  #this needs to be reworked!
-  #this if statement doesn't actually fire
-  #it should check if player is in an adventure in this guild
-  if player["adventure"]:
-    embed = formatter.embed_message(displayname, "Error", "alreadyadventure" , "red")
-    await ctx.reply(embed=embed, ephemeral=True)
+  #check if player is in an adventure in this guild
+  if player and ctx.guild.id in player["guilds"]:
+    await ctx.reply(f"Player {player['displayname']} is already in an adventure on this server!", ephemeral=True)
     return
   if adventure_name == "":
     all_adventures = database.get_adventures()
@@ -56,8 +53,16 @@ async def join(ctx, adventure_name : str):
       await ctx.reply("Error - Channel is not a text channel", ephemeral=True)
       return
     channel_id = thread.id
-    player = Player(truename, displayname, adventure["start"], channel_id, current_adventure=adventure_name)
-    database.new_player(player.__dict__)
+    #if the player is in the database, update the player's game thread ids and guilds list
+    if player:
+      new_guilds = player["guilds"].append(guild.id)
+      new_threads = player["game_threads"].append(channel_id)
+      player = Player(discord=truename, displayname=displayname, room=adventure["start"], guilds=new_guilds, game_threads=new_threads)
+      database.update_player(player.__dict__)
+    else:
+    #if the player is not in the database, create a new player object and add to database
+      player = Player(discord=truename, displayname=displayname, room=adventure["start"], guilds=[guild.id], game_threads=[channel_id])
+      database.new_player(player.__dict__)
     room = database.get_player_room(truename)
     if room is None:
       print("Error! Room is None!")
@@ -70,7 +75,7 @@ async def join(ctx, adventure_name : str):
       await ctx.reply(embed=embed, ephemeral=True)
       return
     room_author = room["author"]
-    author = guild.get_member(room_author)
+    author = guild.get_member(room_author).display_name
     if not author:
       author = "Unknown"
     all_items = []
@@ -79,8 +84,7 @@ async def join(ctx, adventure_name : str):
     embed = tuple[0]
     view = tuple[1]
     #comment to delete command after success:
-    await ctx.delete_original_response()
-    await thread.send(ctx.user.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
+    await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
 
 # Autocompletion function for adventure_name in join command
 @join.autocomplete('adventure_name')

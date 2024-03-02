@@ -41,6 +41,3 @@ class Room:
       if unlockers is None:
         unlockers = []
         self.unlockers = unlockers
-
-  def generate_ascii_map(self, visited=None, indent=0):
-    pass

@@ -107,20 +107,24 @@ class ConfirmButton(discord.ui.Button):
   #callback is for when the button is clicked
   async def callback(self, interaction: discord.Interaction):
     await interaction.response.defer()
-    if self.action == "leave":
-      await leave_game(interaction, self.channel)
-    elif self.action == "cancel":
+    
+    #if they hit the red x it does nothing
+    #embed that is asking the conform is deleted
+    if self.action == "cancel":
       await interaction.delete_original_response()
+    #player wants to leave an adventure
+    elif self.action == "leave":
+      await interaction.followup.send("This would have made a player leave an adventure, but it is not implemented yet.", ephemeral=True)
     elif self.action == "create_room":
-      await interaction.response.send_message("Creating room... jk this isn't doing anything yet but it's working")
+      await interaction.followup.send("This would create a room but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_item":
-      await interaction.response.send_message(f"This would delete item {self.id} but it's not implemented yet! Check database.ConfirmButton")
+      await interaction.followup.send(f"This would delete item {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_room":
-      await interaction.response.send_message(f"This would delete room {self.id} but it's not implemented yet! Check database.ConfirmButton")
+      await interaction.followup.send(f"This would delete room {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_adventure":
-      await interaction.response.send_message(f"This would delete adventure {self.id} but it's not implemented yet! Check database.ConfirmButton")
+      await interaction.followup.send(f"This would delete adventure {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_player":
-      await interaction.response.send_message(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton")
+      await interaction.followup.send(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     else:
       print("ERROR - confirmation button has no action!")
       return
@@ -401,37 +405,6 @@ async def creation_mode(channel):
   view.add_item(new_item_button)
   view.add_item(exit_button)
   return (embed, view)
-  
-#removes player from the game, deleting the database entry
-#deletes the thread associated with the player's game
-async def leave_game(interaction, thread):
-    player = get_player(interaction.user.id)
-    if player:
-      # Assuming you have a key named "game_thread_id" in the player's data
-        game_thread_id = player.get("game_thread_id")
-
-        if game_thread_id:
-            # Attempt to get the game thread
-            game_thread = interaction.guild.get_thread(game_thread_id)
-
-            if game_thread:
-                try:
-                    # Delete the game thread
-                    await game_thread.delete()
-                    await interaction.response.send_message("Game thread deleted successfully.", ephemeral=True)
-                except Exception as e:
-                    print(f"Error deleting game thread: {e}")
-                    await interaction.response.send_message("An error occurred while deleting the game thread.", ephemeral=True)
-
-                # Delete player entry from the database
-                delete_player(interaction.user.id)
-                
-            else:
-                await interaction.response.send_message("ERROR - Game thread not found.", ephemeral=True)
-        else:
-            await interaction.response.send_message("ERROR - Game thread ID not found in player data.", ephemeral=True)
-    else:
-        await interaction.response.send_message("You are not part of any adventure to leave.", ephemeral=True)
 
 #deactivated valentines function
 async def cupid_embed(user):
@@ -525,6 +498,7 @@ def get_players_in_room(room):
     players_in_room.append(player["disc"])
   return players_in_room
 
+#returns true if player is in the game
 def player_exists(name):
    return bool(users.find_one({"disc": name}))
 

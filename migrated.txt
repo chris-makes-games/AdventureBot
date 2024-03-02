@@ -8,7 +8,12 @@ database
 ---------------------------------------------------------------
 
   changes made post valentines:
-  - command folder loader is now working! Commands need to be transferred to the folder one at a time and tested.
+  - command folder loader is now working! Commands need to be transferred to the folder one at a time and fixed/tested.
+          old commands transferred and working:
+              - newplayer
+              - deleteplayer
+              - join
+              - register
   - added /load, /unload, and most importantly /reload. Reload allows the bot to unload and reload a command, getting any updates from the file if it has been changed. This does not require a discord app restart or bot restart.
   - I saw a few new classes created in main.py, they seemed to be trying to create confirmation buttons when a player tries different commands but they were not formatted correctly. There is also already a confirm button class (database.ConfirmButton) which performs the desired functionality. I deleted the button classes in main and did some cleanup around them to make the code executable.
 (in general, no classes should be getting defined at the bottom of main. For organization purposes, classes should have their own file and then import to main. I have a few custom classes in database but they need to be in database to access other functions.)
@@ -19,13 +24,24 @@ database
   - Removed the /info command. It doesn't really serve a purpose anymore. Kept it in old_code.txt just in case.
   - Added /newplayer command. This does what old !join does. Someone can use this to add their own player info to the database, needs testing!
   - Added /deleteplayer command, needs testing!
-  - Added a few parameters to the player class:
+  - Added/changed a few parameters to the player class:
       - channel is now channels, a list of channels
-      - admin boolean to discern who has privelages
+      - added guilds, to see where the player is playing
+      - current_adventure is removed
+      - game_thread is now game_threads, a list
+      - edit_thread is now a single int, changed from string
   - Added a few parameters to the adventure class:
       - Rooms is now a list of strings of room IDs
       - Epilogue boolean to determine if dead players can explore the adventure
-  - Fiddled around with a mapper to make a map, had some success. Removed the map generation from the adventure class
-  - added perms_ctx and perms_interactions in order to streamline permissions checks for different commands and add more in the future as needed.
+      - cleaned up adventure and removed tree/mapping stuff
+  - Fiddled around with a mapper to make a map, had some success.
+  - added perms_ctx and perms_interactions in order to streamline permissions checks for different permissions and add more in the future as needed.
+      - can now check for roles
+      - can check for maintainer (new admin role)
+      - can check for assistant (secondary admins)
+      - can check for correct threads as well
+  - perms_interactions created just in case
   - added documents to botinfo database for bot maintainers and bot assistants, who will have access to most commands for testing purposes.
-      - /newmaintainer and /newassistant to add new people to that document
+      - /newmaintainer and /newassistant to add new people to that document in botinfo
+  - /activate and /deactivate commands now allow maintainers to turn off certain bot commands
+  - sync added as its own command, syncs the bot tree

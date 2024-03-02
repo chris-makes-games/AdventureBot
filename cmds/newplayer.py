@@ -11,8 +11,8 @@ from player import Player
 async def newplayer(ctx, user: discord.User):
   player_id = ctx.author.id
   same_player = player_id == user.id
-  if not same_player and not permissions.is_maintainer:
-    await ctx.repl("You must be a bot maintainer to add someone else as a player! Try adding yourself instead.")
+  if not same_player and not permissions.is_assistant_or_maintainer:
+    await ctx.repl("You must be a bot admin to add someone else as a player! Try adding yourself instead.")
   player = database.get_player(user.id)
   if player and same_player:
     await ctx.reply(f"{ctx.author.mention} You are already a player!", ephemeral=True)

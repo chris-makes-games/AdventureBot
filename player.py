@@ -1,23 +1,22 @@
 class Player:
-  def __init__(self, discord, displayname, room, channels=None, current_adventure=None, game_thread_id="", edit_thread_id="",
-               alive=True, deaths=0, architect=False, admin=False,
-              inventory=None, taken=None):
+  def __init__(self, discord, displayname, room, guilds=None,  game_threads=None, edit_thread=None,
+               alive=True, deaths=0, architect=False, inventory=None, taken=None):
     self.disc = discord
     self.displayname = displayname
     self.alive = alive
     self.deaths = deaths
-    self.current_adventure = current_adventure
     self.room = room
     self.architect = architect
-    self.admin = admin
-    self.game_thread_id = game_thread_id
-    self.edit_thread_id = edit_thread_id
+    self.edit_thread_id = edit_thread
     if inventory is None:
       inventory = []
     if taken is None:
       taken = []
-    if channels is None:
-      channels = []
-    self.taken = taken
+    if guilds is None:
+      guilds = []
+    if game_threads is None:
+      game_threads = []
     self.inventory = inventory
-    self.channels = channels
+    self.taken = taken
+    self.guilds = guilds
+    self.game_threads = game_threads
