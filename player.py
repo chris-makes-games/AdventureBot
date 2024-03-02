@@ -7,7 +7,7 @@ class Player:
     self.deaths = deaths
     self.room = room
     self.architect = architect
-    self.edit_thread_id = edit_thread
+    self.edit_thread = edit_thread
     if inventory is None:
       inventory = []
     if taken is None:
