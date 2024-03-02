@@ -19,6 +19,9 @@ room stuff
   rooms optionally allow dead players (added epilogue to adventure)
   finish room creation mode buttons
 
+button stuff
+  the ConfirmButton in database is all set up to have different confirmations sent to it but just has placeholders at the moment and needs actual functions for things happening on confirm
+
 adventure stuff
   creation mode for new rooms to be added (WIP)
   room tree to show room connections (WIP)

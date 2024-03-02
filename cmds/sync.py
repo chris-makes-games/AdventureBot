@@ -7,6 +7,8 @@ from discord.ext import commands
 @commands.hybrid_command()
 async def sync(ctx):
   await ctx.bot.tree.sync()
+  await ctx.reply("Commands Syncd", ephemeral=True)
+  
 
 async def setup(bot):
   bot.add_command(sync)
