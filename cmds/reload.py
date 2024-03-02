@@ -12,7 +12,7 @@ async def reload(ctx, command: str):
   if not permissions.is_assistant_or_maintainer(ctx):
     await ctx.reply("You do not have permission to use this command.", ephemeral=True)
     return
-  banned_commands = ["unload", "reload", "load"]
+  banned_commands = ["unload", "reload", "load", "deactivate", "activate"]
   if command.lower() in banned_commands:
     await ctx.reply("You cannot reload commands that load/unload!", ephemeral=True)
     return

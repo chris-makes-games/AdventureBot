@@ -126,30 +126,30 @@ class ConfirmButton(discord.ui.Button):
       return
 
 #deactivated valentines function
-# class CupidModal(discord.ui.Modal):
-#   def __init__(self, title="Valentines Event Sign-up", *args):
-#     super().__init__(title=title)
-#     self.likes = discord.ui.TextInput(label="What short story would you like?", placeholder="remember that it should stay within 3k words", style=discord.TextStyle.long, required=True)
-#     self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="these topics will not be included in the story you recieve.", style=discord.TextStyle.long, required=True)
-#     self.willing = discord.ui.TextInput(label="What are you willing to write?", placeholder="please include any limits you may have.", style=discord.TextStyle.long, required=True)
-#     self.add_item(self.likes)
-#     self.add_item(self.limits)
-#     self.add_item(self.willing)
-#   async def on_submit(self, interaction: discord.Interaction):
-#     await interaction.response.defer()
-#     dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.willing.value}
-#     new_cupid(dict)
-#     await give_role(interaction, "Valentine")
-#     await interaction.followup.send(f"{interaction.user.mention} Your have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine and begin writing.", ephemeral=True)
+class CupidModal(discord.ui.Modal):
+  def __init__(self, title="Valentines Event Sign-up", *args):
+    super().__init__(title=title)
+    self.likes = discord.ui.TextInput(label="What short story would you like?", placeholder="remember that it should stay within 3k words", style=discord.TextStyle.long, required=True)
+    self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="these topics will not be included in the story you recieve.", style=discord.TextStyle.long, required=True)
+    self.willing = discord.ui.TextInput(label="What are you willing to write?", placeholder="please include any limits you may have.", style=discord.TextStyle.long, required=True)
+    self.add_item(self.likes)
+    self.add_item(self.limits)
+    self.add_item(self.willing)
+  async def on_submit(self, interaction: discord.Interaction):
+    await interaction.response.defer()
+    dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.willing.value}
+    new_cupid(dict)
+    await give_role(interaction, "Valentine")
+    await interaction.followup.send(f"{interaction.user.mention} Your have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine and begin writing.", ephemeral=True)
 
 #deactivated valentines function
-# class CupidButton(discord.ui.Button):
-#   def __init__(self, label, disabled=False, row=0):
-#     super().__init__(label=label, style=discord.ButtonStyle.primary)
-#     self.disabled = disabled
-#     self.row = row
-#   async def callback(self, interaction: discord.Interaction):
-#     await interaction.response.send_modal(CupidModal())
+class CupidButton(discord.ui.Button):
+  def __init__(self, label, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.primary)
+    self.disabled = disabled
+    self.row = row
+  async def callback(self, interaction: discord.Interaction):
+    await interaction.response.send_modal(CupidModal())
 
 db_name = os.environ['DB_NAME']
 db_pass = os.environ['DB_PASS']
@@ -201,15 +201,38 @@ def register_channel(channel_id, guild_id):
     botinfo.insert_one(bot_info_dict)
     return True
 
+#checks if a command is inactive in botinfo
+def inactive_check(command):
+  return botinfo.find_one({"inactive": command})
+
+#adds a command to the inactive list
+def deactivate_command(command):
+  document = botinfo.find_one({"commands": "deactivated"})
+  if document:
+    document["inactive"].append(command)
+    botinfo.update_one({"commands": "deactivated"}, {"$set": document})
+
+#removes a command from the inactive list
+def activate_command(command):
+  document = botinfo.find_one({"commands": "deactivated"})
+  if document:
+    document["inactive"].remove(command)
+    botinfo.update_one({"commands": "deactivated"}, {"$set": document})
+                   
+#returns a tuple to check permissions in botinfo
+#tuple[0] is maintainer
+#tuple[1] is assistant
 def check_permissions(id):
   maintainer = bool(botinfo.find_one({"maintainers": id}))
   assistant = bool(botinfo.find_one({"assistants": id}))
   tuple = (maintainer, assistant)
   return tuple
 
+#adds a new maintainer to botinfo
 def add_maintainer(user_id):
   botinfo.update_one({"maintainers": user_id}, {"$set": {"maintainers": user_id}})
 
+#adds a new assistant to botinfo
 def add_assistant(user_id):
   botinfo.update_one({"assistants": user_id}, {"$set": {"assistants": user_id}})
 
@@ -411,18 +434,18 @@ async def leave_game(interaction, thread):
         await interaction.response.send_message("You are not part of any adventure to leave.", ephemeral=True)
 
 #deactivated valentines function
-# async def cupid_embed(user):
-#   embed = discord.Embed(title="Valentines Event Sign-Up")
-#   view = discord.ui.View()
-#   if cupid.find_one({"disc": user}):
-#     embed.description = "You have already signed up for the Valentines Event. If you submit this form again, it will overwrite your previous valentines sign-up."
-#     cupid_button = CupidButton(label="I understand, I want to resubmit")
-#     view.add_item(cupid_button)
-#   else:
-#     embed.description = "Please only sign up for this event if you plan to write something for someone else. It is a few thousand words over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know so a replacement can be written"
-#     cupid_button = CupidButton(label="I understand, I want to sign up")
-#     view.add_item(cupid_button)
-#   return (embed, view)
+async def cupid_embed(user):
+  embed = discord.Embed(title="Valentines Event Sign-Up")
+  view = discord.ui.View()
+  if cupid.find_one({"disc": user}):
+    embed.description = "You have already signed up for the Valentines Event. If you submit this form again, it will overwrite your previous valentines sign-up."
+    cupid_button = CupidButton(label="I understand, I want to resubmit")
+    view.add_item(cupid_button)
+  else:
+    embed.description = "Please only sign up for this event if you plan to write something for someone else. It is a few thousand words over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know so a replacement can be written"
+    cupid_button = CupidButton(label="I understand, I want to sign up")
+    view.add_item(cupid_button)
+  return (embed, view)
 
 #can be used to give any player a new discord role
 async def give_role(interaction, role):

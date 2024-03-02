@@ -46,20 +46,9 @@ BASE_DIR = pathlib.Path(__file__).parent
 #this is the command folder directory
 CMDS_DIR = BASE_DIR / "cmds"
 
-#deactivated valentines command, saving for later use just in case
-# @bot.tree.command(name= "cupid", description= "Use this to submit your valentine for the event")
-# async def cupid(interaction: discord.Interaction):
-#   truename = interaction.user.id
-#   tuple = await database.cupid_embed(truename)
-#   embed = tuple[0]
-#   view = tuple[1]
-#   await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-#generate unique ID and send for testing purposes
-@bot.command()
-async def randomid(ctx, *args):
-  arg = int(''.join(args))
-  await ctx.reply(database.generate_unique_id(arg))
+deactivated_commands = [
+  "cupid"
+]
 
 #NUCLEAR DELETION OF ROOM FIELDS
 #@bot.command()
@@ -847,8 +836,11 @@ async def on_ready():
   for cmd_file in CMDS_DIR.glob("*.py"):
     try:
       if cmd_file.name != "__init__.py":
-        print(f"Loading command: /{cmd_file.name[:-3]}...")
-        await bot.load_extension(f"cmds.{cmd_file.name[:-3]}")
+        if database.inactive_check(cmd_file.name[0:-3]):
+          print(f"Skipping command: /{cmd_file.name[:-3]}...")
+        else:
+          print(f"Loading command: /{cmd_file.name[:-3]}...")
+          await bot.load_extension(f"cmds.{cmd_file.name[:-3]}")
     except Exception as e:
       print(f"Failed to load command: /{cmd_file.name[:-3]}")
       print(e)
