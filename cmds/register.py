@@ -8,7 +8,7 @@ import perms_ctx as permissions
 @commands.hybrid_command(name="register", description="Register a bot to a channel")
 async def register(ctx):
   #user must be admin, owner, or an architect to use command
-  if not permissions.check_all(ctx):
+  if not permissions.check_any_admin(ctx):
     await ctx.reply("You do not have permission to use this command.")
     return
   channel_id = ctx.channel.id

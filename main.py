@@ -46,49 +46,6 @@ BASE_DIR = pathlib.Path(__file__).parent
 #this is the command folder directory
 CMDS_DIR = BASE_DIR / "cmds"
 
-
-#creation mode for adding anything new or editing rooms
-#edits one adventure at a time
-#works similar to join, creates a private thread
-@bot.command()
-async def create(ctx, *args):
-  adventure_name = []
-  name = ctx.author.display_name
-  channel = ctx.channel
-  #delete comment to implememnt admin check
-  #if player and not player["architect"]:
-    #embed = formatter.embed_message(name, "Error", "notarchitect" , "red")
-    #await ctx.reply(embed=embed)
-    #return
-  for arg in args:
-    adventure_name.append(str(arg))
-  adventure_name = " ".join(adventure_name)
-  all_adventures = database.get_adventures()
-  database.pp(all_adventures)
-  if adventure_name == "":
-    embed = discord.Embed(title="Error - Need adventure", description="You need to specify an adventure to begin creating. Use !create <adventure name here>\nRefer to this list of available adventures to edit:", color=discord.Color.red())
-    for adventure in all_adventures:
-      embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
-    embed.set_footer(text="If there is a different error, contact a moderator")
-    await ctx.reply(embed=embed)
-    return
-  adventure = database.get_adventure(adventure_name.lower())
-  if not adventure:
-    embed = discord.Embed(title="Error - No Such Adventure", description="Adventure '" + adventure_name + "' was not found. Please !create one of these adventures to begin creation mode:", color=discord.Color.red())
-    for adventure in all_adventures:
-      embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
-    embed.set_footer(text="If there is a different error, contact a moderator")
-    await ctx.reply(embed=embed)
-    return
-  else:
-    thread = await channel.create_thread(name=name + " editing " + adventure_name)
-    channel = bot.get_channel(thread.id)
-    tuple = await database.creation_mode(channel)
-    embed = tuple[0]
-    view = tuple[1]
-    await ctx.message.delete()
-    await thread.send(ctx.author.mention + "This is create mode",embed=embed, view=view)
-
 #attempts to combine two items or more together
 #soon to be removed, in favor of embed function
 @bot.command()

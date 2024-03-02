@@ -17,8 +17,9 @@ def is_guild_owner(ctx):
   return ctx.author.id == ctx.guild.owner_id
 
 #checks for a given role in the guild
+#checks as is, lowercase, uppercase, and title case
 def has_role(ctx, role_name):
-  return discord.utils.get(ctx.author.roles, name=role_name) is not None
+  return discord.utils.get(ctx.author.roles, name=role_name) or discord.utils.get(ctx.author.roles, name=role_name.title()) or discord.utils.get(ctx.author.roles, name=role_name.upper()) or discord.utils.get(ctx.author.roles, name=role_name.lower())
 
 #checks if the player is a bot maintainer
 def is_maintainer(ctx):
@@ -33,5 +34,5 @@ def is_assistant_or_maintainer(ctx):
   return is_maintainer(ctx) or is_assistant(ctx)
 
 #checks for any high-level guild/bot permissions
-def check_all(ctx):
+def check_any_admin(ctx):
   return is_admin(ctx) or is_guild_owner(ctx) or is_maintainer(ctx) or is_assistant(ctx)
