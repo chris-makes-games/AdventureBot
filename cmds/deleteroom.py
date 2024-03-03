@@ -42,6 +42,7 @@ async def autocomplete_room_id_deletion(interaction: discord.Interaction, curren
     room_ids = [room["roomid"] for room in room_ids_query.limit(25)]
     return [app_commands.Choice(name=room_id, value=room_id) for room_id in room_ids]
   else:
+    #if not maintainer, shows only their rooms
     room_ids_query = database.testrooms.find(
   {
   "author": interaction.user.id,

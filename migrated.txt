@@ -15,6 +15,8 @@ database
               - join
               - register
               - create
+              - deleteroom
+              - deleteitem
   - added /load, /unload, and most importantly /reload. Reload allows the bot to unload and reload a command, getting any updates from the file if it has been changed. This does not require a discord app restart or bot restart.
   - I saw a few new classes created in main.py, they seemed to be trying to create confirmation buttons when a player tries different commands but they were not formatted correctly. There is also already a confirm button class (database.ConfirmButton) which performs the desired functionality. I deleted the button classes in main and did some cleanup around them to make the code executable.
 (in general, no classes should be getting defined at the bottom of main. For organization purposes, classes should have their own file and then import to main. I have a few custom classes in database but they need to be in database to access other functions.)
