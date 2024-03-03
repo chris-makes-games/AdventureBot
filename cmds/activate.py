@@ -28,7 +28,7 @@ async def activate(ctx, command: str):
     await ctx.reply(f"failed to activate {command}:\n{e}", ephemeral=True)
 
 @activate.autocomplete("command")
-async def autocomplete_activate(ctx, current: str):
+async def autocomplete_activate(interaction: discord.Interaction, current: str):
   all_commands = database.get_all_commands()
   choices = []
   for cmd in all_commands:

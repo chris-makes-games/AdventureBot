@@ -1,6 +1,6 @@
+import discord
 from discord import app_commands
 from discord.ext import commands
-import discord
 
 import database
 import perms_ctx as permissions
@@ -38,7 +38,7 @@ async def deleteplayer(ctx, player_name: str):
 
 # returns ten players that match the typing of the player name
 @deleteplayer.autocomplete('player_name')
-async def autocomplete_deleteplayer(ctx, current: str):
+async def autocomplete_deleteplayer(interaction: discord.Interaction, current: str):
     players_query = database.get_all_players()
     possible_players = [player["displayname"] for player in players_query if current.lower() in player["displayname"].lower()]
     return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_players[:10]]

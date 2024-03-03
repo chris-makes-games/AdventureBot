@@ -240,12 +240,21 @@ def add_maintainer(user_id):
 def add_assistant(user_id):
   botinfo.update_one({"assistants": user_id}, {"$set": {"assistants": user_id}})
 
-#gets all commands in file
-#this was a necessary workaround for the autocomplete function
+#gets names of all commands in file for autocomplete
 def get_all_commands():
   all_commands = []
   for cmd_file in CMDS_DIR.glob("*.py"):
     if cmd_file.name != "__init__.py":
+      all_commands.append(cmd_file.name[:-3])
+  return all_commands
+
+#only returns commands regular players should see
+#any new admin command needs to be added to this list
+def get_player_commands():
+  all_commands = []
+  admin_commands = ["register", "load", "unload", "reload", "sync", "updaterooms", "ping", "activate", "deactivate", "newassistant", "newmaintainer"]
+  for cmd_file in CMDS_DIR.glob("*.py"):
+    if cmd_file.name != "__init__.py" and cmd_file.name[:-3] not in admin_commands:
       all_commands.append(cmd_file.name[:-3])
   return all_commands
 

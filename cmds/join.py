@@ -84,11 +84,11 @@ async def join(ctx, adventure_name : str):
     embed = tuple[0]
     view = tuple[1]
     #comment to delete command after success:
-    await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)
+    await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view, ephemeral=True)
 
 # Autocompletion function for adventure_name in join command
 @join.autocomplete('adventure_name')
-async def autocomplete_join(ctx, current: str):
+async def autocomplete_join(interaction : discord.Interaction, current: str):
     adventures_query = database.get_adventures()
     possible_adventures = [adv["nameid"] for adv in adventures_query if current.lower() in adv["nameid"].lower()]
     return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_adventures[:10]]

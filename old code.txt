@@ -223,9 +223,93 @@ if player:
 else:
   return None
 
-inefficient way of determining player admin status
-def player_architect(roles):
-role_names = []
-for role in roles:
-  role_names.append(role.name)
-return 'architect' in role_names
+#attempts to combine two items or more together
+#soon to be removed, in favor of embed function
+@bot.command()
+async def combine(ctx, *args):
+  truename = ctx.author.id
+  inventory = database.get_player_info(truename, "inventory")
+  name = ctx.author.display_name
+  if len(args) < 2:
+    embed = formatter.embed_message(name, "Error", "noitem", "red")
+    await ctx.reply(embed=embed)
+    return
+  try:
+    if inventory is None:
+      embed = formatter.embed_message(name, "Error", "emptyinventory", "red")
+      await ctx.reply(embed=embed)
+      return
+    for arg in args:
+      if int(arg) > len(inventory):
+        embed = formatter.embed_message(name, "Error", "noitem", "red")
+        await ctx.reply(embed=embed)
+        return
+  except Exception as e:
+    print(e)
+    embed = formatter.embed_message(name, "Error", "noitem", "red")
+    await ctx.reply(embed=embed)
+    return
+  combining_items = []
+  for arg in args:
+    combining_items.append(inventory[int(arg)-1])
+  all_items = database.get_all_items()
+  for item in all_items:
+    if item["subitems"]:
+      print("combining items...")
+      print(item["subitems"])
+      print(combining_items)
+      if Counter(combining_items) == Counter(item["subitems"]):
+        for olditem in combining_items:
+          inventory.remove(olditem)
+        inventory.append(item["itemid"])
+        dict = {"disc": truename,"inventory": inventory}
+        database.update_player(dict)
+        embed = formatter.embed_message(name, "You created a " + item["displayname"] + "!", "combo", "green")
+        await ctx.reply(embed=embed)
+        return
+  embed = formatter.embed_message(name, "Incorrect Combination", "nocombo", "red")
+  await ctx.reply(embed=embed)
+  return
+
+#deconstructs an item, if such a thing is possible for that item
+#soon to be removed, in favor of embed function
+@bot.command()
+async def deconstruct(ctx, item):
+  truename = ctx.author.id
+  inventory = database.get_player_info(truename, "inventory")
+  name = ctx.author.display_name
+  if inventory is None:
+    embed = formatter.embed_message(name, "Error", "emptyinventory", "red")
+    await ctx.reply(embed=embed)
+    return
+  try:
+    trueitem = int(item)
+    trueitem -= 1
+    if int(item) > len(inventory):
+      embed = formatter.embed_message(name, "Error", "noitem", "red")
+      await ctx.reply(embed=embed)
+      return
+  except Exception as e:
+    print(e)
+    embed = formatter.embed_message(name, "Error", "noitem", "red")
+    await ctx.reply(embed=embed)
+    return
+  scrap_item = inventory[trueitem]
+  scrap_item = database.get_item(scrap_item)
+  if scrap_item is None:
+    embed = formatter.embed_message(name, "Error", "itemdoesntexist", "red")
+    await ctx.reply(embed=embed)
+    return
+  new_items = scrap_item["subitems"]
+  inventory.remove(scrap_item["name"])
+  items_string = ""
+  for item in new_items:
+    inventory.append(item)
+    itemname = database.get_item(item)
+    if itemname:
+      items_string = items_string + ("- " +itemname["displayname"] + "\n")
+  dict = {"disc": truename,"inventory": inventory}
+  database.update_player(dict)
+  embed = formatter.blank_embed(name, "You deconstruct the " + scrap_item["displayname"], "after deconstruction the following items are added to your inventory:\n" + items_string, "green")
+  await ctx.reply(embed=embed)
+  return

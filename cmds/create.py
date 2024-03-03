@@ -59,7 +59,7 @@ async def create(ctx, adventure_name: str):
 
 # Autocompletion function for adventure_name in join command
 @create.autocomplete('adventure_name')
-async def autocomplete_join(ctx, current: str):
+async def autocomplete_join(interaction: discord.Interaction, current: str):
     adventures_query = database.get_adventures()
     possible_adventures = [adv["nameid"] for adv in adventures_query if current.lower() in adv["nameid"].lower()]
     return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_adventures[:10]]

@@ -1,3 +1,4 @@
+import discord
 from discord import app_commands
 from discord.ext import commands
 
@@ -26,7 +27,7 @@ async def load(ctx, command: str):
     await ctx.reply(f"failed to load {command}:\n{e}", ephemeral=True)
 
 @load.autocomplete("command")
-async def load_autocomplete(ctx, current: str):
+async def load_autocomplete(interaction : discord.Interaction, current: str):
   all_commands = database.get_all_commands()
   choices = []
   for cmd in all_commands:

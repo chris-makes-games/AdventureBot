@@ -1,3 +1,4 @@
+import discord
 from discord import app_commands
 from discord.ext import commands
 
@@ -26,7 +27,7 @@ async def reload(ctx, command: str):
     await ctx.reply(f"failed to reload {command}:\n{e}", ephemeral=True)
 
 @reload.autocomplete("command")
-async def autocomplete_reload(ctx, current: str):
+async def autocomplete_reload(interaction : discord.Interaction, current: str):
   all_commands = database.get_all_commands()
   choices = []
   for cmd in all_commands:

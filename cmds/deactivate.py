@@ -28,7 +28,7 @@ async def deactivate(ctx, command: str):
     await ctx.reply(f"failed to unload {command}:\n{e}", ephemeral=True)
 
 @deactivate.autocomplete("command")
-async def autocomplete_reload(ctx, current: str):
+async def autocomplete_reload(interaction: discord.Interaction, current: str):
   all_commands = database.get_all_commands()
   choices = []
   for cmd in all_commands:
