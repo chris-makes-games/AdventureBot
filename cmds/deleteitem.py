@@ -16,7 +16,7 @@ async def deleteitem(ctx, item_id: str):
     await ctx.reply("Error: Item not found! Double check your item ID!", ephemeral=True)
     return
   if ctx.author.id == item["author"] or permissions.is_maintainer:
-    confirm = await database.confirm_embed(confirm_text="This will delete the item permenantly, are you sure you want to do this?", title="Confirm Item Deletion", action="delete_item", channel=ctx.channel, id=item_id)
+    confirm = await database.confirm_embed(confirm_text=f"This will delete the item {item['name'].title()} permenantly, are you sure you want to do this?", title="Confirm Item Deletion", action="delete_item", channel=ctx.channel, id=item_id)
     embed = confirm[0]
     view = confirm[1]
     await ctx.reply(embed=embed, view=view, ephemeral=True)

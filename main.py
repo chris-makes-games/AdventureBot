@@ -94,20 +94,6 @@ async def autocomplete_adventure_nameid(interaction: discord.Interaction, curren
   # Create choices for each suggestion
   return [app_commands.Choice(name=nameid, value=nameid) for nameid in adventure_ids]
 
-@bot.tree.command(name="deleteadventure", description="Delete an adventure by its name ID")
-async def deleteadventure(interaction: discord.Interaction, nameid: str):
-  adventure = database.testadventures.find_one({"nameid": nameid})
-  if not adventure:
-    await interaction.response.send_message("Error: Adventure not found! Double check your adventure ID!", ephemeral=True)
-    return
-  if interaction.user.id == adventure.get("author"):
-    confirm = database.confirm_embed(confirm_text="This will delete the adventure permenantly, are you sure you want to do this?", title="Confirm Adventure Deletion", action="delete_adventure", channel=interaction.channel, id=nameid)
-    await interaction.response.send_message(confirm)
-    return
-  else:
-    await interaction.response.send_message("You do not have permission to delete this adventure!", ephemeral=True)
-    return
-
 @bot.tree.command(name="edititem", description="Edit item properties")
 @app_commands.describe(itemid="The ID of the item to edit", field="The property to edit", value="The new value for the property")
 @app_commands.choices(field=[
