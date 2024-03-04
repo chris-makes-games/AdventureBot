@@ -6,7 +6,10 @@ import database
 #checks if the message is being sent in a thread that belongs to the player sending the message
 def thread_check(ctx):
   player = database.get_player(ctx.author.id)
-  return player and ctx.channel.id in player["game_threads"]
+  if player is None:
+    return False
+  print("threads: " + str(player["guilds_threads"]))
+  return ctx.channel.id in player["guilds_threads"]
 
 #checks for guild admin permissions
 def is_admin(ctx):

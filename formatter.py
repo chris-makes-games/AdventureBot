@@ -20,7 +20,7 @@ embed_messages = {
   "noadventure" : "There is no adventure by that name. Please try again.",
   "joinsuccess": "you have been added! A new game was started in the test adventure. More adventures can be written later! Try !info to get started or !help for more commands.",
   "leavesuccess": "You have been removed from the adventure. Use !join <adventure name here> to start another.",
-  "notplayer": "you are not a player. Try /join if you are a new player",
+  "notplayer": "you are not a player. Try /newplayer if you are a new player",
   "notsarnt": "only Ironically-Tall can make new architects. Ask him.",
   "notarchitect": "you are not an architect. That command is only for people with that role. Talk to a moderator if you are interested.",
   "alreadyarchitect": "that user is already an architect!",

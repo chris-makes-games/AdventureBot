@@ -114,7 +114,7 @@ class ConfirmButton(discord.ui.Button):
       await interaction.delete_original_response()
     #player wants to leave an adventure
     elif self.action == "leave":
-      await interaction.followup.send("This would have made a player leave an adventure, but it is not implemented yet.", ephemeral=True)
+      await interaction.followup.send(f"This would have made a player leave an adventure, and delete channel {self.id} but it is not implemented yet.", ephemeral=True)
     elif self.action == "create_room":
       await interaction.followup.send("This would create a room but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_item":
@@ -126,7 +126,7 @@ class ConfirmButton(discord.ui.Button):
     elif self.action == "delete_player":
       await interaction.followup.send(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     else:
-      print("ERROR - confirmation button has no action!")
+      await interaction.followup.send(f"ERROR: That button has no interaction yet!", ephemeral=True)
       return
 
 #deactivated valentines function
@@ -617,7 +617,7 @@ def get_player_info_by_displayname(name, info):
 def get_player_room(name):
   player = users.find_one({"disc" : name})
   if player:
-    print(str(player))
+    print(f"found player: {name}")
     room = rooms.find_one({"roomid": player["room"]})
     if room:
       return room

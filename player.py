@@ -1,5 +1,5 @@
 class Player:
-  def __init__(self, discord, displayname, room, guilds=None,  game_threads=None, edit_thread=None,
+  def __init__(self, discord, displayname, room,  guilds_threads=None, edit_thread=None,
                alive=True, deaths=0, architect=False, inventory=None, taken=None):
     self.disc = discord
     self.displayname = displayname
@@ -12,11 +12,8 @@ class Player:
       inventory = []
     if taken is None:
       taken = []
-    if guilds is None:
-      guilds = []
-    if game_threads is None:
-      game_threads = []
+    if guilds_threads is None:
+      guilds_threads = []
     self.inventory = inventory
     self.taken = taken
-    self.guilds = guilds
-    self.game_threads = game_threads
+    self.guilds_threads = guilds_threads

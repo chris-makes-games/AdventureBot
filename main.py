@@ -396,22 +396,6 @@ async def newadventure(interaction: discord.Interaction):
           embed = formatter.blank_embed(name, "Success", f"Adventure was created and your edit thread is ready! Thread ID: {edit_thread_id}", "green")
           await interaction.response.send_message(embed=embed, ephemeral=True)
 
-#Leaves current game
-@bot.tree.command(name= "leave", description= "Use this command to leave the game! (You can only leave if you are the host of the game)")
-async def leave(interaction: discord.Interaction):
-    truename = interaction.user.id
-    name = interaction.user.display_name 
-    player = database.get_player(truename)
-    if player:
-      channel = bot.get_channel(player["channel"])
-      tuple = await database.confirm_embed("Leaving the game will delete all of your data and delete this thread. Click *Yes* to continue or *No* to cancel:", "leave" , channel)
-      embed = tuple[0]
-      view = tuple[1]
-    else:
-      embed = formatter.embed_message(name, "Error", "notplayer" , "red")
-      view = discord.ui.View()
-    await interaction.response.send_message(embed=embed, view=view)
-
 #returns a list of the truenames of items for the player
 @bot.tree.command(name= "inventory", description= "View your inventory")
 async def inventory(interaction: discord.Interaction):
