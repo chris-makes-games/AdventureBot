@@ -8,8 +8,11 @@ def thread_check(ctx):
   player = database.get_player(ctx.author.id)
   if player is None:
     return False
-  print("threads: " + str(player["guilds_threads"]))
-  return ctx.channel.id in player["guilds_threads"]
+  all_threads = player["guilds_threads"]
+  for thread in all_threads:
+    if ctx.channel.id in thread and ctx.guild.id in thread:
+      return True
+  return False
 
 #checks for guild admin permissions
 def is_admin(ctx):
