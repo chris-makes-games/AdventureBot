@@ -8,3 +8,6 @@ class Adventure:
       if rooms is None:
           rooms = []
       self.rooms = rooms
+
+  def add_room(self, room):
+      self.rooms.append(room)

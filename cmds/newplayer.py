@@ -1,8 +1,10 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 
 import database
 import perms_ctx as permissions
+import perms_interactions as perms
 from player import Player
 
 
@@ -26,6 +28,7 @@ async def newplayer(ctx, user: discord.User):
     await ctx.reply(f"{ctx.author.mention}, You are now a player! You can /join an adventure now. Try /adventures to see the list of available adventures. You can also use /help for a list of commands. Contact a moderator if you have any questions.", ephemeral=True)
   else:
     await ctx.reply(f"{ctx.author.mention} , {user.mention} is now a player!", ephemeral=True)
+
 
 async def setup(bot):
   bot.add_command(newplayer)

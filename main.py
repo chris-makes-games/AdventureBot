@@ -367,21 +367,21 @@ async def newadventure(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
         return
     # Check for existing edit thread
-    player_info = database.get_player(truename)
-    if player_info and player_info["edit_thread_id"] != "":
+    player = database.get_player(truename)
+    if player and player["edit_thread"]:
         embed = formatter.blank_embed(name, "Error", "You already have an existing thread for editing adventures. Please use that for editing your adventure.", "red")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
     # Check for the player existing in the database
-    elif not player_info:
+    elif not player:
         embed = formatter.blank_embed(name, "Error", "You are not a player. Please use /join Example Adventure to begin", "red")
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
     # Checks for the player having joined the example adventure
-    elif player_info["current_adventure"] != "example adventure":
-        embed = formatter.blank_embed(name, "Error", "You are not in the Example Adventure. Please use /join Example Adventure to begin", "red")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
+    # elif player["current_adventure"] != "example adventure":
+    #     embed = formatter.blank_embed(name, "Error", "You are not in the Example Adventure. Please use /join Example Adventure to begin", "red")
+    #     await interaction.response.send_message(embed=embed, ephemeral=True)
+    #     return
     else:
         # Create the adventure first
         database.create_blank_adventure(truename)
@@ -480,7 +480,6 @@ async def on_message(message):
 try:
   print("running")
   database.ping()
-  mapper.example()
   bot.run(my_secret)
 except Exception as e:
   print(e)
