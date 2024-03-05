@@ -11,7 +11,7 @@ from player import Player
 @commands.hybrid_command(name= "leave", description= "Leave your current adventure")
 async def leave(ctx):
     truename = ctx.author.id
-    displayname = ctx.author.display_name 
+    displayname = ctx.author.display_name
     player = database.get_player(truename)
     guild = ctx.guild
     #if the player is not in the database
@@ -23,6 +23,18 @@ async def leave(ctx):
       await ctx.reply("You are not in an adventure! Try to /join an adventure first. Use /adventures for a list of available adventures.", ephemeral=True)
       return
     all_threads = player["guilds_threads"]
+    for guild_thread_pair in all_threads:
+      if any(guild.id == guild_thread for guild_thread in guild_thread_pair):
+        thread_found = guild.get_thread(guild_thread_pair[1])
+        if not thread_found:
+          embed = discord.Embed(title="Wrong Server", description=f"It looks like you are in an adventure in another server. If you want to leave that adventure, type /leave in that advenutre's thread. Your active threads:", color=discord.Color.red())
+          for guild_thread_pair in all_threads:
+            guild = ctx.bot.get_guild(guild_thread_pair[0])
+            if guild.get_thread(guild_thread_pair[1]):
+              link = f"https://discord.com/channels/{guild.id}/{guild_thread_pair[1]}"
+              embed.add_field(name=guild.name, value=link)
+          view = discord.ui.View()
+          await ctx.reply(embed=embed, view=view, ephemeral=True)
     if not permissions.thread_check(ctx):
       embed = discord.Embed(title="Error", description="You must use this command in a game thread! Try going to one of your threads:", color=0xff0000)
       for thread in player["guilds_threads"]:

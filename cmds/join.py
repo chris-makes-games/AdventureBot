@@ -24,13 +24,13 @@ async def join(ctx, adventure_name : str):
   #need to check every guild/id pair
   guild = ctx.guild
   all_threads = player["guilds_threads"]
-  for guild_thread_list in all_threads:
-    if any(guild.id == guild_thread for guild_thread in guild_thread_list):
-      thread_found = guild.get_thread(guild_thread_list[1])
+  for guild_thread_pair in all_threads:
+    if any(guild.id == guild_thread for guild_thread in guild_thread_pair):
+      thread_found = guild.get_thread(guild_thread_pair[1])
       #if the thread doesn't exist in guild
       if not thread_found:
         await ctx.reply("It looks like you were in an adventure in a thread that no longer exists. Your old adventure thread is being closed...", ephemeral=True)
-        all_threads.remove(guild_thread_list)
+        all_threads.remove(guild_thread_pair)
         update_player = Player(discord=truename, room=None, displayname=displayname, guilds_threads=all_threads)
         #delete thread, update player in database
         #continues to joining the adventure
