@@ -3,15 +3,30 @@ import discord
 import database
 
 
-#checks if the message is being sent in a thread that belongs to the player sending the message
-def thread_check(ctx):
+#checks if the message is sent in the correct thread
+def correct_thread(ctx):
   player = database.get_player(ctx.author.id)
   if player is None:
     return False
-  all_threads = player["guilds_threads"]
-  for thread in all_threads:
-    if ctx.channel.id in thread and ctx.guild.id in thread:
+  guild_thread = player["guild_thread"]
+  if ctx.channel.id in guild_thread and ctx.guild.id in guild_thread:
       return True
+  return False
+
+#checks if the thread the player was in still exists
+def thread_exists(ctx):
+  player = database.get_player(ctx.author.id)
+  if player is None:
+    return False
+  guild_thread = player["guild_thread"]
+  if player is None:
+    return False
+  if guild_thread is None:
+    return False
+  guild = ctx.bot.get_guild(guild_thread[0])
+  thread = guild.get_thread(guild_thread[1])
+  if thread:
+    return True
   return False
 
 #checks for guild admin permissions

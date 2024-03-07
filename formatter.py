@@ -17,6 +17,7 @@ color_mapping = {
 embed_messages = {
   "newgame": "you wake up in an unfamilliar place. The shiny hard floor underneath your feet stretches off into the horizon in a neat square grid. Between each square is a large grey divet about as deep as you are tall, and in the distance you can see walls miles high. You are incredilby small, stranded on the floor of an impossibly large kitchen.\nTo begin playing, try !info to look around the room you're in. For more commands, try !help",
   "alreadyplayer": "You are already playing in an adventure. !leave that one before trying to join another one.",
+  "alreadyadventure": "You are already in an adventure. You must /leave that one before trying to join another one.",
   "noadventure" : "There is no adventure by that name. Please try again.",
   "joinsuccess": "you have been added! A new game was started in the test adventure. More adventures can be written later! Try !info to get started or !help for more commands.",
   "leavesuccess": "You have been removed from the adventure. Use !join <adventure name here> to start another.",

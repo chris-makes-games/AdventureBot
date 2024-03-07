@@ -5,43 +5,39 @@ from discord.ext import commands
 import database
 import formatter
 from player import Player
+import perms_ctx as permissions
 
 
 #player join an adventure
-#players may only be in one adventure at a time, per server
+#players may only be in one adventure at a time
 @commands.hybrid_command(name="join", description="Join an adventure")
 async def join(ctx, adventure_name : str):
   truename = ctx.author.id
   displayname = ctx.author.display_name
   channel = ctx.channel
   player = database.get_player(truename)
-  #cancel if no player is found in the database
+  adventure = database.get_adventure(adventure_name)
+  #if no player is found in the database
   if not player:
     embed = formatter.embed_message(displayname, "Error", "notplayer" , "red")
     await ctx.reply(embed=embed, ephemeral=True)
     return
-  #cancel if player is in an adventure in this guild
-  #need to check every guild/id pair
-  guild = ctx.guild
-  all_threads = player["guilds_threads"]
-  for guild_thread_pair in all_threads:
-    if any(guild.id == guild_thread for guild_thread in guild_thread_pair):
-      thread_found = guild.get_thread(guild_thread_pair[1])
-      #if the thread doesn't exist in guild
-      if not thread_found:
-        await ctx.reply("It looks like you were in an adventure in a thread that no longer exists. Your old adventure thread is being closed...", ephemeral=True)
-        all_threads.remove(guild_thread_pair)
-        update_player = Player(discord=truename, room=None, displayname=displayname, guilds_threads=all_threads)
-        #delete thread, update player in database
-        #continues to joining the adventure
-        database.update_player(update_player.__dict__)
-      #give player their adventure thread
-      else:
-        adventure_link = f"https://discord.com/channels/{guild.id}/{thread_found.id}"
-        await ctx.reply(f"{ctx.author.mention}, You are already in an adventure in this server! Click this link to go there:\n{adventure_link}", ephemeral=True, suppress_embeds=True)
-        return
-  adventure = database.get_adventure(adventure_name)
-  #cancel if the adventure they entered is not found
+  #if the correct thread does not exist anymore
+  if not permissions.thread_exists(ctx):
+    confirm = await database.confirm_embed("It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your old adventure and start a new one?", action="join", channel=None, title="Thread Deleted!")
+    embed = confirm[0]
+    view = confirm[1]
+    await ctx.reply(embed=embed, view=view)
+    return
+  #if the player is already in an adventure
+  if player["guild_thread"]:
+    guild_thread = player["guild_thread"]
+    guild = ctx.bot.get_guild(guild_thread[0])
+    thread = guild.get_thread(guild_thread[1])
+    link = f"https://discord.com/channels/{guild.id}/{thread.id}"
+    await ctx.reply(f"You are already in an adventure! If you want to start a new adventure, you must use /leave in this one first:\n{link}", ephemeral=True, suppress_embeds=True)
+    return
+  #if the adventure they entered is not found
   if not adventure:
     all_adventures = database.get_adventures()
     embed = discord.Embed(title=f"Error - No Adventure named '{adventure_name}'", description="Adventure '" + adventure_name + "' was not found. Please !join one of these adventures to begin:", color=discord.Color.red())
@@ -60,11 +56,8 @@ async def join(ctx, adventure_name : str):
     else:
       await ctx.reply("Error - Channel is not a text channel.", ephemeral=True)
       return
-    #adds the guild, thread pair to the guilds_threads list
-    threads = player["guilds_threads"]
-    threads.append([guild.id, thread.id])
     #player object generated from player class
-    player = Player(discord=truename, displayname=displayname, room=adventure["start"], guilds_threads=threads)
+    player = Player(discord=truename, displayname=displayname, room=adventure["start"], guild_thread=[guild.id, thread.id])
     database.update_player(player.__dict__)
     room = database.get_player_room(truename)
     #error if the start room is not found
