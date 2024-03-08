@@ -355,47 +355,6 @@ async def newitem(interaction: discord.Interaction):
         embed = formatter.blank_embed(name, "Error", str(e), "red")
       await interaction.response.send_message(embed=embed)
 
-#makes a new adventure in the database
-@bot.tree.command(name="newadventure", description="Create a new adventure")
-async def newadventure(interaction: discord.Interaction):
-    truename = interaction.user.id
-    name = interaction.user.display_name
-    channel = interaction.channel
-    # Check if the author already has an adventure
-    if database.testadventures.find_one({"author": truename}):
-        embed = formatter.blank_embed(name, "Error", "You already have an existing adventure. You cannot create more than one.", "red")
-        await interaction.response.send_message(embed=embed)
-        return
-    # Check for existing edit thread
-    player = database.get_player(truename)
-    if player and player["edit_thread"]:
-        embed = formatter.blank_embed(name, "Error", "You already have an existing thread for editing adventures. Please use that for editing your adventure.", "red")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
-    # Check for the player existing in the database
-    elif not player:
-        embed = formatter.blank_embed(name, "Error", "You are not a player. Please use /join Example Adventure to begin", "red")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
-    # Checks for the player having joined the example adventure
-    # elif player["current_adventure"] != "example adventure":
-    #     embed = formatter.blank_embed(name, "Error", "You are not in the Example Adventure. Please use /join Example Adventure to begin", "red")
-    #     await interaction.response.send_message(embed=embed, ephemeral=True)
-    #     return
-    else:
-        # Create the adventure first
-        database.create_blank_adventure(truename)
-        # Then, create a new thread for editing this adventure
-        database.pp("creating adventure edit channel:\n" + str(channel))
-        if channel and channel.type == discord.ChannelType.text:
-          thread = await channel.create_thread(name=f"{name} editing an adventure")
-          await thread.send(interaction.user.mention + " is editing an adventure.")
-          edit_thread_id = channel.id
-        # Update the player's editthread field with the new thread ID
-          database.update_player({'disc': truename, 'edit_thread_id': edit_thread_id})
-          embed = formatter.blank_embed(name, "Success", f"Adventure was created and your edit thread is ready! Thread ID: {edit_thread_id}", "green")
-          await interaction.response.send_message(embed=embed, ephemeral=True)
-
 #returns a list of the truenames of items for the player
 @bot.tree.command(name= "inventory", description= "View your inventory")
 async def inventory(interaction: discord.Interaction):
