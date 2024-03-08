@@ -332,7 +332,7 @@ async def autocomplete_getroom(interaction: discord.Interaction, current: str):
 
 
 #Makes a new room in the database
-@bot.tree.command(name= "newroom", description= "Create a new room")
+@bot.tree.command(name= "newroom", description= "Create a blank new room")
 async def newroom(interaction: discord.Interaction):
     truename = interaction.user.id
     name = interaction.user.display_name  # Define the 'name' variable within the 'newroom' command
@@ -407,31 +407,6 @@ async def inventory(interaction: discord.Interaction):
       await interaction.response.send_message(embed=embed)
     else :
       await interaction.response.send_message("You are either dead or not in a adventure!")
-
-#Lists the current adventures from the database
-@bot.tree.command(name= "adventures", description= "A list of all playable adventures")
-async def adventures(interaction: discord.Interaction):
-  guild = interaction.guild
-  adventures = database.get_adventures()
-  adventure_names = []
-  descriptions = []
-  authors = []
-  if guild is None:
-    return
-  for adventure in adventures:
-    adventure_names.append(adventure["nameid"])
-    descriptions.append(adventure["description"])
-    author_id = adventure["author"]
-    author = guild.get_member(author_id)
-    if author:
-      authors.append(author.display_name)
-    else:
-      authors.append("Unknown")
-  embed = discord.Embed(title="Adventures", description="These are the adventures you can join. Use /join to start an adventure. More adventures will be available later!", color=0x00ff00)
-  for i in range(len(adventure_names)):
-    embed.add_field(name=adventure_names[i].title(), value=descriptions[i] + "\n*Created by: " + authors[i] + "*", inline=False)
-  await interaction.response.send_message(embed=embed)
-  return
 
 #prints a connection message to the console for debugging
 @bot.event
