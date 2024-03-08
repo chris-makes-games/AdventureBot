@@ -330,31 +330,6 @@ async def autocomplete_getroom(interaction: discord.Interaction, current: str):
       room_ids = [(room["roomid"], room["displayname"]) for room in room_ids_query]
       return [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_ids[:25]]
 
-
-#Makes a new room in the database
-@bot.tree.command(name= "newroom", description= "Create a blank new room")
-async def newroom(interaction: discord.Interaction):
-    truename = interaction.user.id
-    name = interaction.user.display_name  # Define the 'name' variable within the 'newroom' command
-    try:
-        database.create_blank_room(truename)
-        embed = formatter.blank_embed(name, "Success", "Room was created, use the get room command /getroom  to view the room you just made.", "green")
-    except Exception as e:
-        embed = formatter.blank_embed(name, "Error", str(e), "red")
-    await interaction.response.send_message(embed=embed)
-
-#Makes a new blank item in the database
-@bot.tree.command(name= "newitem", description= "Create a new item")
-async def newitem(interaction: discord.Interaction):
-      author_id = interaction.user.id  # capture the user ID of the person interacting
-      name = interaction.user.display_name
-      try:
-        database.create_blank_item(author_id)  # pass the user ID to create_blank_item
-        embed = formatter.blank_embed(name, "Success", "Item was created", "green")
-      except Exception as e:
-        embed = formatter.blank_embed(name, "Error", str(e), "red")
-      await interaction.response.send_message(embed=embed)
-
 #returns a list of the truenames of items for the player
 @bot.tree.command(name= "inventory", description= "View your inventory")
 async def inventory(interaction: discord.Interaction):

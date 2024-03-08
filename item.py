@@ -4,7 +4,7 @@ import database
 class Item:
     def __init__(self, itemid=None,
           displayname="", subitems=None, author=None, 
-          description="", event_marker=False, 
+          description="", 
           infinite=False, deconstructable=False, dict=None):
 
       if dict is not None:
@@ -25,7 +25,6 @@ class Item:
         self.description = description
       
       self.infinite = infinite
-      self.event_marker = event_marker
       self.deconstructable = deconstructable
       self.subitems = subitems
       if subitems is None:
