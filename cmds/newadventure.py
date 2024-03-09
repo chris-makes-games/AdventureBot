@@ -3,6 +3,7 @@ from discord import app_commands
 import discord
 import database
 import formatter
+import perms_ctx as permissions
 
 #makes a new adventure in the database
 @commands.hybrid_command(name="newadventure", description="Create a new adventure")
@@ -13,9 +14,15 @@ async def newadventure(ctx):
   #if the player is not in the database
   player = database.get_player(truename)
   if not player:
-    embed = formatter.blank_embed(name, "Error", "You are not a player. Please use /join Example Adventure to begin", "red")
+    embed = formatter.blank_embed(name, "Error", "You are not a player. Please use /newplayer to begin. You can create an adventure once you've been added to the database", "red")
     await ctx.reply(embed=embed, ephemeral=True)
     return
+  #if they are in giantessworld, make sure they are an architect
+  if ctx.guild.id == 730468423586414624:
+    if not permissions.has_role(ctx, "architect"):
+      embed = formatter.blank_embed(name, "Error", "You do not have permission to create an adventure. You need the architect role, please go to #role-select to get the role or contact Ironially-Tall", "red")
+      await ctx.reply(embed=embed, ephemeral=True)
+      return
   # Check if the author already has an adventure to edit
   if database.testadventures.find_one({"author": truename}):
     thread = ctx.guild.get_thread(player["edit_thread"])

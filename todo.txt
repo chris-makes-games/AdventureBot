@@ -15,7 +15,7 @@ item stuff
   
 
 room stuff
-  prevent dead players(info already blocked to players)
+  prevent dead players moving (info already blocked to players)
   rooms optionally allow dead players (added epilogue to adventure)
   finish room creation mode buttons
 
@@ -27,8 +27,14 @@ adventure stuff
   room tree to show room connections (WIP)
 
 command stuff
-  all commands reworked to files (WIP)
-  double check that commands from players only work in threads (new player has multiple possible channels. Things might break if commands can be ran outside of the correct channels)
+  remaining commands:
+    - editroom
+    - edititem
+    - editadventure
+    - editroomarrays(?)
+    - exampleroom
+    - getroom
+    - inventory
 
 misc:
   functions for pulling documents and updating all classes (done for rooms)
