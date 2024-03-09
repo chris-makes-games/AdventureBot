@@ -13,3 +13,6 @@ async def newitem(ctx):
   except Exception as e:
     embed = formatter.blank_embed(name, "Error", str(e), "red")
     await ctx.reply(embed=embed, ephemral=True)
+
+async def setup(bot):
+  bot.add_command(newitem)

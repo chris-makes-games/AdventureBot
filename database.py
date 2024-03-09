@@ -584,6 +584,14 @@ def get_adventure(nameid):
   else:
     return None
 
+#gets an adventure by name
+def get_adventure_by_author(disc):
+  adventure = adventures.find_one({"author": disc})
+  if adventure:
+    return adventure
+  else:
+    return None
+
 #sets the kill value to true for a given player discord ID
 def kill_player(name):
   users.update_one({"disc": name}, {"$set": {"alive": False}})

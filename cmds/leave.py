@@ -31,7 +31,7 @@ async def leave(ctx):
     return
   guild_thread = player["guild_thread"]
   #if the command isn't sent in the correct thread
-  if not permissions.correct_thread(ctx):
+  if not permissions.correct_game_thread(ctx):
     guild = ctx.bot.get_guild(guild_thread[0])
     thread = guild.get_thread(guild_thread[1])
     link = f"https://discord.com/channels/{guild.id}/{thread.id}"

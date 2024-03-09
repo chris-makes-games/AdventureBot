@@ -3,13 +3,23 @@ import discord
 import database
 
 
-#checks if the message is sent in the correct thread
-def correct_thread(ctx):
+#checks if the message is sent in a valid game thread
+def correct_game_thread(ctx):
   player = database.get_player(ctx.author.id)
   if player is None:
     return False
   guild_thread = player["guild_thread"]
   if ctx.channel.id in guild_thread and ctx.guild.id in guild_thread:
+      return True
+  return False
+
+#checks if the message is sent in a valid edit thread
+def correct_edit_thread(ctx):
+  player = database.get_player(ctx.author.id)
+  if player is None:
+    return False
+  edit_thread = player["edit_thread"]
+  if ctx.channel.id == edit_thread:
       return True
   return False
 
