@@ -6,7 +6,8 @@ class Room:
     self, id=None, displayname="", description="", entrance="",
     author="", url="", alt_entrance="", deathnote="",
     end=False, once=False, hidden=False, locked=False, 
-    keys=None, exits=None, unlock=None, reveal=None, destroy=None):
+    keys=None, exits=None, unlock=None, reveal=None, destroy=None,
+    hide=None, lock=None):
     #generates new id if none is given
     if not id:
       self.id = database.generate_unique_id()
@@ -34,11 +35,17 @@ class Room:
         reveal = []
     if destroy is None:
         destroy = []
+    if hide is None:
+        hide = []
+    if lock is None:
+        lock = []
     self.keys = keys
     self.exits = exits
     self.unlock = unlock
     self.reveal = reveal
     self.destroy = destroy
+    self.hide = hide
+    self.lock = lock
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked

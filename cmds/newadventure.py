@@ -8,8 +8,8 @@ import perms_ctx as permissions
 
 #makes a new adventure in the database
 @commands.hybrid_command(name="newadventure", description="Create a new adventure")
-@app_commands.describe(name="The name of the adventure", description="A brief description of the adventure for new players", epilogue="Whether the adventure allows players to explore after reaching an ending")
-async def newadventure(ctx, name: str, description: str, epilogue: bool):
+@app_commands.describe(name="The name of the adventure", description="A brief description of the adventure for new players", epilogue="Whether the adventure allows players to freely explore the adventure after reaching an ending. Defaults to False.")
+async def newadventure(ctx, name: str, description: str, epilogue: bool=False):
   truename = ctx.author.id
   displayname = ctx.author.display_name
   channel = ctx.channel
@@ -42,7 +42,7 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool):
     else:
       link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
       embed = formatter.blank_embed(displayname, "Error", f"You already have an existing adventure. You cannot create more than one. Go to your editing thread to modify your adventure:\n{link}", "red")
-      await ctx.reply(embed=embed)
+      await ctx.reply(embed=embed, ephemeral=True)
       return
   #if no adventure found, create a new one
   else:
@@ -59,7 +59,7 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool):
         # Update the player's editthread field with the new thread ID
       database.update_player({'disc': truename, 'edit_thread': edit_thread})
       link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
-      embed = formatter.blank_embed(displayname, "Success", f"{name} was created and your edit thread is ready! Thread:\n {link}", "green")
+      embed = formatter.blank_embed(displayname, "Success", f"{name} was created and your edit thread is ready:\n{link}", "green")
       await ctx.reply(embed=embed, ephemeral=True)
 
 async def setup(bot):

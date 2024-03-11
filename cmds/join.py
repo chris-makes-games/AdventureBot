@@ -23,7 +23,7 @@ async def join(ctx, adventure_name : str):
     await ctx.reply(embed=embed, ephemeral=True)
     return
   #if the correct thread does not exist anymore
-  if not permissions.thread_exists(ctx):
+  if player["guild_thread"] and not permissions.thread_exists(ctx):
     confirm = await database.confirm_embed("It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your old adventure and start a new one?", action="join", channel=None, title="Thread Deleted!")
     embed = confirm[0]
     view = confirm[1]
@@ -62,7 +62,7 @@ async def join(ctx, adventure_name : str):
     room = database.get_player_room(truename)
     #error if the start room is not found
     if room is None:
-      print("Error! Room is None!")
+      print("Error! Start room not found!")
       embed = formatter.embed_message(displayname, "Error", "noroom", "red")
       await ctx.reply(embed=embed, ephemeral=True)
       return
@@ -76,13 +76,11 @@ async def join(ctx, adventure_name : str):
     author = guild.get_member(room_author).display_name
     #if the author is not found, set to Unknown
     if not author:
-      author = "Unknown"
-    all_items = []
-    new_items = []
+      author = "Error - Unknown"
+    new_keys = room["keys"]
     #embed message for all rooms
-    tuple = database.embed_room(all_items, new_items, room["displayname"], room, author)
-    embed = tuple[0]
-    view = tuple[1]
+    embed, view = await database.embed_room(player=player.__dict__, new_keys=new_keys, author=author, room=room, title=room["displayname"], guild=ctx.guild)
+
     #sends a message in the thread to begin
     #mentions the user to add them to the thread
     await thread.send(ctx.author.mention + "You have sucessfully begun an adventure. Use the buttons below to play. If you have questions, ask a moderator",embed=embed, view=view)

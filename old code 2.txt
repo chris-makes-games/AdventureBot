@@ -1,45 +1,5 @@
 
 
-#edit advenure no longer applies
-@bot.tree.command(name="editadventure", description="Edit adventure properties")
-@app_commands.choices(field=[
-  app_commands.Choice(name="Name", value="nameid"),
-  app_commands.Choice(name="Starting Room", value="start"),
-  app_commands.Choice(name="Description", value="description")])
-
-async def editadventure(interaction: discord.Interaction, nameid: str, field: app_commands.Choice[str], value: str):
-  # Retrieve adventure and verify author
-  adventure = database.testadventures.find_one({"nameid": nameid})
-  if not adventure:
-    await interaction.response.send_message("Error: Adventure not found! Double check your adventure ID!", ephemeral=True)
-    return
-  if interaction.user.id == adventure.get("author"):
-    confirm = database.confirm_embed(confirm_text=f"This will edit the {field.name} to '{value}'", title="Confirm Adventure Edit", action="edit_adventure", channel=interaction.channel, id=nameid)
-    await interaction.response.send_message(confirm)
-    return
-  else:
-    await interaction.response.send_message("You do not have permission to edit this adventure.", ephemeral=True)
-    return
-
-# Autocompletion for nameid parameter in editadventure
-@editadventure.autocomplete('nameid')
-async def autocomplete_adventure_nameid(interaction: discord.Interaction, current: str):
-  # Query the database for adventure nameids, filtering by author and nameid
-  adventures_query = database.testadventures.find(
-  {
-  "author": interaction.user.id, 
-  "nameid": {"$regex": re.escape(current), "$options": "i"}
-  },
-  {
-  "nameid": 1,
-  "_id": 0
-  }
-  )
-  # Fetch up to 25 item IDs for the autocomplete suggestions
-  adventure_ids = [adventure["nameid"] for adventure in adventures_query.limit(25)]
-  # Create choices for each suggestion
-  return [app_commands.Choice(name=nameid, value=nameid) for nameid in adventure_ids]
-
 #edit item no longer applies
 @bot.tree.command(name="edititem", description="Edit item properties")
 @app_commands.describe(itemid="The ID of the item to edit", field="The property to edit", value="The new value for the property")

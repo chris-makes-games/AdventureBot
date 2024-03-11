@@ -93,7 +93,7 @@ class ConfirmButton(discord.ui.Button):
     elif self.action == "delete_player":
       await interaction.followup.send(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     else:
-      await interaction.followup.send(f"ERROR: That button has no interaction yet!", ephemeral=True)
+      await interaction.followup.send(f"ERROR: That button has no interaction yet! Check databse.ConfirmButton()", ephemeral=True)
       return
 
 #deactivated valentines function
@@ -363,6 +363,7 @@ async def embed_room(player, new_keys, title, room, author, guild, color=0):
     embed.add_field(name="Make a Choice", value="Click a button below to continue:", inline=False)
   for room_id in room["exits"]:
     found_room = get_room(room_id)
+    #no room found in database
     if not found_room:
       print(f"ERROR - room {room_id} not found!")
       continue
@@ -370,9 +371,19 @@ async def embed_room(player, new_keys, title, room, author, guild, color=0):
     if found_room["once"]:
       if found_room["id"] in player["history"]:
         continue
+    #if player has items that hide the room, do not show option
+    if found_room["hide"]:
+      if valid_exit(keys, found_room["hide"]):
+        continue
     #if hidden, doesn't show unless they have reveal keys
     if found_room["hidden"]:
       if not valid_exit(keys, found_room["reveal"]):
+        continue
+    #if player has items to lock room, show only alt text
+    if found_room["lock"]:
+      if valid_exit(keys, found_room["lock"]):
+        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
+        view.add_item(button)
         continue
     #if locked, shows alt text unless they have unlock keys
     if found_room["locked"]:
@@ -380,6 +391,7 @@ async def embed_room(player, new_keys, title, room, author, guild, color=0):
         button = RoomButton(label=found_room["entrance"], destination=room_id)
         view.add_item(button)
         continue
+      #if locked, shows only alt text
       else:
         button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
         view.add_item(button)
@@ -461,12 +473,14 @@ def new_player(dict):
   users.insert_one(dict)
 
 #returns a dict of player info for a given discord id
-def get_player(name):
-  player = users.find_one({"disc": name})
+def get_player(id):
+  player = users.find_one({"disc": id})
   if player:
-    print("player found:\n" + str(player))
+    print("player found:")
+    pp(player)
     return player
   else:
+    print("player not found: " + str(id))
     return None
 
 #returns a dict of key for given key id
@@ -479,9 +493,10 @@ def get_key(id):
 
 #creates a blank room for testing purposes
 #useful for showing room structure to new database
-def create_blank_room(author_name):
-    room = Room("test_room", "Test Room", author_name)
+def create_blank_room(author_name, room_name="Blank Room"):
+    room = Room(displayname=room_name, description="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.", author=author_name, entrance="This text is displayed when the player is in an adjescent room.", alt_entrance="This text is displayed when the room is locked")
     rooms.insert_one(room.__dict__)
+    ids.insert_one({"id": room.id, "type": "room", "author": author_name})
     return room
 
 #creates a blank adventure for testing purposes
@@ -501,8 +516,21 @@ def get_players_in_room(room):
   players_in_room = []
   players = users.find({"room": room})
   for player in players:
-    players_in_room.append(player["disc"])
+    players_in_room.append(player["displayname"])
   return players_in_room
+
+#gets all the players in a room thats part of the adventure
+#useful for checking before editing the rooms/adventure
+def get_players_in_adventure(adventure_name):
+  players = []
+  adventure = adventures.find_one({"name": adventure_name})
+  if adventure:
+    for room in adventure["rooms"]:
+      for player in get_players_in_room(room):
+        players.append(player)
+    return players
+  else:
+    return None
 
 #returns true if player is in the game
 def player_exists(name):
