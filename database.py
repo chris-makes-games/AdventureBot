@@ -57,7 +57,7 @@ class ExitButton(discord.ui.Button):
 #can be placed on any embed that requires a confirmation
 #action is the name of the action to be taken
 class ConfirmButton(discord.ui.Button):
-  def __init__(self, label, confirm, action, channel="", id=None, disabled=False, row=0):
+  def __init__(self, label, confirm, action, channel="", id=None, disabled=False, row=0, dict=None):
     super().__init__(label=label)
     self.id = id
     self.confirm = confirm
@@ -65,6 +65,7 @@ class ConfirmButton(discord.ui.Button):
     self.disabled = disabled
     self.row = row
     self.channel = channel
+    self.dict = dict
     if self.confirm:
       self.style = discord.ButtonStyle.success
       self.emoji = "✅"
@@ -92,6 +93,8 @@ class ConfirmButton(discord.ui.Button):
       await interaction.followup.send(f"This would delete adventure {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_player":
       await interaction.followup.send(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
+    elif self.action == "edit_room":
+      await interaction.followup.send(f"This would edit room {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit room properties:\n{str(self.dict)}", ephemeral=True)
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check databse.ConfirmButton()", ephemeral=True)
       return

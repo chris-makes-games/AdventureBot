@@ -140,42 +140,6 @@ async def autocomplete_exampleroom(interaction: discord.Interaction, current: st
     # Create a list of choices where each choice has the room ID as the value and the display name as the name
     return [app_commands.Choice(name=f"{roomid} - {displayname}", value=roomid) for roomid, displayname in filtered_room_ids[:25]]
 
-
-@bot.tree.command(name="getroom", description="recall a room for viewing")
-async def getroom(interaction: discord.Interaction, roomid: str):
-  # Retrieve information from the database
-  result = database.testrooms.find_one({"roomid": roomid })
-  if result:
-    # Check if the author's ID matches the one stored in the database
-    if interaction.user.id == result.get("author"):
-      embed = discord.Embed(title=result["roomid"], description="Here is your room. Please use the command **/exampleroom**  **exampleroom1** to see an example on how to update the room correctly. /join the **Example Adventure** as a player as well. The command to edit your room is **/editroom**  **(roomid)**  **(Field you are editing)** **(new information)**", color=0x00ff00)
-      fields = ["displayname", "description", "kill", "url", "items"]
-      arrayfields = ["exits", "exit_destination"] 
-      arrayfieldss = ["secrets", "unlockers"]
-      for field in fields: 
-        embed.add_field(name=field, value=result[field], inline=False)
-      for field in arrayfields: 
-        embed.add_field(name=field, value="\n".join(result[field]), inline=True)
-        embed.add_field(name="", value="", inline=False)
-      for field in arrayfieldss: 
-        embed.add_field(name=field, value="\n".join(result[field]), inline=True)
-      await interaction.response.send_message(embed=embed)
-    else:
-      await interaction.response.send_message("You don't have permission to view this room.")
-  else:
-    await interaction.response.send_message("Room not found in the database.")
-
-# Autocompletion for roomid parameter in getroom
-@getroom.autocomplete('roomid')
-async def autocomplete_getroom(interaction: discord.Interaction, current: str):
-      # Query the database for room IDs created by the user, using regex for filtering based on the current input
-      room_ids_query = database.testrooms.find(
-    {"author": interaction.user.id, "roomid": {"$regex": re.escape(current), "$options": "i"}},
-    {"roomid": 1, "displayname": 1, "_id": 0})
-  # Create a list of tuples where each tuple contains the room ID and display name
-      room_ids = [(room["roomid"], room["displayname"]) for room in room_ids_query]
-      return [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_ids[:25]]
-
 #returns a list of the truenames of items for the player
 @bot.tree.command(name= "inventory", description= "View your inventory")
 async def inventory(interaction: discord.Interaction):
