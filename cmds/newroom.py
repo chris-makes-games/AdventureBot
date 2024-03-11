@@ -1,63 +1,78 @@
 from discord.ext import commands
 from discord import app_commands
-import database
-import formatter
-import perms_ctx as permissions
 import discord
+import database
+import re
+from room import Room
 
-#Makes a new room in the database
-@commands.hybrid_command(name= "newroom", description= "Create a new room")
-async def newroom(ctx, room_name : str, room_description : str):
-  truename = ctx.author.id
-  name = ctx.author.display_name
-  player = database.get_player(truename)
-  #cancel if they are not a player
-  if not player:
-    embed = formatter.embed_message(truename, "Error", "notplayer", "red")
-    await ctx.reply(embed=embed, ephemeral=True)
+#edits a room with whatever the user selects
+@commands.hybrid_command(name="newroom", description="Create a new room. Leave options blank to keep the default value.")
+async def newroom(ctx,
+    #giant block of arguments!
+    displayname : str= "Room Name",
+    description : str="You're reading a default description for an empty room",
+    entrance : str="Go into the new room",
+    alt_entrance : str="The path into the new room is blocked!",
+    exits : str | None = None,
+    deathnote : str="killed in the new room",
+    url : str | None = None,
+    hidden : bool=False,
+    locked : bool=False,
+    end : bool=False,
+    once : bool=False,
+    keys : str | None = None,
+    lock : str | None = None,
+    unlock : str | None = None,
+    hide: str | None = None,
+    reveal : str | None = None,
+    destroy : str | None = None
+                  ):
+  new_room = Room(description=description, displayname=displayname, entrance=entrance, alt_entrance=alt_entrance, exits=exits, deathnote=deathnote, url=url, hidden=hidden, locked=locked, end=end, once=once, keys=keys, lock=lock, unlock=unlock, hide=hide, reveal=reveal, destroy=destroy)
+  
+  if not new_room:
+    await ctx.reply(f"Error: There was a problem generating your room. Did you enter data in incorrectly?", ephemeral=True)
     return
-  #cancel if they have no adventure to add a room to
-  if not player["edit_thread"]:
-    embed = formatter.blank_embed(name, "No Adventure", "You do not have an adventure to add a room to. You can create one with /newadventure.", "red")
-    await ctx.reply(embed=embed, ephemeral=True)
-    return
-  #cancel if command was issued outside the proper thread
-  if not permissions.correct_edit_thread(ctx):
-    thread = ctx.guild.get_thread(player["edit_thread"])
-    #checks if the thread exists in the guild
-    if not thread:
-      await ctx.reply("It looks like the thread you were using to edit your adventure has been deleted. A new thread is being created...", ephemeral=True)
-      adventure = database.get_adventure_by_author(truename)
-      #error for when the adventure is deleted from the database but not player
-      if not adventure:
-        await ctx.reply(f"Your adventure is missing from the databse. Please contact an admin. Adventure for '{truename}' not found!", ephemeral=True)
-        return
-      thread = await ctx.channel.create_thread(name=f"{name} editing {adventure['name']}")
-      #creates a new thread, updates the player's edit thread
-      await ctx.reply(f"A new thread has been created for you. Please re-use the command in {thread.mention} to edit your adventure.", ephemeral=True, suppress_embeds=True)
-      database.update_player({"disc" : truename, "edit_thread": thread.id})
-      return
-  try:
-    adventure = database.get_adventure_by_author(truename)
-    if not adventure:
-      await ctx.reply(f"Your adventure is missing from the databse. Please contact an admin.", ephemeral=True)
-      return
-    roomname = room_name
-    desc = room_description
-    select = discord.ui.Select(options=[
-      discord.SelectOption(label="Regular Room", value="description", description="A regular room"),
-      discord.SelectOption(label="Ending", value="name", description="A Room that ends the adventure")
-    ])
-    input = discord.ui.TextInput(label="Enter the new value", placeholder="Enter the new value", style=discord.TextStyle.paragraph)
-    button = database.CreateRoomButton(label= "Create Room", roomname= roomname, roomdesc=desc, row=1)
-    view = discord.ui.View()
-    view.add_item(select)
-    view.add_item(button)
-    #modal for sending room data to database
-    await ctx.reply(f"This will create a new Room in the adventure {adventure['name']}\n\nRoom Name:\n{roomname}\n\nRoom Description:\n{desc}\n(room description will be shown to the player when they enter that room)\n- You can add other things to the room once it is created.", view=view, ephemeral=True)
-  except Exception as e:
-    await ctx.reply(f"Error: {e}")
-    print(e)
+  dict = new_room.__dict__
+  embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: **{id}** (automatically generated)", description="Review the new room and select a button below:")
+  embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
+  embed.add_field(name="Description", value=f"{description}", inline=False)
+  embed.add_field(name="Entrance", value=f"{entrance}", inline=False)
+  embed.add_field(name="Alt Entrance", value=f"{alt_entrance}", inline=False)
+  embed.add_field(name="Exits", value=f"{exits}", inline=False)
+  embed.add_field(name="Deathnote", value=f"{deathnote}", inline=False)
+  embed.add_field(name="URL", value=f"{url}", inline=False)
+  embed.add_field(name="Keys", value=f"{keys}", inline=False)
+  embed.add_field(name="Hidden", value=f"{hidden}", inline=False)
+  embed.add_field(name="Locked", value=f"{locked}", inline=False)
+  embed.add_field(name="End", value=f"{end}", inline=False)
+  embed.add_field(name="Once", value=f"{once}", inline=False)
+  embed.add_field(name="Lock", value=f"{lock}", inline=False)
+  embed.add_field(name="Unlock", value=f"{unlock}", inline=False)
+  embed.add_field(name="Hide", value=f"{hide}", inline=False)
+  embed.add_field(name="Reveal", value=f"{reveal}", inline=False)
+  embed.add_field(name="Destroy", value=f"{destroy}", inline=False)
+ 
+  edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", id=id, dict=dict)
+  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+  view = discord.ui.View()
+  view.add_item(edit_button)
+  view.add_item(cancel_button)
+  await ctx.reply(embed=embed, view=view, ephemeral=True)
+
+#returns rooms with matching id OR matching displayname
+@editroom.autocomplete('id')
+async def autocomplete_editroom(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
 
 async def setup(bot):
   bot.add_command(newroom)

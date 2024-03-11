@@ -83,8 +83,10 @@ class ConfirmButton(discord.ui.Button):
     #player wants to leave an adventure
     elif self.action == "leave":
       await interaction.followup.send(f"This would have made a player leave an adventure, and delete channel {self.id} but it is not implemented yet.", ephemeral=True)
-    elif self.action == "create_room":
+    elif self.action == "new_room":
       await interaction.followup.send("This would create a room but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
+    elif self.action == "new_key":
+      await interaction.followup.send("This would create a key but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_key":
       await interaction.followup.send(f"This would delete key {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_room":
@@ -95,6 +97,8 @@ class ConfirmButton(discord.ui.Button):
       await interaction.followup.send(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "edit_room":
       await interaction.followup.send(f"This would edit room {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit room properties:\n{str(self.dict)}", ephemeral=True)
+    elif self.action == "edit_key":
+      await interaction.followup.send(f"This would edit key {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit key properties:\n{str(self.dict)}", ephemeral=True)
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check databse.ConfirmButton()", ephemeral=True)
       return

@@ -1,18 +1,46 @@
 from discord.ext import commands
+from discord import app_commands
+import discord
 import database
-import formatter
+import re
+from key import Key
 
-#Makes a new blank key in the database
-@commands.hybrid_command(name= "newkey", description= "Create a new key")
-async def newkey(ctx):
-  author_id = ctx.author.id
-  name = ctx.author.display_name
-  try:
-    database.create_new_key(author_id)
-    embed = formatter.blank_embed(name, "Success", "Key was created", "green")
-  except Exception as e:
-    embed = formatter.blank_embed(name, "Error", str(e), "red")
-    await ctx.reply(embed=embed, ephemral=True)
+#edits a key with whatever the user selects
+@commands.hybrid_command(name="newkey", description="Edit key attributes. Leave options blank to keep the default value.")
+async def newkey(ctx,
+    #giant block of arguments!
+    displayname : str="Name of the Key",
+    description : str="Shown to the player in inventory or journal",
+    subkeys : str="",
+    inventory : bool=False,
+    journal : bool=False,
+    unique : bool=False,
+    repeating : bool=False,
+    stackable : bool=False,
+                  ):
+  new_key = Key(displayname=displayname, description=description, subkeys=subkeys, inventory=inventory, journal=journal, unique=unique, repeating=repeating, stackable=stackable)
+
+  if not new_key:
+    await ctx.reply(f"Error: There was a problem generating your key object. Did you change a True/False value to something besides True/False?", ephemeral=True)
+    return
+  dict = new_key.__dict__
+  embed = discord.Embed(title=f"New key: {dict['displayname']}\nID: **{id}** (automatically generated)", description="Review the new key and select a button below:")
+  embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
+  embed.add_field(name="Description", value=f"{description}", inline=False)
+  embed.add_field(name="Subkeys", value=f"{subkeys}", inline=False)
+  embed.add_field(name="Inventory", value=f"{inventory}", inline=False)
+  embed.add_field(name="Journal", value=f"{journal}", inline=False)
+  embed.add_field(name="Unique", value=f"{unique}", inline=False)
+  embed.add_field(name="Repeating", value=f"{repeating}", inline=False)
+  embed.add_field(name="Stackable", value=f"{stackable}", inline=False)
+  
+  edit_button = database.ConfirmButton(label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
+  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+  view = discord.ui.View()
+  view.add_item(edit_button)
+  view.add_item(cancel_button)
+  await ctx.reply(embed=embed, view=view, ephemeral=True)
+
 
 async def setup(bot):
   bot.add_command(newkey)
