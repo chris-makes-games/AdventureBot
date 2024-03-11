@@ -12,7 +12,7 @@ import perms_ctx as permissions
 @commands.hybrid_command(name="deleteroom", description="Delete a room by its ID")
 async def deleteroom(ctx, room_id: str):
   # Retrieve room information from the database based on room_id
-  room = database.testrooms.find_one({"roomid": room_id})
+  room = database.testrooms.find_one({"id": room_id})
   if not room:
     await ctx.reply("Error: Room not found! Double check your room ID!", ephemeral=True)
     # Check if the room belongs to the user
@@ -32,28 +32,28 @@ async def autocomplete_room_id_deletion(interaction: discord.Interaction, curren
   if database.check_permissions(interaction.user.id)[0]:
     room_ids_query = database.testrooms.find(
   {
-  "roomid": {"$regex": re.escape(current), "$options": "i"}
+  "id": {"$regex": re.escape(current), "$options": "i"}
   },
   {
-  "roomid": 1, 
+  "id": 1, 
   "_id": 0
   }
   )
-    room_ids = [room["roomid"] for room in room_ids_query.limit(25)]
+    room_ids = [room["id"] for room in room_ids_query.limit(25)]
     return [app_commands.Choice(name=room_id, value=room_id) for room_id in room_ids]
   else:
     #if not maintainer, shows only their rooms
     room_ids_query = database.testrooms.find(
   {
   "author": interaction.user.id,
-  "roomid": {"$regex": re.escape(current), "$options": "i"}
+  "id": {"$regex": re.escape(current), "$options": "i"}
   },
   {
-  "roomid": 1, 
+  "id": 1, 
   "_id": 0
   }
   )
-    room_ids = [room["roomid"] for room in room_ids_query.limit(25)]
+    room_ids = [room["id"] for room in room_ids_query.limit(25)]
     return [app_commands.Choice(name=room_id, value=room_id) for room_id in room_ids]
   
 

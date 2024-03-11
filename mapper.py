@@ -16,9 +16,9 @@ def visualize_adventure(adventure):
     if not found_room:
       print(f"Room {room_id} not found in database!")
       continue
-    room_label = f"{found_room['displayname']}\n{found_room['roomid']}"
-    labels[found_room['roomid']] = room_label
-    G.add_node(found_room['roomid'], node_color="skyblue")
+    room_label = f"{found_room['displayname']}\n{found_room['id']}"
+    labels[found_room['id']] = room_label
+    G.add_node(found_room['id'], node_color="skyblue")
     exit_destinations = found_room['exit_destination']
     if found_room["kill"]:
       color = "red"
@@ -28,10 +28,10 @@ def visualize_adventure(adventure):
       color = "skyblue"
     color_map.append(color)
     for connected_room_id in exit_destinations:
-      G.add_edge(found_room['roomid'], connected_room_id)
-      print(f"Added edge: {found_room['roomid']} -> {connected_room_id}")
+      G.add_edge(found_room['id'], connected_room_id)
+      print(f"Added edge: {found_room['id']} -> {connected_room_id}")
     else:
-      print(f"No exit destinations for room: {found_room['roomid']}")
+      print(f"No exit destinations for room: {found_room['id']}")
 
       
   for edge in G.edges:

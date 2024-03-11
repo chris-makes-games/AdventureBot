@@ -3,7 +3,8 @@ import pathlib
 import random as rand  #random number generator
 from pprint import pprint as pp  #pretty printing
 
-import discord  #discord api
+import discord
+from discord.components import TextInput  #discord api
 import pymongo  #mongo db api
 
 from adventure import Adventure  #adventure class
@@ -14,6 +15,7 @@ from room import Room  #room class
 BASE_DIR = pathlib.Path(__file__).parent
 #this is the command folder directory
 CMDS_DIR = BASE_DIR / "cmds"
+
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -26,13 +28,29 @@ class RoomButton(discord.ui.Button):
   async def callback(self, interaction: discord.Interaction):
       await move_player(interaction, self.destination)
 
+class CreateAdventureModal(discord.ui.Modal):
+  def __init__(self):
+    super().__init__(title="Create New Adventure")
+    self.name = discord.ui.TextInput(label="Adventure Name", style=discord.TextStyle.short, required=True)
+    self.description = discord.ui.TextInput(label="Adventure Description", style=discord.TextStyle.paragraph, required=True, placeholder="Describe Your Adventure. Be sure to include any themes or content warnings, if applicable.")
+    self.add_item(self.name)
+    self.add_item(self.description)
+    #removed items from form, for now
+    #self.add_item(self.items)
+  async def on_submit(self, interaction: discord.Interaction):
+    user_displayname = interaction.user.display_name
+    start_room = Room(displayname="Default Start Room")
+    adventure = Adventure(nameid=self.name.value, description = self.description.value, start=start_room.id, author=user_displayname, rooms=[start_room.id])
+    create_new_adventure(adventure.__dict__)
+    create_new_room(start_room.__dict__)
+    await interaction.response.send_message(f"Adventure created:\nName: {self.name}\nDescription:\n{self.description}", ephemeral=True)
+
 class CreateRoomModal(discord.ui.Modal):
   def __init__(self):
     super().__init__(title="Create New Room")
     self.name = discord.ui.TextInput(label="Room Name", style=discord.TextStyle.short, required=True)
     self.description = discord.ui.TextInput(label="Room Description", style=discord.TextStyle.paragraph, required=True, placeholder="You have moved into a dark place. It is pitch black. You are likely to be eaten by a grue.")
     self.items = discord.ui.TextInput(label="Room Items", placeholder="enter item IDs, separated by commas: Fs53, 6gHj, t2WQ", required=False, style=discord.TextStyle.short)
-    self.kill = discord.ui.Select(placeholder="Kill")
     self.add_item(self.name)
     self.add_item(self.description)
     #removed items from form, for now
@@ -59,13 +77,17 @@ class CreateItemModal(discord.ui.Modal):
 #generates an embed with fields for the room
 #when clicked, the room making embed is sent to the channel
 class CreateRoomButton(discord.ui.Button):
-  def __init__(self, label, disabled=False, row=0):
+  def __init__(self, label, disabled=False, row=0, roomname="INVALID NAME", roomdesc="INVALID DESCRIPTION"):
     super().__init__(label=label, style=discord.ButtonStyle.primary)
     self.disabled = disabled
     self.row = row
+    self.roomname = roomname
+    self.roomdesc = roomdesc
   #callback is for when the button is clicked
   async def callback(self, interaction: discord.Interaction):
-    await interaction.response.send_modal(CreateRoomModal())
+    new_room = Room(displayname=self.roomname, description = self.roomdesc, author=interaction.user.display_name)
+    create_new_room(new_room.__dict__)
+    await interaction.response.send_message(f"Room created:\nRoom display name: {self.roomname},\n description:\n{self.roomdesc}", ephemeral=True)
 
 class CreateItemButton(discord.ui.Button):
   def __init__(self, label, disabled=False, row=0):
@@ -163,7 +185,7 @@ db_serv = os.environ['DB_SERVER']
 mongo_client = pymongo.MongoClient("mongodb+srv://" + 
 db_user + ":" + db_pass + "@" + db_name + db_serv)
 
-#checks to make sure database is connected to
+#checks to make sure database is connected
 def ping():
   try:
     mongo_client.admin.command('ping')
@@ -175,11 +197,12 @@ def ping():
 database_name = os.environ['COLLECTION']
 db = getattr(mongo_client, database_name) #turns string to attribute
 
-#curson objects hold document data
-#function similar to dicts but are not dicts
+#cursor objects hold document data
+#function similar to dicts but are not dicts!!
 rooms = db.rooms
 users = db.users
 items = db.items
+keys = db.keys
 adventures = db.adventures
 testrooms = db.testrooms
 testadventures = db.testadventures
@@ -240,7 +263,8 @@ def add_maintainer(user_id):
 def add_assistant(user_id):
   botinfo.update_one({"assistants": user_id}, {"$set": {"assistants": user_id}})
 
-#gets names of all commands in file for autocomplete
+#gets names of all commands in file
+#returns list of strings
 def get_all_commands():
   all_commands = []
   for cmd_file in CMDS_DIR.glob("*.py"):
@@ -319,7 +343,7 @@ async def move_player(interaction, destination):
     taken = player["taken"]
     print("inventory: " + str(inventory))
     print("taken: " + str(taken))
-    newroomname = new_room["roomid"]
+    newroomname = new_room["id"]
     newroomauthor = new_room["author"]
     guild = interaction.guild
     author = guild.get_member(newroomauthor)
@@ -406,7 +430,7 @@ async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id
 #buttons on this embed allow user to create/edit rooms/items
 async def creation_mode(channel):
   view = discord.ui.View()
-  embed= discord.Embed(title="Creation Mode", description="You can use this thread to edit or create new rooms. Use the buttons below to select what you want to do.", color=discord.Color.blue())
+  embed= discord.Embed(title="Creation Mode", description="You can use this to edit or create new rooms. Use the buttons below to select what you want to do.", color=discord.Color.blue())
   new_room_button = CreateRoomButton("Create New Room")
   new_item_button = CreateItemButton("Create New Item")
   exit_button = ExitButton("Exit", channel)
@@ -517,16 +541,32 @@ def update_player(dict):
   pp(str(dict))
   users.update_one({"disc": dict["disc"]}, {"$set": dict})
 
+#creates an adventure from a dict
+def create_new_adventure(dict):
+  print("creating new adventure:")
+  pp(dict)
+  adventures.insert_one(dict)
+
+#creates a room from a dict
 def create_new_room(dict):
   print("creating new room:")
-  pp(str(dict))
+  pp(dict)
   rooms.insert_one(dict)
-  id = {"roomid": dict["roomid"]}
+  id = {"id": dict["id"], "type" : "room", "displayname": dict["displayname"]}
   ids.insert_one(id)
 
+#creates a key from a dict
+def create_new_key(dict):
+  print("creating new key:")
+  pp(dict)
+  keys.insert_one(dict)
+  id = {"id": dict["id"], "type" : "key", "displayname": dict["displayname"]}
+  ids.insert_one(id)
+
+#creates an item from a dict
 def create_new_item(dict):
   print("creating new item:")
-  pp(str(dict))
+  pp(dict)
   items.insert_one(dict)
   id = {"itemid": dict["itemid"]}
   ids.insert_one(id)
@@ -537,22 +577,24 @@ def update_room(dict, delete=""):
   if delete == "":
     print("updating room:")
     pp(str(dict))
-    rooms.update_one({"roomid": dict["roomid"]}, {"$set": dict})
+    rooms.update_one({"id": dict["id"]}, {"$set": dict})
   else:
     print("updating room:")
     pp(str(dict))
     print("deleting field from room:" + delete)
-    rooms.update_one({"roomid": dict["roomid"]}, {"$set": dict}, {"$unset": {delete: ""}})
+    rooms.update_one({"id": dict["id"]}, {"$set": dict}, {"$unset": {delete: ""}})
 
-def delete_room(roomid):
-  room = rooms.find_one({"roomid": roomid})
+#deletes room from database
+def delete_room(id):
+  room = rooms.find_one({"id": id})
   if room:
-    print("Deleteing room " + room["displayname"] + " with id " + room["roomid"])
-    rooms.delete_one({"roomid": roomid})
-    ids.delete_one({"id": roomid})
+    print("Deleteing room " + room["displayname"] + " with id " + room["id"])
+    rooms.delete_one({"id": id})
+    ids.delete_one({"id": id})
   else:
     print(f"ERROR - Room {id} does not exist")
 
+#deletes every specified field from every room
 def delete_room_fields(field):
   rooms.update_many({}, {"$unset": {field: ""}})
 
@@ -597,8 +639,8 @@ def kill_player(name):
   users.update_one({"disc": name}, {"$set": {"alive": False}})
 
 #returns a room dict of a room by room name
-def get_room(roomid):
-  room = rooms.find_one({"roomid": roomid})
+def get_room(id):
+  room = rooms.find_one({"id": id})
   if room:
     return room
   else:
@@ -626,7 +668,7 @@ def get_player_room(name):
   player = users.find_one({"disc" : name})
   if player:
     print(f"found player: {name}")
-    room = rooms.find_one({"roomid": player["room"]})
+    room = rooms.find_one({"id": player["room"]})
     if room:
       return room
   else:
@@ -647,21 +689,13 @@ def check_valid_exit(name, attempt):
       return True
     return keys[attempt] in items
 
+#finds an item by the displayname
 def get_item_by_displayname(displayname):
   item = items.find_one({"displayname": displayname})
   if item:
     return item
   else:
     return None
-
-def get_thread(player_id):
-  """
-  Retrieves the game thread ID associated with a player.
-  :param player_id: The discord ID of the player.
-  :return: The game thread ID for the player or None if not found.
-  """
-  player = users.find_one({"disc": player_id})
-  return player.get('game_thread_id') if player else None
 
 def get_all_testrooms():
   return testrooms.find()

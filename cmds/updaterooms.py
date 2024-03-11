@@ -16,7 +16,7 @@ async def updaterooms(ctx):
   all_rooms = database.rooms.find()
   for room in all_rooms:
     room_object = Room(dict=room)
-    room_id = room_object.roomid
+    room_id = room_object.id
     room_name = room_object.displayname
     print(f"checking room {room_name}")
     print(f"room ID: {room_id}")

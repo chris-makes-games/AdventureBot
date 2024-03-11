@@ -40,8 +40,6 @@ misc:
   functions for pulling documents and updating all classes (done for rooms)
   change bot buttons to always be clickable (no downtime issues)
 
-  Update and make roomid, itemid, nameid into the bot code in appropriate places.in the class's, the main.py, database.py (i think this is done - sarnt)
-
   formatter has a lot of outdated stuff, and a lot of commands need to be added/updated/removed. Need to double check each help command and need to add help for admin help
 
   consider creating a new system for events, instead of having events be an item. Create a journal for events? 

@@ -32,7 +32,7 @@ async def newadventure(ctx):
       await ctx.reply(embed=embed, ephemeral=True)
       thread = await channel.create_thread(name=f"{name} editing an adventure")
       await thread.send(ctx.author.mention + " is editing an adventure.")
-      database.update_player({'disc': truename, 'edit_thread_id': thread.id})
+      database.update_player({'disc': truename, 'edit_thread': thread.id})
       link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
       await ctx.reply(f"A new thread was created to edit your adventure:\n{link}", ephemeral=True, suppress_embeds=True)
       return
@@ -44,17 +44,17 @@ async def newadventure(ctx):
       return
   #if no adventure found, create a new one
   else:
-    # Create the adventure first
     database.create_blank_adventure(truename)
     # Then, create a new thread for editing this adventure
     database.pp("creating adventure edit channel:\n" + str(channel))
     if channel and channel.type == discord.ChannelType.text:
       thread = await channel.create_thread(name=f"{name} editing an adventure")
       await thread.send(ctx.author.mention + " is editing an adventure.")
-      edit_thread_id = channel.id
+      edit_thread = thread.id
         # Update the player's editthread field with the new thread ID
-      database.update_player({'disc': truename, 'edit_thread_id': edit_thread_id})
-      embed = formatter.blank_embed(name, "Success", f"Adventure was created and your edit thread is ready! Thread ID: {edit_thread_id}", "green")
+      database.update_player({'disc': truename, 'edit_thread': edit_thread})
+      link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
+      embed = formatter.blank_embed(name, "Success", f"Adventure was created and your edit thread is ready! Thread:\n {link}", "green")
       await ctx.reply(embed=embed, ephemeral=True)
 
 async def setup(bot):
