@@ -2,6 +2,7 @@ import os  #stores secrets
 import pathlib
 import random as rand  #random number generator
 from pprint import pprint as pp  #pretty printing
+from collections import Counter # keys list comprehension
 
 import discord
 from discord.components import TextInput  #discord api
@@ -332,19 +333,25 @@ def give_player_items(new_items, old_items, taken):
 
 #gives player key in room if applicable
 def process_player_keys(found_keys, current_keys, history):
-  new_keys = []
-  new_history = []
+  found_keys = []
+  new_keys = current_keys
+  new_history = history
   for key_id in found_keys:
     key = keys.find_one({"id": key_id})
-    if key["id"] in current_keys and key["stackable"]:
-      new_keys.append(key["id"])
+    if not key:
+      print("ERROR - Room key not found!")
+      print(f"key {key_id} does not exist")
+      continue
+    if key["id"] in current_keys and not key["stackable"]:
+      continue
     if key["id"] not in current_keys or key["repeating"]:
       if key["unique"] and key["id"] in history:
         continue
       new_keys.append(key["id"])
+      found_keys.append(key["id"])
       if key["unique"]:
         new_history.append(key["id"])
-  return new_keys, new_history
+  return found_keys, new_keys, new_history
     
 
 #moves player to a new room
@@ -352,12 +359,12 @@ def process_player_keys(found_keys, current_keys, history):
 async def move_player(interaction, destination):
   player = get_player(interaction.user.id)
   new_room = get_room(destination)
-  new_items = []
   if player and new_room:
-    inventory = player["inventory"]
-    taken = player["taken"]
-    print("inventory: " + str(inventory))
-    print("taken: " + str(taken))
+    keys = player["keys"]
+    history = player["history"]
+    print(f"player {player['displayname']} is moving to {destination}...")
+    print("keys: " + str(keys))
+    print("history: " + str(history))
     newroomname = new_room["id"]
     newroomauthor = new_room["author"]
     guild = interaction.guild
@@ -369,24 +376,26 @@ async def move_player(interaction, destination):
     print("player: " + str(player))
     print("room: " + str(new_room))
     return
-  if new_room["items"]:
-    pp("items found!" + str(new_room["items"]))
-    items_list = give_player_items(new_room["items"], inventory, taken)
-    pp(items_list)
-    new_items = items_list[0]
-    inventory = items_list[1]
-    taken = items_list[2]
-  dict = {"disc": player["disc"],"room": newroomname, "inventory": inventory, "taken": taken}
+  if new_room["keys"]:
+    pp("keys found!" + str(new_room["keys"]))
+    found_keys, new_keys, new_history = process_player_keys(new_room["keys"], player["keys"], player["history"])
+    pp(f"new keys: {new_keys}")
+    pp(f"new history: {new_history}")
+  else:
+    new_keys = keys
+    new_history = history
+    found_keys = []
+  dict = {"disc": player["disc"],"room": newroomname, "keys": new_keys, "history": new_history}
   update_player(dict)
-  tuple = embed_room(inventory, new_items, "You enter the " + newroomname, new_room, author)
+  tuple = embed_room(keys, found_keys, newroomname, new_room, author)
   embed = tuple[0]
   view = tuple[1]
   await interaction.response.edit_message(embed=embed, view=view)
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view
-def embed_room(all_items, new_items, title, room, author, color=0):
-  if color == "":
+def embed_room(keys, new_keys, title, room, author, color=0):
+  if color == 0:
     color = discord.Color.blue()
   descr = room["description"]
   embed = discord.Embed(title=title, description=descr, color=color)
@@ -396,35 +405,55 @@ def embed_room(all_items, new_items, title, room, author, color=0):
   elif "URL" in room:
     embed.set_image(url=room["URL"])
   view = discord.ui.View()
-  if new_items:
-    for item in new_items:
-      found_item = get_item(item)
-      description = found_item["description"] if found_item else "ERROR - ITEM HAS NO NAME"
-      embed.add_field(name="You found an item:", value=description, inline=False)
-  if len(room["exits"]) == 0:
-    embed.add_field(name="Exits", value="There are no exits from this room. This is the end of the line. Unless this room is broken?", inline=False)
+  if new_keys:
+    for key_id in new_keys:
+      found_key = get_key(key_id)
+      if not found_key:
+        print(f"ERROR - key {key_id} not found!")
+        continue
+      if found_key["inventory"]:
+        embed.add_field(name=f"You found a {found_key['displayname']}!", value=found_key["description"], inline=False)
+      if found_key["journal"]:
+        embed.add_field(name="New journal entry:", value=found_key["description"], inline=False)
+  if len(room["exits"]) == 0 and not room["end"]:
+    embed.add_field(name="Exits", value="There are no exits from this room. This is the end of the line. Unless this room is broken? You might have to /leave this adventure to get out.", inline=False)
   if len(room["exits"]) == 1:
     embed.add_field(
-  name="This area has only one way out.",value="press the button below when you're ready", inline=False)
+  name="You have only one option.",value="press the button below to continue:", inline=False)
   else:
-    embed.add_field(name="Choose a Path", value="Make your choice by clicking a button below:", inline=False)
-  r = 1
-  for exit in room["exits"]:
-    if room["secrets"][r - 1] == "Open":
-      button = RoomButton(label=str(exit), destination=room['exit_destination'][r - 1], row = r - 1)
-      view.add_item(button)
-    elif room["secrets"][r - 1] == "Secret":
-      if room["unlockers"][r - 1] in all_items:
-        button = RoomButton(label=str(exit), destination=room['exit_destination'][r - 1], row = r - 1)
+    embed.add_field(name="Make a Choice", value="Click a button below to continue:", inline=False)
+  for room_id in room["exits"]:
+    found_room = get_room(room_id)
+    if not found_room:
+      print(f"ERROR - room {room_id} not found!")
+      continue
+    #if hidden, doesn't show unless they have reveal keys
+    if found_room["hidden"]:
+      if not valid_exit(keys, found_room["reveal"]):
+        continue
+    #if locked, shows alt text unless they have unlock keys
+    if found_room["locked"]:
+      if valid_exit(keys, found_room["unlock"]):
+        button = RoomButton(label=found_room["entrance"], destination=room_id)
         view.add_item(button)
-    elif room["unlockers"][r - 1] in all_items:
-      button = RoomButton(label=str(exit), destination=room['exit_destination'][r - 1], row = r - 1)
-      view.add_item(button)
-    else:
-      button = RoomButton(label=room["secrets"][r - 1], destination=room['exit_destination'][r - 1], disabled=True, row = r - 1)
-      view.add_item(button)
-    r += 1
+        continue
+      else:
+        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
+        view.add_item(button)
+        continue
+    #regular room entrance if not locked or hidden
+    button = RoomButton(label=found_room["entrance"], destination=room_id)
+    view.add_item(button)
   return (embed, view)
+
+#returns true if the keys fit into the lock
+def valid_exit(keys, lock):
+  key_counter = Counter(keys)
+  lock_counter = Counter(lock)
+  for element, count in lock_counter.items():
+    if key_counter[element] < count:
+      return False
+  return True
 
 #generic confirmation embed for when an action requires confirmation
 #adds a ConfirmButton to itself at the bottom
@@ -515,6 +544,14 @@ def get_item(id):
   item = items.find_one({"itemid": id})
   if item:
     return item
+  else:
+    return None
+
+#returns a dict of key for given key id
+def get_key(id):
+  key = keys.find_one({"id": id})
+  if key:
+    return key
   else:
     return None
 

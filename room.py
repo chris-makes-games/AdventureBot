@@ -4,7 +4,7 @@ import discord
 class Room:
   def __init__(
     self, id=None, displayname="", description="", entrance="",
-    author="", url="", alt_text="",
+    author="", url="", alt_entrance="", deathnote="",
     end=False, once=False, hidden=False, locked=False, 
     keys=None, exits=None, unlock=None, reveal=None, destroy=None):
     #generates new id if none is given
