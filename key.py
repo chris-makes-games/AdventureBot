@@ -4,17 +4,18 @@ import database
 class Key:
   def __init__(self, id=None,
     displayname="", subkeys=None, author=None, 
-    description="", item=False, journal=False,
-    infinite=False):
+    description="", inventory=False, journal=False,
+    unique=False, repeating=False, stackable=False):
     if not id:
       self.id = database.generate_unique_id()
     else:
       self.id = id
-      self.author = author
-      self.displayname = displayname
-      self.description = description
-      self.infinite = infinite
+    self.author = author
+    self.displayname = displayname
+    self.description = description
+    self.unique = unique
+    self.repeating = repeating
 
-      if subkeys is None:
-        self.subitems = []
-      self.subkeys = subkeys
+    if subkeys is None:
+      self.subkeys = []
+    self.subkeys = subkeys

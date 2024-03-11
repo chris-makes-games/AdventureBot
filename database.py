@@ -10,6 +10,7 @@ import pymongo  #mongo db api
 from adventure import Adventure  #adventure class
 from item import Item  #item class
 from room import Room  #room class
+from key import Key
 
 #sets the parent directory of the bot
 BASE_DIR = pathlib.Path(__file__).parent
@@ -329,6 +330,23 @@ def give_player_items(new_items, old_items, taken):
   pp("New Items:" + str(items_grouping))
   return items_grouping
 
+#gives player key in room if applicable
+def process_player_keys(found_keys, current_keys, history):
+  new_keys = []
+  new_history = []
+  for key_id in found_keys:
+    key = keys.find_one({"id": key_id})
+    if key["id"] in current_keys and key["stackable"]:
+      new_keys.append(key["id"])
+    if key["id"] not in current_keys or key["repeating"]:
+      if key["unique"] and key["id"] in history:
+        continue
+      new_keys.append(key["id"])
+      if key["unique"]:
+        new_history.append(key["id"])
+  return new_keys, new_history
+    
+
 #moves player to a new room
 #sends an embed with the new room's description and buttons
 async def move_player(interaction, destination):
@@ -519,6 +537,10 @@ def create_blank_item(author):
     item = Item("test_item","Test Item", description="This is where the description goes", author=author)
     items.insert_one(item.__dict__)
 
+def create_blank_key(author):
+    key = Key("test_key","Test Key", description="This is where the description goes", author=author)
+    keys.insert_one(key.__dict__)
+
 #finds all the players currently in a given room
 #returns a list of player discord IDs
 def get_players_in_room(room):
@@ -535,7 +557,7 @@ def player_exists(name):
 #updates the player in the databse with a dict of info
 def update_player(dict):
   print("updating player:\n")
-  pp(str(dict))
+  pp(dict)
   users.update_one({"disc": dict["disc"]}, {"$set": dict})
 
 #creates an adventure from a dict
@@ -607,6 +629,10 @@ def get_all_players():
 def get_all_rooms():
   return rooms.find()
 
+#gets every key from the database
+def get_all_keys():
+  return keys.find()
+
 #gets every item from the database
 def get_all_items():
   return items.find()
@@ -623,7 +649,7 @@ def get_adventure(name):
   else:
     return None
 
-#gets an adventure by name
+#gets an adventure by discord author
 def get_adventure_by_author(disc):
   adventure = adventures.find_one({"author": disc})
   if adventure:
@@ -632,8 +658,11 @@ def get_adventure_by_author(disc):
     return None
 
 #sets the kill value to true for a given player discord ID
+#increments their death count by one
 def kill_player(name):
-  users.update_one({"disc": name}, {"$set": {"alive": False}})
+  player = users.find_one({"disc": name})
+  player_deaths = player["deaths"] + 1
+  users.update_one({"disc": name}, {"$set": {"alive": False, "deaths": player_deaths}})
 
 #returns a room dict of a room by room name
 def get_room(id):

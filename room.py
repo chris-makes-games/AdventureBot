@@ -1,6 +1,44 @@
 import database
 import discord
 
+class Room:
+  def __init__(
+    self, id=None, displayname="", description="", entrance="",
+    author="", url="", alt_text="",
+    end=False, once=False, hidden=False, locked=False, 
+    keys=None, exits=None, unlock=None, reveal=None, destroy=None):
+    #generates new id if none is given
+    if not id:
+      self.id = database.generate_unique_id()
+    else:
+      self.id = id
+    #string attributes
+    self.displayname = displayname
+    self.description = description
+    self.entrance= entrance
+    self.author = author #actually an int
+    self.url = url
+    #boolean attributes
+    self.end = end
+    self.once = once
+    self.hidden = hidden
+    self.locked = locked
+    #list attributes
+    if keys is None:
+        keys = []
+    if exits is None:
+        exits = []
+    if unlock is None:
+        unlock = []
+    if reveal is None:
+        reveal = []
+    if destroy is None:
+        destroy = []
+    self.keys = keys
+    self.exits = exits
+    self.unlock = unlock
+    self.reveal = reveal
+    self.destroy = destroy
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -13,43 +51,7 @@ class RoomButton(discord.ui.Button):
   async def callback(self, interaction: discord.Interaction):
       await database.move_player(interaction, self.destination)
 
-class Room:
-  def __init__(
-    self, dict=None,
-    id="", displayname="", author=None, url="",
-    description="", end=False, once=False, exits=None, items=None,
-    secret=False, locked=False, keys=None, alt_text=""):
-    
-    if dict:
-      self.id = database.generate_unique_id()
-      for key, value in dict.items():
-          setattr(self, key, value)
-      if self.description == "":
-        self.description = "NO DESCRIPTION GIVEN"
-      if self.displayname == "":
-        self.displayname = "NO DISPLAY NAME GIVEN"
-      if self.author == None:
-        self.author = "INVALID AUTHOR"
-    else:
-      self.id = database.generate_unique_id()
-      self.description = description
-      self.end = end
-      self.displayname = displayname
-      self.author = author
-      self.url = url
-      self.secret = secret
-    
-      if exits is None:
-        exits = []
-      if items is None:
-        items = []
-      if keys is None:
-        keys = []
-        
-        self.keys = keys
-        self.items = items
-        self.exits = exits
-
+#send an embed with buttons to go to different rooms
 def destinations_embed(self, adventure_rooms, player):
   exits = 0
   view = discord.ui.View()
