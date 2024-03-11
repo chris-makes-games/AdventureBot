@@ -288,3 +288,139 @@ async def inventory(interaction: discord.Interaction):
       await interaction.response.send_message(embed=embed)
     else :
       await interaction.response.send_message("You are either dead or not in a adventure!")
+
+#injests items a room has, player inventory, player taken
+#determines if the player needs to be given the item
+#prevents duplicate items, returns a tuple
+def give_player_items(new_items, old_items, taken):
+  items_grouping = [new_items, old_items, taken]
+  for item in new_items:
+    item_object = None
+    item_object = items.find_one({"itemid" : item})
+    if not item_object:
+      print("ERROR - Room item not found!")
+      print(str(item) + " does not exist as an item name")
+      continue
+    elif item in taken and not item_object["infinite"] or item in old_items:
+      new_items.remove(item)
+      continue
+    elif item_object["infinite"] and item not in old_items:
+      if item not in taken:
+        taken.append(item)
+      old_items.append(item)
+    elif item not in old_items and item not in taken:
+      taken.append(item)
+      old_items.append(item)
+    else:
+      new_items.remove(item)
+  pp("New Items:" + str(items_grouping))
+  return items_grouping
+
+import re
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+import database
+import perms_ctx as permissions
+
+
+#deletes an item from the database
+@commands.hybrid_command(name="deleteitem", description="Delete an item by its ID")
+async def deleteitem(ctx, item_id: str):
+  item = database.items.find_one({"itemid": item_id})
+  if not item:
+    await ctx.reply("Error: Item not found! Double check your item ID!", ephemeral=True)
+    return
+  if ctx.author.id == item["author"] or permissions.is_maintainer:
+    confirm = await database.confirm_embed(confirm_text=f"This will delete the item {item['name'].title()} permenantly, are you sure you want to do this?", title="Confirm Item Deletion", action="delete_item", channel=ctx.channel, id=item_id)
+    embed = confirm[0]
+    view = confirm[1]
+    await ctx.reply(embed=embed, view=view, ephemeral=True)
+  else:
+    await ctx.reply("Error: You do not have permission to delete this item!", ephemeral=True)
+
+@deleteitem.autocomplete('item_id')
+async def autocomplete_item_id_deletion(interaction: discord.Interaction, current: str):
+  #checks if author is maintainer, finds every room
+  if database.check_permissions(interaction.user.id)[0]:
+    item_ids_query = database.items.find(
+  { 
+  "itemid": {"$regex": re.escape(current), "$options": "i"}
+  },
+  {
+  "itemid": 1,
+  "_id": 0
+  }
+  )
+    item_ids = [item["itemid"] for item in item_ids_query.limit(25)]
+    return [app_commands.Choice(name=item_id, value=item_id) for item_id in item_ids]
+  #if not maintainer, shows only their items
+  else:
+    item_ids_query = database.items.find(
+  {
+  "author": interaction.user.id, 
+  "itemid": {"$regex": re.escape(current), "$options": "i"}
+  },
+  {
+  "itemid": 1,
+  "_id": 0
+  }
+  )
+    item_ids = [item["itemid"] for item in item_ids_query.limit(25)]
+    return [app_commands.Choice(name=item_id, value=item_id) for item_id in item_ids]
+
+async def setup(bot):
+  bot.add_command(deleteitem)
+
+from discord.ext import commands
+import database
+import formatter
+
+#Makes a new blank item in the database
+@commands.hybrid_command(name= "newitem", description= "Create a new item")
+async def newitem(ctx):
+  author_id = ctx.author.id
+  name = ctx.author.display_name
+  try:
+    database.create_blank_item(author_id)
+    embed = formatter.blank_embed(name, "Success", "Item was created", "green")
+  except Exception as e:
+    embed = formatter.blank_embed(name, "Error", str(e), "red")
+    await ctx.reply(embed=embed, ephemral=True)
+
+async def setup(bot):
+  bot.add_command(newitem)
+
+import database
+
+
+class Item:
+    def __init__(self, itemid=None,
+          displayname="", subitems=None, author=None, 
+          description="", 
+          infinite=False, deconstructable=False, dict=None):
+
+      if dict is not None:
+        if not itemid:
+          self.itemid = database.generate_unique_id()
+        for key, value in dict.items():
+            setattr(self, key, value)
+        if self.displayname == "":
+          self.displayname = "NO DISPLAY NAME GIVEN"
+        if self.description == "":
+          self.description = "NO DESCRIPTION GIVEN"
+        if author is None:
+          self.author = "INVALID AUTHOR"
+      else:
+        self.itemid = database.generate_unique_id()
+        self.author = author
+        self.displayname = displayname
+        self.description = description
+      
+      self.infinite = infinite
+      self.deconstructable = deconstructable
+      self.subitems = subitems
+      if subitems is None:
+        self.subitems = []

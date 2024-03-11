@@ -9,15 +9,13 @@ from discord.components import TextInput  #discord api
 import pymongo  #mongo db api
 
 from adventure import Adventure  #adventure class
-from item import Item  #item class
 from room import Room  #room class
-from key import Key
+from key import Key #new key class, previously item
 
 #sets the parent directory of the bot
 BASE_DIR = pathlib.Path(__file__).parent
 #this is the command folder directory
 CMDS_DIR = BASE_DIR / "cmds"
-
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -29,52 +27,6 @@ class RoomButton(discord.ui.Button):
     self.row = row
   async def callback(self, interaction: discord.Interaction):
       await move_player(interaction, self.destination)
-
-class CreateAdventureModal(discord.ui.Modal):
-  def __init__(self):
-    super().__init__(title="Create New Adventure")
-    self.name = discord.ui.TextInput(label="Adventure Name", style=discord.TextStyle.short, required=True)
-    self.description = discord.ui.TextInput(label="Adventure Description", style=discord.TextStyle.paragraph, required=True, placeholder="Describe Your Adventure. Be sure to include any themes or content warnings, if applicable.")
-    self.add_item(self.name)
-    self.add_item(self.description)
-    #removed items from form, for now
-    #self.add_item(self.items)
-  async def on_submit(self, interaction: discord.Interaction):
-    user_displayname = interaction.user.display_name
-    start_room = Room(displayname="Default Start Room")
-    adventure = Adventure(name=self.name.value, description = self.description.value, start=start_room.id, author=user_displayname, rooms=[start_room.id])
-    create_new_adventure(adventure.__dict__)
-    create_new_room(start_room.__dict__)
-    await interaction.response.send_message(f"Adventure created:\nName: {self.name}\nDescription:\n{self.description}", ephemeral=True)
-
-class CreateRoomModal(discord.ui.Modal):
-  def __init__(self):
-    super().__init__(title="Create New Room")
-    self.name = discord.ui.TextInput(label="Room Name", style=discord.TextStyle.short, required=True)
-    self.description = discord.ui.TextInput(label="Room Description", style=discord.TextStyle.paragraph, required=True, placeholder="You have moved into a dark place. It is pitch black. You are likely to be eaten by a grue.")
-    self.items = discord.ui.TextInput(label="Room Items", placeholder="enter item IDs, separated by commas: Fs53, 6gHj, t2WQ", required=False, style=discord.TextStyle.short)
-    self.add_item(self.name)
-    self.add_item(self.description)
-    #removed items from form, for now
-    #self.add_item(self.items)
-  async def on_submit(self, interaction: discord.Interaction):
-    user_displayname = interaction.user.display_name
-    room = Room(displayname= self.name.value, description = self.description.value, items = self.items.value, author=user_displayname)
-    create_new_room(room.__dict__)
-    await interaction.response.send_message(f"Room created:\nRoom display name: {self.name}\n description:\n{self.description}\nItems:\n{self.items}", ephemeral=True)
-
-class CreateItemModal(discord.ui.Modal):
-  def __init__(self):
-    super().__init__(title="Create New Item")
-    self.name = discord.ui.TextInput(label="Item Name", style=discord.TextStyle.short, required=True)
-    self.description = discord.ui.TextInput(label="Item Description", style=discord.TextStyle.paragraph, required=True, placeholder="Describe your item for when the player checks their inventory.")
-    self.add_item(self.name)
-    self.add_item(self.description)
-  async def on_submit(self, interaction: discord.Interaction):
-    user_displayname = interaction.user.display_name
-    item = Item(displayname= self.name.value, description = self.description.value, author=user_displayname)
-    create_new_item(item.__dict__)
-    await interaction.response.send_message(f"Item created:\nItem display name: {self.name}\n description:\n{self.description}", ephemeral=True)
 
 #generates an embed with fields for the room
 #when clicked, the room making embed is sent to the channel
@@ -90,15 +42,6 @@ class CreateRoomButton(discord.ui.Button):
     new_room = Room(displayname=self.roomname, description = self.roomdesc, author=interaction.user.display_name)
     create_new_room(new_room.__dict__)
     await interaction.response.send_message(f"Room created:\nRoom display name: {self.roomname},\n description:\n{self.roomdesc}", ephemeral=True)
-
-class CreateItemButton(discord.ui.Button):
-  def __init__(self, label, disabled=False, row=0):
-    super().__init__(label=label, style=discord.ButtonStyle.primary)
-    self.disabled = disabled
-    self.row = row
-  #callback is for when the button is clicked
-  async def callback(self, interaction: discord.Interaction):
-    await interaction.response.send_modal(CreateItemModal())
 
 class ExitButton(discord.ui.Button):
   def __init__(self, label, channel, disabled=False, row=0):
@@ -141,8 +84,8 @@ class ConfirmButton(discord.ui.Button):
       await interaction.followup.send(f"This would have made a player leave an adventure, and delete channel {self.id} but it is not implemented yet.", ephemeral=True)
     elif self.action == "create_room":
       await interaction.followup.send("This would create a room but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
-    elif self.action == "delete_item":
-      await interaction.followup.send(f"This would delete item {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
+    elif self.action == "delete_key":
+      await interaction.followup.send(f"This would delete key {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_room":
       await interaction.followup.send(f"This would delete room {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_adventure":
@@ -203,7 +146,6 @@ db = getattr(mongo_client, database_name) #turns string to attribute
 #function similar to dicts but are not dicts!!
 rooms = db.rooms
 users = db.users
-items = db.items
 keys = db.keys
 adventures = db.adventures
 ids = db.ids
@@ -304,34 +246,8 @@ def generate_unique_id(multiple=1):
     id = []
   return ", ".join(multiples)
 
-#injests items a room has, player inventory, player taken
-#determines if the player needs to be given the item
-#prevents duplicate items, returns a tuple
-def give_player_items(new_items, old_items, taken):
-  items_grouping = [new_items, old_items, taken]
-  for item in new_items:
-    item_object = None
-    item_object = items.find_one({"itemid" : item})
-    if not item_object:
-      print("ERROR - Room item not found!")
-      print(str(item) + " does not exist as an item name")
-      continue
-    elif item in taken and not item_object["infinite"] or item in old_items:
-      new_items.remove(item)
-      continue
-    elif item_object["infinite"] and item not in old_items:
-      if item not in taken:
-        taken.append(item)
-      old_items.append(item)
-    elif item not in old_items and item not in taken:
-      taken.append(item)
-      old_items.append(item)
-    else:
-      new_items.remove(item)
-  pp("New Items:" + str(items_grouping))
-  return items_grouping
-
 #gives player key in room if applicable
+#adds keys to history if applicable
 def process_player_keys(found_keys, current_keys, history):
   found_keys = []
   new_keys = current_keys
@@ -353,10 +269,10 @@ def process_player_keys(found_keys, current_keys, history):
         new_history.append(key["id"])
   return found_keys, new_keys, new_history
     
-
 #moves player to a new room
 #sends an embed with the new room's description and buttons
 async def move_player(interaction, destination):
+  guild = interaction.guild
   player = get_player(interaction.user.id)
   new_room = get_room(destination)
   if player and new_room:
@@ -372,31 +288,37 @@ async def move_player(interaction, destination):
     if not author:
       author = "Unknown"
   else:
-    print("ERROR - None Object during database.moveplayer()")
-    print("player: " + str(player))
-    print("room: " + str(new_room))
+    pp("ERROR - None Object during database.moveplayer()")
+    pp("player: " + str(player))
+    pp("room: " + str(new_room))
     return
+  #if the room has keys, process keys
   if new_room["keys"]:
     pp("keys found!" + str(new_room["keys"]))
     found_keys, new_keys, new_history = process_player_keys(new_room["keys"], player["keys"], player["history"])
     pp(f"new keys: {new_keys}")
     pp(f"new history: {new_history}")
   else:
+    pp("no keys found!")
     new_keys = keys
     new_history = history
     found_keys = []
+  #adds room to history if not in history
+  if new_room["id"] not in new_history:
+    new_history.append(new_room["id"])
   dict = {"disc": player["disc"],"room": newroomname, "keys": new_keys, "history": new_history}
   update_player(dict)
-  tuple = embed_room(keys, found_keys, newroomname, new_room, author)
+  tuple = await embed_room(player, found_keys, newroomname, new_room, author, guild)
   embed = tuple[0]
   view = tuple[1]
   await interaction.response.edit_message(embed=embed, view=view)
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view
-def embed_room(keys, new_keys, title, room, author, color=0):
+async def embed_room(player, new_keys, title, room, author, guild, color=0):
   if color == 0:
     color = discord.Color.blue()
+  keys = player["keys"]
   descr = room["description"]
   embed = discord.Embed(title=title, description=descr, color=color)
   embed.set_footer(text="This room was created by " + author)
@@ -415,6 +337,23 @@ def embed_room(keys, new_keys, title, room, author, color=0):
         embed.add_field(name=f"You found a {found_key['displayname']}!", value=found_key["description"], inline=False)
       if found_key["journal"]:
         embed.add_field(name="New journal entry:", value=found_key["description"], inline=False)
+  if room["end"]:
+    if room["deathnote"]:
+      embed.add_field(name="You Died!", value=f"You were {room['deathnote']}", inline=False)
+      adventure = get_adventure_by_room(room["id"])
+      if not adventure:
+        adventure_name = "Their adventure"
+      else:
+        adventure_name = adventure["name"]
+      guild_channel = botinfo.find_one({"guild": guild.id})
+      channel = guild.get_channel(guild_channel["channel"])
+      member = guild.get_member(player["disc"])
+      embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
+      await channel.send(f"{member.mention} has died during {adventure_name}! They were ||{room['deathnote']}||")
+      return embed, view
+    embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
+    return (embed, view)
+  #error for when a room has no exits but is also not an end
   if len(room["exits"]) == 0 and not room["end"]:
     embed.add_field(name="Exits", value="There are no exits from this room. This is the end of the line. Unless this room is broken? You might have to /leave this adventure to get out.", inline=False)
   if len(room["exits"]) == 1:
@@ -427,6 +366,10 @@ def embed_room(keys, new_keys, title, room, author, color=0):
     if not found_room:
       print(f"ERROR - room {room_id} not found!")
       continue
+    #if room can only be seen once, do not show option
+    if found_room["once"]:
+      if found_room["id"] in player["history"]:
+        continue
     #if hidden, doesn't show unless they have reveal keys
     if found_room["hidden"]:
       if not valid_exit(keys, found_room["reveal"]):
@@ -469,20 +412,6 @@ async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id
     embed.set_image(url="https://i.kym-cdn.com/entries/icons/mobile/000/028/033/Screenshot_7.jpg")
   return (embed, view)
 
-#WIP for creation mode
-#this embed is just the creation mode tutorial
-#buttons on this embed allow user to create/edit rooms/items
-async def creation_mode(channel):
-  view = discord.ui.View()
-  embed= discord.Embed(title="Creation Mode", description="You can use this to edit or create new rooms. Use the buttons below to select what you want to do.", color=discord.Color.blue())
-  new_room_button = CreateRoomButton("Create New Room")
-  new_item_button = CreateItemButton("Create New Item")
-  exit_button = ExitButton("Exit", channel)
-  view.add_item(new_room_button)
-  view.add_item(new_item_button)
-  view.add_item(exit_button)
-  return (embed, view)
-
 #deactivated valentines function
 async def cupid_embed(user):
   embed = discord.Embed(title="Valentines Event Sign-Up")
@@ -521,9 +450,10 @@ def new_cupid(dict):
     cupid.insert_one(dict)
     print("new cupid created")
 
+#deletes a given thread by id
 async def delete_thread(interaction, thread_id):
   pp("deleting channel:")
-  await thread_id.delete()
+  await interaction.bot.delete_thread(thread_id)
 
 #used to add a new player into the database
 #requires a player object that has been turned to a dict
@@ -536,14 +466,6 @@ def get_player(name):
   if player:
     print("player found:\n" + str(player))
     return player
-  else:
-    return None
-
-#returns a dict of item info for given item name
-def get_item(id):
-  item = items.find_one({"itemid": id})
-  if item:
-    return item
   else:
     return None
 
@@ -568,12 +490,7 @@ def create_blank_adventure(author):
   adventure = Adventure(name="New Advenuture", author=author, start= "", description="Blank Description")
   adventures.insert_one(adventure.__dict__)
 
-#creates a blank item for testing purposes
-#useful for showing item structure to new database
-def create_blank_item(author):
-    item = Item("test_item","Test Item", description="This is where the description goes", author=author)
-    items.insert_one(item.__dict__)
-
+#creates a blank key for testing purposes
 def create_blank_key(author):
     key = Key("test_key","Test Key", description="This is where the description goes", author=author)
     keys.insert_one(key.__dict__)
@@ -619,14 +536,6 @@ def create_new_key(dict):
   id = {"id": dict["id"], "type" : "key", "displayname": dict["displayname"]}
   ids.insert_one(id)
 
-#creates an item from a dict
-def create_new_item(dict):
-  print("creating new item:")
-  pp(dict)
-  items.insert_one(dict)
-  id = {"itemid": dict["itemid"]}
-  ids.insert_one(id)
-
 #updates room in databse
 #optionally deletes a field in the room
 def update_room(dict, delete=""):
@@ -670,10 +579,6 @@ def get_all_rooms():
 def get_all_keys():
   return keys.find()
 
-#gets every item from the database
-def get_all_items():
-  return items.find()
-
 #gets every adventure from the database
 def get_adventures():
   return adventures.find()
@@ -709,6 +614,13 @@ def get_room(id):
   else:
     return None
 
+def get_adventure_by_room(room):
+  adventure = adventures.find_one({"rooms": room})
+  if adventure:
+    return adventure
+  else:
+    return None
+
 #gets requested field about a player by discord ID
 #can return any valid player info
 def get_player_info(name, info):
@@ -734,14 +646,6 @@ def get_player_room(name):
     room = rooms.find_one({"id": player["room"]})
     if room:
       return room
-  else:
-    return None
-
-#finds an item by the displayname
-def get_item_by_displayname(displayname):
-  item = items.find_one({"displayname": displayname})
-  if item:
-    return item
   else:
     return None
 

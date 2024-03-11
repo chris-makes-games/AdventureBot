@@ -8,11 +8,15 @@ database
 ---------------------------------------------------------------
 
   changes made post valentines:
-  - Big changes to classes and how rooms are structured (WIP)
+  - Big changes to classes and how rooms are structured
+        - items arent a thing any more
         - rooms are now secret or hidden, not their connections
         - player now has inventory as well as journal (and history instead of taken)
-        - items are no longer used, replaced with keys
+        - keys are the new items
         - keys can be almost anything, logged in either journal or inventory or neither
+  - removed testitems, testadventures, testrooms
+  - set nameid to just name for adventure
+  - keys and rooms now have just id instead of keyid and roomid
   - command folder loader is now working! Commands need to be transferred to the folder one at a time and fixed/tested.
           old commands transferred and (mostly) working:
               - newplayer
