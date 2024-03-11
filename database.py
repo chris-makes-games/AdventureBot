@@ -40,7 +40,7 @@ class CreateAdventureModal(discord.ui.Modal):
   async def on_submit(self, interaction: discord.Interaction):
     user_displayname = interaction.user.display_name
     start_room = Room(displayname="Default Start Room")
-    adventure = Adventure(nameid=self.name.value, description = self.description.value, start=start_room.id, author=user_displayname, rooms=[start_room.id])
+    adventure = Adventure(name=self.name.value, description = self.description.value, start=start_room.id, author=user_displayname, rooms=[start_room.id])
     create_new_adventure(adventure.__dict__)
     create_new_room(start_room.__dict__)
     await interaction.response.send_message(f"Adventure created:\nName: {self.name}\nDescription:\n{self.description}", ephemeral=True)
@@ -204,9 +204,6 @@ users = db.users
 items = db.items
 keys = db.keys
 adventures = db.adventures
-testrooms = db.testrooms
-testadventures = db.testadventures
-testitems = db.testitems
 ids = db.ids
 botinfo = db.botinfo
 cupid = db.cupid
@@ -507,20 +504,20 @@ def get_item(id):
 #useful for showing room structure to new database
 def create_blank_room(author_name):
     room = Room("test_room", "Test Room", author_name)
-    testrooms.insert_one(room.__dict__)
+    rooms.insert_one(room.__dict__)
     return room
 
 #creates a blank adventure for testing purposes
 #useful for showing adventure structure to new database
 def create_blank_adventure(author):
-  adventure = Adventure(nameid="New Advenuture", author=author, start= "", description="Blank Description")
-  testadventures.insert_one(adventure.__dict__)
+  adventure = Adventure(name="New Advenuture", author=author, start= "", description="Blank Description")
+  adventures.insert_one(adventure.__dict__)
 
 #creates a blank item for testing purposes
 #useful for showing item structure to new database
 def create_blank_item(author):
     item = Item("test_item","Test Item", description="This is where the description goes", author=author)
-    testitems.insert_one(item.__dict__)
+    items.insert_one(item.__dict__)
 
 #finds all the players currently in a given room
 #returns a list of player discord IDs
@@ -619,8 +616,8 @@ def get_adventures():
   return adventures.find()
 
 #gets an adventure by name
-def get_adventure(nameid):
-  adventure = adventures.find_one({"nameid": nameid})
+def get_adventure(name):
+  adventure = adventures.find_one({"name": name})
   if adventure:
     return adventure
   else:
@@ -674,21 +671,6 @@ def get_player_room(name):
   else:
     return None
 
-#returns true if player has selected a correct exit
-def check_valid_exit(name, attempt):
-  player = get_player(name)
-  room = get_player_room(name)
-  if player and room:
-    exits = room["exits"]
-    secrets = room["secrets"]
-    keys = room["unlockers"]
-    items = player["inventory"]
-    if attempt > len(exits):
-      return False
-    if secrets[attempt] == "Open":
-      return True
-    return keys[attempt] in items
-
 #finds an item by the displayname
 def get_item_by_displayname(displayname):
   item = items.find_one({"displayname": displayname})
@@ -697,11 +679,10 @@ def get_item_by_displayname(displayname):
   else:
     return None
 
-def get_all_testrooms():
-  return testrooms.find()
-
-def get_all_testitems():
-  return testitems.find()
-
-def get_all_testadventures():
-  return testadventures.find()
+#finds a key by the displayname
+def get_key_by_displayname(displayname):
+  key = keys.find_one({"displayname": displayname})
+  if key:
+    return key
+  else:
+    return None

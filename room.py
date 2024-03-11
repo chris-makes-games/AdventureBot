@@ -17,7 +17,7 @@ class Room:
   def __init__(
     self, dict=None,
     id="", displayname="", author=None, url="",
-    description="", end=False, exits=None, items=None,
+    description="", end=False, once=False, exits=None, items=None,
     secret=False, locked=False, keys=None, alt_text=""):
     
     if dict:

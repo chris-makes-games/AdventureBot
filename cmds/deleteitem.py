@@ -11,7 +11,7 @@ import perms_ctx as permissions
 #deletes an item from the database
 @commands.hybrid_command(name="deleteitem", description="Delete an item by its ID")
 async def deleteitem(ctx, item_id: str):
-  item = database.testitems.find_one({"itemid": item_id})
+  item = database.items.find_one({"itemid": item_id})
   if not item:
     await ctx.reply("Error: Item not found! Double check your item ID!", ephemeral=True)
     return
@@ -27,7 +27,7 @@ async def deleteitem(ctx, item_id: str):
 async def autocomplete_item_id_deletion(interaction: discord.Interaction, current: str):
   #checks if author is maintainer, finds every room
   if database.check_permissions(interaction.user.id)[0]:
-    item_ids_query = database.testitems.find(
+    item_ids_query = database.items.find(
   { 
   "itemid": {"$regex": re.escape(current), "$options": "i"}
   },
@@ -40,7 +40,7 @@ async def autocomplete_item_id_deletion(interaction: discord.Interaction, curren
     return [app_commands.Choice(name=item_id, value=item_id) for item_id in item_ids]
   #if not maintainer, shows only their items
   else:
-    item_ids_query = database.testitems.find(
+    item_ids_query = database.items.find(
   {
   "author": interaction.user.id, 
   "itemid": {"$regex": re.escape(current), "$options": "i"}

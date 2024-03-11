@@ -1,6 +1,6 @@
 class Adventure:
-  def __init__(self, nameid, start, author, description, rooms=None, epilogue=False):
-      self.nameid = nameid
+  def __init__(self, name, start, author, description, rooms=None, epilogue=False):
+      self.name = name
       self.start = start
       self.author = author
       self.description = description

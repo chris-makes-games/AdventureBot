@@ -14,7 +14,7 @@ async def adventures(ctx):
   if guild is None:
     return
   for adventure in adventures:
-    adventure_names.append(adventure["nameid"])
+    adventure_names.append(adventure["name"])
     descriptions.append(adventure["description"])
     author_id = adventure["author"]
     author = guild.get_member(author_id)

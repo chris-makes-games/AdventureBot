@@ -42,7 +42,7 @@ async def join(ctx, adventure_name : str):
     all_adventures = database.get_adventures()
     embed = discord.Embed(title=f"Error - No Adventure named '{adventure_name}'", description="Adventure '" + adventure_name + "' was not found. Please !join one of these adventures to begin:", color=discord.Color.red())
     for adventure in all_adventures:
-      embed.add_field(name=adventure["nameid"].title(), value=adventure["description"], inline=False)
+      embed.add_field(name=adventure["name"].title(), value=adventure["description"], inline=False)
     embed.set_footer(text="If there is a different error, contact a moderator")
     await ctx.reply(embed=embed, ephemeral=True)
     return
@@ -94,7 +94,7 @@ async def join(ctx, adventure_name : str):
 @join.autocomplete('adventure_name')
 async def autocomplete_join(interaction : discord.Interaction, current: str):
     adventures_query = database.get_adventures()
-    possible_adventures = [adv["nameid"] for adv in adventures_query if current.lower() in adv["nameid"].lower()]
+    possible_adventures = [adv["name"] for adv in adventures_query if current.lower() in adv["name"].lower()]
     return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_adventures[:10]]
 
 async def setup(bot):

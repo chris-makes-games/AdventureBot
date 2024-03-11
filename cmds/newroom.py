@@ -32,7 +32,7 @@ async def newroom(ctx, room_name : str, room_description : str):
       if not adventure:
         await ctx.reply(f"Your adventure is missing from the databse. Please contact an admin. Adventure for '{truename}' not found!", ephemeral=True)
         return
-      thread = await ctx.channel.create_thread(name=f"{name} editing {adventure['nameid']}")
+      thread = await ctx.channel.create_thread(name=f"{name} editing {adventure['name']}")
       #creates a new thread, updates the player's edit thread
       await ctx.reply(f"A new thread has been created for you. Please re-use the command in {thread.mention} to edit your adventure.", ephemeral=True, suppress_embeds=True)
       database.update_player({"disc" : truename, "edit_thread": thread.id})
@@ -54,7 +54,7 @@ async def newroom(ctx, room_name : str, room_description : str):
     view.add_item(select)
     view.add_item(button)
     #modal for sending room data to database
-    await ctx.reply(f"This will create a new Room in the adventure {adventure['nameid']}\n\nRoom Name:\n{roomname}\n\nRoom Description:\n{desc}\n(room description will be shown to the player when they enter that room)\n- You can add other things to the room once it is created.", view=view, ephemeral=True)
+    await ctx.reply(f"This will create a new Room in the adventure {adventure['name']}\n\nRoom Name:\n{roomname}\n\nRoom Description:\n{desc}\n(room description will be shown to the player when they enter that room)\n- You can add other things to the room once it is created.", view=view, ephemeral=True)
   except Exception as e:
     await ctx.reply(f"Error: {e}")
     print(e)

@@ -24,7 +24,7 @@ async def newadventure(ctx):
       await ctx.reply(embed=embed, ephemeral=True)
       return
   # Check if the author already has an adventure to edit
-  if database.testadventures.find_one({"author": truename}):
+  if database.adventures.find_one({"author": truename}):
     thread = ctx.guild.get_thread(player["edit_thread"])
     #if the thread is broken/deleted, make a new one
     if not thread:
