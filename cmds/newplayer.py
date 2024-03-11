@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+from discord.interactions import Interaction
 
 import database
 import perms_ctx as permissions

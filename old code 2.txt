@@ -58,67 +58,6 @@ async def autocomplete_itemid(interaction: discord.Interaction, current: str):
     # Create a list of choices where each choice has the item ID as the value and the display name as the name
     return [app_commands.Choice(name=f"{item_id} - {displayname}", value=item_id) for item_id, displayname in item_ids[:25]]
 
-@bot.tree.command(name="editroom", description="Edit room properties")
-@app_commands.describe(roomid="The ID of the room to edit", field="The property to edit", value="The new value for the property")
-@app_commands.choices(field=[
-    app_commands.Choice(name="displayname", value="displayname"),
-    app_commands.Choice(name="description", value="description"),
-    app_commands.Choice(name="kill", value="kill"),
-    app_commands.Choice(name="URL", value="URL"),
-    app_commands.Choice(name="items", value="items"),
-])
-async def editroom(interaction: discord.Interaction, roomid: str, field: app_commands.Choice[str], value: str):
-        # Retrieve information from the database
-        result = database.testrooms.find_one({"roomid": roomid})
-        if result:
-            # Check if the author's ID matches the one stored in the database
-            if interaction.user.id == result.get("author"):
-                # Update information in the database
-                match field.value:
-                    case "description":
-                        val = value
-                    case "kill":
-                        val = value.lower() == "true"
-                    case "displayname":
-                        val = value
-                    case "URL":
-                        val = value
-                    case "items":
-                        val = value
-                    case _:
-                        await interaction.response.send_message("Invalid field.")
-                        return
-                result = database.testrooms.find_one_and_update(
-                    {"roomid": roomid},
-                    {"$set": {field.value: val}},
-                    return_document=True
-                )
-                if result:
-                    # Display the updated room information
-                    embed = discord.Embed(title=result["roomid"], description="Here you can see the updates to this room.", color=0x00ff00)
-                    fields_to_display = ["displayname", "description", "kill", "URL", "items"]
-                    for field_display in fields_to_display:
-                        embed.add_field(name=field_display, value=result.get(field_display, "Not Available"), inline=False)
-                    await interaction.response.send_message(embed=embed)
-                else:
-                    await interaction.response.send_message("Room not found in the database.")
-            else:
-                await interaction.response.send_message("You don't have permission to edit this room.")
-        else:
-            await interaction.response.send_message("Room not found in the database.")
-# Autocompletion for roomid parameter
-@editroom.autocomplete('roomid')
-async def autocomplete_roomid(interaction: discord.Interaction, current: str):
-    # Modify the query to also return the displayname field
-    room_ids_query = database.testrooms.find(
-        {"author": interaction.user.id, "roomid": {"$regex": re.escape(current), "$options": "i"}},
-        {"roomid": 1, "displayname": 1, "_id": 0}
-    )
-    # Create a list of tuples where each tuple contains the room ID and display name
-    room_ids = [(room["roomid"], room["displayname"]) for room in room_ids_query]
-    # Create a list of choices where each choice has the room ID as the value and the display name as the name
-    return [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_ids[:25]]
-
 @bot.tree.command(name="editroomarrays", description="Edit array fields of a room")
 @app_commands.choices(field=[
     app_commands.Choice(name="exits", value="exits"),

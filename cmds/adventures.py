@@ -32,7 +32,7 @@ async def adventures(ctx):
   embed = discord.Embed(title="Adventures", description="These are the adventures you can join. Use /join to start an adventure. More adventures will be available later!", color=0x00ff00)
   for i in range(len(adventure_names)):
     embed.add_field(name=adventure_names[i].title(), value=f"{descriptions[i]}\nCreated by: ***{authors[i]}***\nWord count: {word_counts[i]}", inline=False)
-  await ctx.reply(embed=embed)
+  await ctx.reply(embed=embed, ephemeral=True)
   return
 
 async def setup(bot):
