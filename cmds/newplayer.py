@@ -22,7 +22,7 @@ async def newplayer(ctx, user: discord.User):
   elif player and not same_player:
     await ctx.reply(f"{ctx.author.mention}, {user.name} is already a player!", ephemeral=True)
     return
-  player = Player(discord=user.id, displayname=user.display_name, room=None, inventory=[], taken=[], architect=False)
+  player = Player(discord=user.id, displayname=user.display_name, room=None, architect=False)
   database.new_player(player.__dict__)
   if same_player:
     await ctx.reply(f"{ctx.author.mention}, You are now a player! You can /join an adventure now. Try /adventures to see the list of available adventures. You can also use /help for a list of commands. Contact a moderator if you have any questions.", ephemeral=True)
