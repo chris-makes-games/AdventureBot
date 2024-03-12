@@ -28,31 +28,6 @@ class RoomButton(discord.ui.Button):
   async def callback(self, interaction: discord.Interaction):
       await move_player(interaction, self.destination)
 
-#generates an embed with fields for the room
-#when clicked, the room making embed is sent to the channel
-class CreateRoomButton(discord.ui.Button):
-  def __init__(self, label, disabled=False, row=0, roomname="INVALID NAME", roomdesc="INVALID DESCRIPTION"):
-    super().__init__(label=label, style=discord.ButtonStyle.primary)
-    self.disabled = disabled
-    self.row = row
-    self.roomname = roomname
-    self.roomdesc = roomdesc
-  #callback is for when the button is clicked
-  async def callback(self, interaction: discord.Interaction):
-    new_room = Room(displayname=self.roomname, description = self.roomdesc, author=interaction.user.display_name)
-    create_new_room(new_room.__dict__)
-    await interaction.response.send_message(f"Room created:\nRoom display name: {self.roomname},\n description:\n{self.roomdesc}", ephemeral=True)
-
-class ExitButton(discord.ui.Button):
-  def __init__(self, label, channel, disabled=False, row=0):
-    super().__init__(label=label, style=discord.ButtonStyle.primary)
-    self.channel = channel
-    self.disabled = disabled
-    self.row = row
-  #callback is for when the button is clicked
-  async def callback(self):
-    await self.channel.delete()
-
 #simple button class to confirm or cancel any action
 #can be placed on any embed that requires a confirmation
 #action is the name of the action to be taken
@@ -74,8 +49,8 @@ class ConfirmButton(discord.ui.Button):
       self.emoji = "✖️"
   #callback is for when the button is clicked
   async def callback(self, interaction: discord.Interaction):
+    #must defer response or error will occur!
     await interaction.response.defer()
-    
     #if they hit the red x it does nothing
     #embed that is asking the conform is deleted
     if self.action == "cancel":
@@ -129,11 +104,13 @@ class CupidButton(discord.ui.Button):
   async def callback(self, interaction: discord.Interaction):
     await interaction.response.send_modal(CupidModal())
 
+#secrets
 db_name = os.environ['DB_NAME']
 db_pass = os.environ['DB_PASS']
 db_user = os.environ['DB_USER']
 db_serv = os.environ['DB_SERVER']
 
+#url for database connection
 mongo_client = pymongo.MongoClient("mongodb+srv://" + 
 db_user + ":" + db_pass + "@" + db_name + db_serv)
 
@@ -180,18 +157,18 @@ def register_channel(channel_id, guild_id):
 def inactive_check(command):
   return botinfo.find_one({"inactive": command})
 
-#adds a command to the inactive list
-def deactivate_command(command):
-  document = botinfo.find_one({"commands": "deactivated"})
-  if document:
-    document["inactive"].append(command)
-    botinfo.update_one({"commands": "deactivated"}, {"$set": document})
-
 #removes a command from the inactive list
 def activate_command(command):
   document = botinfo.find_one({"commands": "deactivated"})
   if document:
     document["inactive"].remove(command)
+    botinfo.update_one({"commands": "deactivated"}, {"$set": document})
+
+#adds a command to the inactive list
+def deactivate_command(command):
+  document = botinfo.find_one({"commands": "deactivated"})
+  if document:
+    document["inactive"].append(command)
     botinfo.update_one({"commands": "deactivated"}, {"$set": document})
                    
 #returns a tuple to check permissions in botinfo

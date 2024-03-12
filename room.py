@@ -46,25 +46,3 @@ class Room:
     self.destroy = destroy
     self.hide = hide
     self.lock = lock
-
-#button class for allowing the player to traverse rooms
-#button sends player to destination room when clicked
-class RoomButton(discord.ui.Button):
-  def __init__(self, label, destination, disabled=False, row=0):
-    super().__init__(label=label, style=discord.ButtonStyle.primary)
-    self.destination = destination
-    self.disabled = disabled
-    self.row = row
-  async def callback(self, interaction: discord.Interaction):
-      await database.move_player(interaction, self.destination)
-
-#send an embed with buttons to go to different rooms
-def destinations_embed(self, adventure_rooms, player):
-  exits = 0
-  view = discord.ui.View()
-  inventory = player["inventory"]
-  journal = player["journal"]
-  for room_id in self.exits:
-    found_room = database.rooms.find_one({"id": room_id})
-    if found_room:
-      exits += 1
