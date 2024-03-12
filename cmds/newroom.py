@@ -59,20 +59,5 @@ async def newroom(ctx,
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
 
-#returns rooms with matching id OR matching displayname
-@editroom.autocomplete('id')
-async def autocomplete_editroom(interaction: discord.Interaction, current: str):
-  room_query = database.rooms.find(
-    {"author": interaction.user.id,
-      "$or": [
-{"id": {"$regex": re.escape(current), "$options": "i"}},
-{"displayname": {"$regex": re.escape(current),"$options": "i"}}
-         ]},
-{"id": 1, "displayname": 1, "_id": 0}
-    )
-  room_info = [(room["id"], room["displayname"]) for room in room_query]
-  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
-  return choices
-
 async def setup(bot):
   bot.add_command(newroom)
