@@ -49,6 +49,7 @@ async def newroom(ctx,
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
     return
+  #need to rework this check/logic
   adventure_of_room = "Error: Unknown Adventure"
   for thread, adventure_name in player["adventures"]:
     if thread == ctx.channel.id:
