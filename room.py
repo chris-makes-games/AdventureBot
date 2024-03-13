@@ -1,12 +1,14 @@
-import database
 import discord
+
+import database
+
 
 class Room:
   def __init__(
     self, id=None, displayname="", description="", entrance="",
     author="", url=None, alt_entrance="", deathnote="",
     end=False, once=False, hidden=False, locked=False, 
-    keys=None, exits=None, unlock=None, reveal=None, destroy=None,
+    keys=None, exits=None, unlock=None, reveal=None, destroy=None, adventure=None,
     hide=None, lock=None):
     #generates new id if none is given
     if not id:
@@ -17,8 +19,11 @@ class Room:
     self.displayname = displayname
     self.description = description
     self.entrance= entrance
-    self.author = author #actually an int
+    self.alt_entrance = alt_entrance
+    self.deathnote = deathnote
+    self.author = author
     self.url = url
+    self.adventure = adventure
     #boolean attributes
     self.end = end
     self.once = once

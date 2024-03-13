@@ -5,7 +5,7 @@ import database
 import re
 
 #edits a room with whatever the user selects
-@commands.hybrid_command(name="editroom", description="Edit room attributes. Leave options blank to keep the current value. You can search for rooms by name or id.")
+@commands.hybrid_command(name="editroom", description="Edit room attributes. Leave options blank to keep the current value")
 async def editroom(ctx, id: str,
     #giant block of optional arguments!
     description : str | None = None,

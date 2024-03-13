@@ -59,7 +59,8 @@ class ConfirmButton(discord.ui.Button):
     elif self.action == "leave":
       await interaction.followup.send(f"This would have made a player leave an adventure, and delete channel {self.id} but it is not implemented yet.", ephemeral=True)
     elif self.action == "new_room":
-      await interaction.followup.send("This would create a room but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
+      create_new_room(self.dict)
+      await interaction.followup.send("Room successfully created!", ephemeral=True)
     elif self.action == "new_key":
       await interaction.followup.send("This would create a key but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_key":
@@ -74,6 +75,10 @@ class ConfirmButton(discord.ui.Button):
       await interaction.followup.send(f"This would edit room {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit room properties:\n{str(self.dict)}", ephemeral=True)
     elif self.action == "edit_key":
       await interaction.followup.send(f"This would edit key {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit key properties:\n{str(self.dict)}", ephemeral=True)
+    elif self.action == "connect":
+      if self.dict:
+        for room in self.dict:
+          rooms.update_one({"id": self.id}, {"$push": {"exits": self.dict[room]["id"]}})
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check databse.ConfirmButton()", ephemeral=True)
       return
@@ -539,6 +544,10 @@ def create_new_room(dict):
   rooms.insert_one(dict)
   id = {"id": dict["id"], "type" : "room", "displayname": dict["displayname"]}
   ids.insert_one(id)
+  adventure= adventures.find_one({"name": dict["adventure"]})
+  if adventure:
+    adventure["rooms"].append(dict["id"])
+    adventures.update_one({"name": dict["adventure"]}, {"$set": adventure})
 
 #creates a key from a dict
 def create_new_key(dict):
@@ -626,6 +635,7 @@ def get_room(id):
   else:
     return None
 
+#returns the first adventure that has the given room
 def get_adventure_by_room(room):
   adventure = adventures.find_one({"rooms": room})
   if adventure:

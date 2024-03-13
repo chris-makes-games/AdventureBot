@@ -1,11 +1,14 @@
-from discord.ext import commands
-from discord import app_commands
-import discord
-import database
 import re
 
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+import database
+
+
 #edits a key with whatever the user selects
-@commands.hybrid_command(name="editkey", description="Edit key attributes. Leave options blank to keep the current value. You can search for keys by display name or id.")
+@commands.hybrid_command(name="editkey", description="Edit key attributes. Leave options blank to keep the current value")
 async def editkey(ctx, id: str,
     #giant block of optional arguments!
     description : str | None = None,

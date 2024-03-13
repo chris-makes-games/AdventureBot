@@ -1,10 +1,11 @@
 import io
-import os
+
 import discord
-import database
 import matplotlib.pyplot as plt
 import networkx as nx
-from matplotlib.patches import ArrowStyle
+
+import database
+
 
 def visualize_adventure(adventure):
   G = nx.DiGraph()
@@ -16,17 +17,22 @@ def visualize_adventure(adventure):
     if not found_room:
       print(f"Room {room_id} not found in database!")
       continue
-    room_label = f"{found_room['displayname']}\n{found_room['id']}"
+    if len(found_room["displayname"]) > 10:
+      room_label = f"{found_room['displayname'][0:10]}...\n{found_room['id']}"
+    else:
+      room_label = f"{found_room['displayname']}\n{found_room['id']}"
     labels[found_room['id']] = room_label
-    G.add_node(found_room['id'], node_color="skyblue")
-    exit_destinations = found_room['exit_destination']
-    if found_room["kill"]:
+    G.add_node(found_room['id'])
+    exit_destinations = found_room['exits']
+    if found_room["end"]:
       color = "red"
     elif not exit_destinations:
       color = "orange"
     else:
       color = "skyblue"
     color_map.append(color)
+    print("colors so far...")
+    database.pp(color_map)
     for connected_room_id in exit_destinations:
       G.add_edge(found_room['id'], connected_room_id)
       print(f"Added edge: {found_room['id']} -> {connected_room_id}")
@@ -39,9 +45,8 @@ def visualize_adventure(adventure):
   for label in labels:
     print(f"label {label}:\n{labels[label]}\n")
   pos = nx.spring_layout(G, k=1.5, iterations=100)
-  nx.draw_networkx(G, pos, labels=labels, node_size=4500, node_color=color_map, font_size=12, font_weight="bold", margins=0.1, arrowsize=20, edge_color="gray", width=2.0)
+  nx.draw_networkx(G, pos, labels=labels, node_size=4500, font_size=12, font_weight="bold", margins=0.1, arrowsize=20, edge_color="gray", width=2.0, node_color=color_map)
   plt.box(False)
-  plt.axis("off")
 
   # Save the plot to a buffer
   buffer = io.BytesIO()
