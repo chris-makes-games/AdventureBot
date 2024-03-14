@@ -1,8 +1,11 @@
-from discord.ext import commands
-from discord import app_commands
-import discord
-import database
 import re
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+import database
+
 
 #edits a room with whatever the user selects
 @commands.hybrid_command(name="editroom", description="Edit room attributes. Leave options blank to keep the current value")
@@ -45,7 +48,7 @@ async def editroom(ctx, id: str,
     new_dict["alt_entrance"] = alt_entrance
     embed.add_field(name="Alt Entrance", value=f"Old: {found_room['alt_entrance']}\nNew: {alt_entrance}", inline=False)
   if exits:
-    new_dict["exits"] = exits
+    new_dict["exits"].append(exits)
     embed.add_field(name="Exits", value=f"Old: {found_room['exits']}\nNew: {exits}", inline=False)
   if deathnote:
     new_dict["deathnote"] = deathnote
@@ -54,7 +57,7 @@ async def editroom(ctx, id: str,
     new_dict["url"] = url
     embed.add_field(name="URL", value=f"Old: {found_room['url']}\nNew: {url}", inline=False)
   if keys:
-    new_dict["keys"] = keys
+    new_dict["keys"].append(keys)
     embed.add_field(name="Keys", value=f"Old: {found_room['keys']}\nNew: {keys}", inline=False)
   if hidden:
     new_dict["hidden"] = hidden
@@ -69,19 +72,19 @@ async def editroom(ctx, id: str,
     new_dict["once"] = once
     embed.add_field(name="Once", value=f"Old: {found_room['once']}\nNew: {once}", inline=False)
   if lock:
-    new_dict["lock"] = lock
+    new_dict["lock"].append(lock)
     embed.add_field(name="Lock", value=f"Old: {found_room['lock']}\nNew: {lock}", inline=False)
   if unlock:
-    new_dict["unlock"] = unlock
+    new_dict["unlock"].append(unlock)
     embed.add_field(name="Unlock", value=f"Old: {found_room['unlock']}\nNew: {unlock}", inline=False)
   if hide:
-    new_dict["hide"] = hide
+    new_dict["hide"].append(hide)
     embed.add_field(name="Hide", value=f"Old: {found_room['hide']}\nNew: {hide}", inline=False)
   if reveal:
-    new_dict["reveal"] = reveal
+    new_dict["reveal"].append(reveal)
     embed.add_field(name="Reveal", value=f"Old: {found_room['reveal']}\nNew: {reveal}", inline=False)
   if destroy:
-    new_dict["destroy"] = destroy
+    new_dict["destroy"].append(destroy)
     embed.add_field(name="Destroy", value=f"Old: {found_room['destroy']}\nNew: {destroy}", inline=False)
   if not embed.fields:
     embed.description = "ERROR"

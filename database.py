@@ -1,16 +1,15 @@
 import os  #stores secrets
 import pathlib
 import random as rand  #random number generator
+from collections import Counter  # keys list comprehension
 from pprint import pprint as pp  #pretty printing
-from collections import Counter # keys list comprehension
 
 import discord
-from discord.components import TextInput  #discord api
 import pymongo  #mongo db api
 
 from adventure import Adventure  #adventure class
+from key import Key  #new key class, previously item
 from room import Room  #room class
-from key import Key #new key class, previously item
 
 #sets the parent directory of the bot
 BASE_DIR = pathlib.Path(__file__).parent
@@ -61,6 +60,7 @@ class ConfirmButton(discord.ui.Button):
     elif self.action == "new_room":
       create_new_room(self.dict)
       await interaction.followup.send("Room successfully created!", ephemeral=True)
+      await interaction.delete_original_response()
     elif self.action == "new_key":
       await interaction.followup.send("This would create a key but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "delete_key":
@@ -74,6 +74,7 @@ class ConfirmButton(discord.ui.Button):
     elif self.action == "edit_room":
       update_room(self.dict)
       await interaction.followup.send(f"Room successfully updated!", ephemeral=True)
+      await interaction.delete_original_response()
     elif self.action == "edit_key":
       await interaction.followup.send(f"This would edit key {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit key properties:\n{str(self.dict)}", ephemeral=True)
     elif self.action == "connect":
@@ -81,6 +82,7 @@ class ConfirmButton(discord.ui.Button):
         for room_id, room_data in self.dict.items():
           rooms.update_one({"id": room_id}, {"$set": room_data})
       await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
+      await interaction.delete_original_response()
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check databse.ConfirmButton()", ephemeral=True)
       return
@@ -148,6 +150,32 @@ all_numbers = ["0️", "1️", "2️", "3️", "4️", "5" ,"6️", "7️", "8�
 all_upper_letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 all_lower_letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
 
+#creates an ID that does not exist in the master ID document
+#optionally allows you to generate more IDs at once
+def generate_unique_id():
+  all_characters = all_numbers + all_upper_letters + all_lower_letters
+  id = []
+  found_id = None
+  banned = ids.find_one({"id": "BANNED"})
+  finished_id = ""
+  while len(id) < 4:
+    r = rand.choice(all_characters)
+    id.append(r)
+    if len(id) < 4:
+      continue
+    if len(id) == 4:
+      finished_id = "".join(id)
+      found_id = ids.find_one({"id": finished_id})
+    if found_id:
+      print("wow, one in ~14 million chance of a duplicate id!")
+      print(id)
+      id = []
+    elif finished_id in banned["words"]:
+      print("wow, one in ~14 million chance of a swear word being generated as an ID")
+      print(id)
+      id = []
+  return finished_id
+
 #registers the channel to restrict commands to that location
 def register_channel(channel_id, guild_id):
   bot_info_dict = {
@@ -213,29 +241,6 @@ def get_player_commands():
     if cmd_file.name != "__init__.py" and cmd_file.name[:-3] not in admin_commands:
       all_commands.append(cmd_file.name[:-3])
   return all_commands
-
-#creates an ID that does not exist in the master ID document
-#optionally allows you to generate more IDs at once
-def generate_unique_id(multiple=1):
-  multiples = []
-  all_characters = all_numbers + all_upper_letters + all_lower_letters
-  id = []
-  while len(multiples) < multiple:
-    while len(id) < 4:
-      r = rand.choice(all_characters)
-      banned = ids.find_one({"id": "BANNED"})
-      id.append(r)
-      if len(id) == 4 and ids.find_one({"id": id}):
-        print("wow, one in ~14 million chance of a duplicate id!")
-        print(id)
-        id = []
-      elif len(id) == 4 and id in banned["words"]:
-        print("wow, one in ~14 million chance of a swear word being generated as an ID")
-        print(id)
-        id = []
-    multiples.append("".join(id))
-    id = []
-  return ", ".join(multiples)
 
 #gives player key in room if applicable
 #adds keys to history if applicable
@@ -487,7 +492,7 @@ def get_key(id):
 def create_blank_room(author_name, room_name="Blank Room"):
     room = Room(displayname=room_name, description="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.", author=author_name, entrance="This text is displayed when the player is in an adjescent room.", alt_entrance="This text is displayed when the room is locked")
     rooms.insert_one(room.__dict__)
-    ids.insert_one({"id": room.id, "type": "room", "author": author_name})
+    ids.insert_one({"id": room.id, "displayname" : room.displayname, "type": "room", "author": author_name})
     return room
 
 #creates a blank adventure for testing purposes
@@ -544,7 +549,7 @@ def create_new_room(dict):
   print("creating new room:")
   pp(dict)
   rooms.insert_one(dict)
-  id = {"id": dict["id"], "type" : "room", "displayname": dict["displayname"]}
+  id = {"id": dict["id"], "type" : "room", "displayname": dict["displayname"], "author": dict["author"]}
   ids.insert_one(id)
   adventure= adventures.find_one({"name": dict["adventure"]})
   if adventure:

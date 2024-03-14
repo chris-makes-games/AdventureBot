@@ -1,3 +1,4 @@
+import formatter  #formats embeds
 import os  #used to store secrets
 import pathlib  #to get commands from command folder
 import re  #for regex autocompletion
@@ -8,7 +9,6 @@ from discord import app_commands  #slash commands
 from discord.ext import commands  #commands for bot
 
 import database  #mongodb database
-import formatter  #formats embeds
 import mapper  #for ascii map
 from player import Player  #player class
 from room import Room  #room class
@@ -63,12 +63,13 @@ async def on_ready():
     except Exception as e:
       print(f"Failed to load command: /{cmd_file.name[:-3]}")
       print(e)
-  #this syncs the bot slash commands
-  try: 
-    synced = await bot.tree.sync()
-    print(f'Synced {len(synced)} commands.')
-  except Exception as e:
-    print(e)
+  #No longer sync commmands on startup!
+  #use /sync when needed
+  # try: 
+  #   synced = await bot.tree.sync()
+  #   print(f'Synced {len(synced)} commands.')
+  # except Exception as e:
+  #   print(e)
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels
