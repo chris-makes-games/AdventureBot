@@ -70,6 +70,7 @@ async def on_ready():
   #   print(f'Synced {len(synced)} commands.')
   # except Exception as e:
   #   print(e)
+  print("Commands loaded! Bot is ready!")
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels

@@ -3,7 +3,6 @@ import io
 import discord
 import matplotlib.pyplot as plt
 import networkx as nx
-from networkx.drawing.nx_agraph import to_agraph
 
 import database
 
@@ -56,9 +55,8 @@ def visualize_adventure(adventure):
   for edge in G.edges:
     print(f"edge {edge[0]} -> {edge[1]}")
   database.pp(G.nodes)
-  pos = nx.spring_layout(G, k=6.5, iterations=100)
-  A = to_agraph(G)
-  nx.draw_networkx(A, pos, labels=labels, node_size=3500, font_size=12, font_weight="bold", margins=0.1, arrowsize=20, edge_color="gray", width=2.0, node_color=color_map, connectionstyle='arc3, rad = 0.1')
+  pos = nx.kamada_kawai_layout(G)
+  nx.draw_networkx(G, pos, labels=labels, node_size=3500, font_size=12, font_weight="bold", margins=0.1, arrowsize=20, edge_color="gray", width=3.0, node_color=color_map, connectionstyle='arc3, rad = 0.3')
   plt.box(False)
 
   # Save the plot to a buffer

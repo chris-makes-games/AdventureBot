@@ -1,3 +1,5 @@
+import re
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -67,6 +69,81 @@ async def connectrooms(ctx, room1: str, room2: str,
   view.add_item(confirm_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
+
+#provides a list of available rooms
+@connectrooms.autocomplete('room1')
+async def autocomplete_room1(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
+
+#provides a list of available rooms
+@connectrooms.autocomplete('room2')
+async def autocomplete_room2(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
+
+#provides a list of available rooms
+@connectrooms.autocomplete('room3')
+async def autocomplete_room3(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
+
+#provides a list of available rooms
+@connectrooms.autocomplete('room4')
+async def autocomplete_room4(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
+
+#provides a list of available rooms
+@connectrooms.autocomplete('room5')
+async def autocomplete_room5(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
 
 async def setup(bot):
     bot.add_command(connectrooms)
