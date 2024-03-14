@@ -22,7 +22,7 @@ async def map(ctx, adventure_name: str):
   if ctx.author.id == adventure["author"] or permissions.is_maintainer(ctx):
     file = mapper.visualize_adventure(adventure)
     embed = discord.Embed(title=f"Map of {adventure['name'].title()}", color=0x00ff00)
-    await ctx.reply(embed=embed, file=file)
+    await ctx.reply(embed=embed, file=file, ephemeral=True)
   else:
     await ctx.reply("Error: You do not have permission to map this adventure!", ephemeral=True)
 

@@ -51,9 +51,8 @@ async def newroom(ctx,
     return
   #need to rework this check/logic
   adventure_of_room = "Error: Unknown Adventure"
-  for thread, adventure_name in player["adventures"]:
-    if thread == ctx.channel.id:
-      adventure_of_room = adventure_name
+  if player["edit_thread"]:
+    adventure_of_room = player["edit_thread"][1]
   new_id = database.generate_unique_id()
   new_room = Room(id=new_id, description=description, displayname=displayname, entrance=entrance, alt_entrance=alt_entrance, exits=exits, deathnote=deathnote, url=url, hidden=hidden, locked=locked, end=end, once=once, keys=keys, lock=lock, unlock=unlock, hide=hide, reveal=reveal, destroy=destroy, author=ctx.author.id, adventure=adventure_of_room)
   
