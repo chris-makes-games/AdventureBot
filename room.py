@@ -6,7 +6,7 @@ import database
 class Room:
   def __init__(
     self, id=None, displayname="", description="", entrance="",
-    author="", url=None, alt_entrance="", deathnote="",
+    author="", url=None, alt_entrance="", deathnote=None,
     end=False, once=False, hidden=False, locked=False, 
     keys=None, exits=None, unlock=None, reveal=None, destroy=None, adventure=None,
     hide=None, lock=None):

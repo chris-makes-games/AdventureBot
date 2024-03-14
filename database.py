@@ -72,13 +72,15 @@ class ConfirmButton(discord.ui.Button):
     elif self.action == "delete_player":
       await interaction.followup.send(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
     elif self.action == "edit_room":
-      await interaction.followup.send(f"This would edit room {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit room properties:\n{str(self.dict)}", ephemeral=True)
+      update_room(self.dict)
+      await interaction.followup.send(f"Room successfully updated!", ephemeral=True)
     elif self.action == "edit_key":
       await interaction.followup.send(f"This would edit key {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit key properties:\n{str(self.dict)}", ephemeral=True)
     elif self.action == "connect":
       if self.dict:
-        for room in self.dict:
-          rooms.update_one({"id": self.id}, {"$push": {"exits": self.dict[room]["id"]}})
+        for room_id, room_data in self.dict.items():
+          rooms.update_one({"id": room_id}, {"$set": room_data})
+      await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check databse.ConfirmButton()", ephemeral=True)
       return
