@@ -1,9 +1,12 @@
-from discord.ext import commands
-from discord import app_commands
-import discord
-import database
 import re
+
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+import database
 from key import Key
+
 
 #edits a key with whatever the user selects
 @commands.hybrid_command(name="newkey", description="Edit key attributes. Leave options blank to keep the default value.")
@@ -11,17 +14,17 @@ async def newkey(ctx,
     #giant block of arguments!
     displayname : str="Name of the Key",
     description : str="Shown to the player in inventory or journal",
-    subkeys : str="",
-    inventory : bool=False,
-    journal : bool=False,
-    unique : bool=False,
-    repeating : bool=False,
-    stackable : bool=False,
+    subkeys : str | None = None,
+    inventory : bool | None = None,
+    journal : bool | None = None,
+    unique : bool | None = None,
+    repeating : bool | None = None,
+    stackable : bool | None = None,
                   ):
   new_key = Key(displayname=displayname, description=description, subkeys=subkeys, inventory=inventory, journal=journal, unique=unique, repeating=repeating, stackable=stackable)
 
   if not new_key:
-    await ctx.reply(f"Error: There was a problem generating your key object. Did you change a True/False value to something besides True/False?", ephemeral=True)
+    await ctx.reply("Error: There was a problem generating your key object. Did you change a True/False value to something besides True/False?", ephemeral=True)
     return
   dict = new_key.__dict__
   embed = discord.Embed(title=f"New key: {dict['displayname']}\nID: **{id}** (automatically generated)", description="Review the new key and select a button below:")

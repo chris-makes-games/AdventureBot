@@ -280,7 +280,7 @@ async def move_player(interaction, destination):
     newroomname = new_room["id"]
     newroomauthor = new_room["author"]
     guild = interaction.guild
-    author = guild.get_member(newroomauthor)
+    author = guild.get_member(newroomauthor).display_name
     if not author:
       author = "Unknown"
   else:
@@ -304,6 +304,7 @@ async def move_player(interaction, destination):
     new_history.append(new_room["id"])
   dict = {"disc": player["disc"],"room": newroomname, "keys": new_keys, "history": new_history}
   update_player(dict)
+  newroomname=new_room["displayname"]
   tuple = await embed_room(player, found_keys, newroomname, new_room, author, guild)
   embed = tuple[0]
   view = tuple[1]
@@ -311,17 +312,18 @@ async def move_player(interaction, destination):
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view
-async def embed_room(player, new_keys, title, room, author, guild, color=0):
+async def embed_room(player_dict, new_keys, title, room_dict, author, guild, color=0):
   if color == 0:
     color = discord.Color.blue()
-  keys = player["keys"]
-  descr = room["description"]
+  keys = player_dict["keys"]
+  descr = room_dict['description'].replace("\\n","\n")
+  descr = descr.replace("[LIKETHIS]", "\\n")
   embed = discord.Embed(title=title, description=descr, color=color)
   embed.set_footer(text="This room was created by " + author)
-  if "url" in room:
-    embed.set_image(url=room["url"])
-  elif "URL" in room:
-    embed.set_image(url=room["URL"])
+  if "url" in room_dict:
+    embed.set_image(url=room_dict["url"])
+  elif "URL" in room_dict:
+    embed.set_image(url=room_dict["URL"])
   view = discord.ui.View()
   if new_keys:
     for key_id in new_keys:
@@ -333,54 +335,47 @@ async def embed_room(player, new_keys, title, room, author, guild, color=0):
         embed.add_field(name=f"You found a {found_key['displayname']}!", value=found_key["description"], inline=False)
       if found_key["journal"]:
         embed.add_field(name="New journal entry:", value=found_key["description"], inline=False)
-  if room["end"]:
-    if room["deathnote"]:
-      embed.add_field(name="You Died!", value=f"You were {room['deathnote']}", inline=False)
-      adventure = get_adventure_by_room(room["id"])
-      if not adventure:
-        adventure_name = "Their adventure"
-      else:
-        adventure_name = adventure["name"]
+  if room_dict["end"]:
+    if room_dict["deathnote"]:
+      embed.add_field(name="You Died!", value=f"You were {room_dict['deathnote']}", inline=False)
+      adventure = get_adventure_by_room(room_dict["id"])
+      adventure_name = "Their adventure" if not adventure else adventure["name"]
       guild_channel = botinfo.find_one({"guild": guild.id})
       channel = guild.get_channel(guild_channel["channel"])
-      member = guild.get_member(player["disc"])
+      member = guild.get_member(player_dict["disc"])
       embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
-      await channel.send(f"{member.mention} has died during {adventure_name}! They were ||{room['deathnote']}||")
+      await channel.send(f"{member.mention} has died during {adventure_name}! They were ||{room_dict['deathnote']}||")
       return embed, view
     embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
     return (embed, view)
   #error for when a room has no exits but is also not an end
-  if len(room["exits"]) == 0 and not room["end"]:
+  if len(room_dict["exits"]) == 0 and not room_dict["end"]:
     embed.add_field(name="Exits", value="There are no exits from this room. This is the end of the line. Unless this room is broken? You might have to /leave this adventure to get out.", inline=False)
-  if len(room["exits"]) == 1:
+  if len(room_dict["exits"]) == 1:
     embed.add_field(
   name="You have only one option.",value="press the button below to continue:", inline=False)
   else:
     embed.add_field(name="Make a Choice", value="Click a button below to continue:", inline=False)
-  for room_id in room["exits"]:
+  for room_id in room_dict["exits"]:
     found_room = get_room(room_id)
     #no room found in database
     if not found_room:
       print(f"ERROR - room {room_id} not found!")
       continue
     #if room can only be seen once, do not show option
-    if found_room["once"]:
-      if found_room["id"] in player["history"]:
-        continue
+    if found_room["once"] and found_room["id"] in player_dict["history"]:
+      continue
     #if player has items that hide the room, do not show option
-    if found_room["hide"]:
-      if valid_exit(keys, found_room["hide"]):
-        continue
+    if found_room["hide"] and valid_exit(keys, found_room["hide"]):
+      continue
     #if hidden, doesn't show unless they have reveal keys
-    if found_room["hidden"]:
-      if not valid_exit(keys, found_room["reveal"]):
-        continue
+    if found_room["hidden"] and not valid_exit(keys, found_room["reveal"]):
+      continue
     #if player has items to lock room, show only alt text
-    if found_room["lock"]:
-      if valid_exit(keys, found_room["lock"]):
-        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
-        view.add_item(button)
-        continue
+    if found_room["lock"] and valid_exit(keys, found_room["lock"]):
+      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
+      view.add_item(button)
+      continue
     #if locked, shows alt text unless they have unlock keys
     if found_room["locked"]:
       if valid_exit(keys, found_room["unlock"]):
@@ -401,10 +396,7 @@ async def embed_room(player, new_keys, title, room, author, guild, color=0):
 def valid_exit(keys, lock):
   key_counter = Counter(keys)
   lock_counter = Counter(lock)
-  for element, count in lock_counter.items():
-    if key_counter[element] < count:
-      return False
-  return True
+  return all(key_counter[element] >= count for element, count in lock_counter.items())
 
 #generic confirmation embed for when an action requires confirmation
 #adds a ConfirmButton to itself at the bottom

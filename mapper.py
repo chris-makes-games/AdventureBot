@@ -34,6 +34,8 @@ def visualize_adventure(adventure):
       color = "red"
     elif found_room["once"]:
       color = "yellow"
+    elif adventure["start"] == found_room["id"]:
+      color = "green"
     else:
       color = "skyblue"
     color_map.append(color if color else "gray")
@@ -47,7 +49,6 @@ def visualize_adventure(adventure):
         continue
       G.add_edge(found_room['id'], connected_room_id)
       #print(f"Added edge: {found_room['id']} -> {connected_room_id}")
-      
     
   #print("Number of nodes in graph:", len(G.nodes))
   #print("Length of color map:", len(color_map))
@@ -55,8 +56,8 @@ def visualize_adventure(adventure):
   for edge in G.edges:
     print(f"edge {edge[0]} -> {edge[1]}")
   database.pp(G.nodes)
-  pos = nx.kamada_kawai_layout(G)
-  nx.draw_networkx(G, pos, labels=labels, node_size=3500, font_size=12, font_weight="bold", margins=0.1, arrowsize=20, edge_color="gray", width=3.0, node_color=color_map, connectionstyle='arc3, rad = 0.3')
+  pos = nx.spring_layout(G, k=400.0, iterations=50)
+  nx.draw_networkx(G, pos, labels=labels, node_size=2500, font_size=12, font_weight="bold", margins=0.1, arrowsize=20, edge_color="gray", node_color=color_map, width=1.5, connectionstyle='arc3, rad = 0.2')
   plt.box(False)
 
   # Save the plot to a buffer
@@ -68,4 +69,6 @@ def visualize_adventure(adventure):
   # Clear the plot to avoid overlapping plots
   plt.clf()
   plt.close()
+  color_map.clear()
+  labels.clear()
   return file
