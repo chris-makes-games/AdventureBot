@@ -1,3 +1,4 @@
+from enum import unique
 import re
 
 import discord
@@ -10,10 +11,27 @@ from key import Key
 
 #edits a key with whatever the user selects
 @commands.hybrid_command(name="newkey", description="Edit key attributes. Leave options blank to keep the default value.")
+@app_commands.describe(
+displayname="The name of the key, for inventory purposes only",
+description="The description of an item, for inventory purposes only",
+note="The text as it appears in the journal to players",
+alt_note="For follow-up journal entries after the key is removed",
+subkey1="A key that can be combined with other subkeys to make this key",
+subkey2="A key that can be combined with other subkeys to make this key",
+subkey3="A key that can be combined with other subkeys to make this key",
+subkey4="A key that can be combined with other subkeys to make this key",
+deconstruct="Whether the key can be turned into its subkeys with /deconstruct",
+inventory="Whether the key will appear in an inventory",
+journal="Whether the key will appear in a journal",
+unique="If they player adds this to their inventory, they may not do so again",
+repeating="Every time the player enters the room, the room will give them the key",
+stackable="Whether The player may have more than one.")
 async def newkey(ctx,
     #giant block of arguments!
-    displayname : str="Name of the Key",
-    description : str="Shown to the player in inventory or journal",
+    displayname : str="Default Key Name",
+    description : str="Default Description",
+    note : str | None=None,
+    alt_note : str | None=None,
     subkeys : str | None = None,
     inventory : bool | None = None,
     journal : bool | None = None,
@@ -21,7 +39,12 @@ async def newkey(ctx,
     repeating : bool | None = None,
     stackable : bool | None = None,
                   ):
-  new_key = Key(displayname=displayname, description=description, subkeys=subkeys, inventory=inventory, journal=journal, unique=unique, repeating=repeating, stackable=stackable)
+  new_key = Key(displayname=displayname, description=description, 
+subkeys=subkeys.replace(' ', '').split(',') if subkeys else None, inventory=inventory if inventory else False, 
+journal=journal if journal else False, 
+unique=unique if unique else False, 
+repeating=repeating if repeating else False, 
+stackable=stackable if stackable else False)
 
   if not new_key:
     await ctx.reply("Error: There was a problem generating your key object. Did you change a True/False value to something besides True/False?", ephemeral=True)

@@ -1,45 +1,20 @@
-player stuff
-  new invenotry system
-    inventory embed
-    combine items buttons/fields
-  admin privelages
-    new writer role
-    admin role to unlock the players ability to create things
-  Player death
-    log death events
-    player info persistence on leaving
-    player info delete function
+TODO for April soft launch
+  Keys
+- newkey/editkey command
+- inventory/journal system
+- combine/deconstruct
 
+  Rooms
+- user input validation
+- ending/death handling
 
-item stuff
-  
+  Misc
+- Help Commands
+- ConfirmButton options
+- Mapper reconfig
+------------------------------
 
-room stuff
-  prevent dead players moving (info already blocked to players)
-  rooms optionally allow dead players (added epilogue to adventure)
-  finish room creation mode buttons
-
-button stuff
-  the ConfirmButton in database is all set up to have different confirmations sent to it but just has placeholders at the moment and needs actual functions for things happening on confirm
-
-adventure stuff
-  creation mode for new rooms to be added (WIP)
-  room tree to show room connections (WIP)
-
-command stuff
-  remaining commands:
-    - editroom
-    - edititem
-    - editadventure
-    - editroomarrays(?)
-    - exampleroom
-    - getroom
-    - inventory
-
-misc:
-  functions for pulling documents and updating all classes (done for rooms)
-  change bot buttons to always be clickable (no downtime issues)
-
-  formatter has a lot of outdated stuff, and a lot of commands need to be added/updated/removed. Need to double check each help command and need to add help for admin help
-
-  consider creating a new system for events, instead of having events be an item. Create a journal for events? 
+  Future
+- Persistent Buttons
+- Update Formatter
+- Dialogue Trees

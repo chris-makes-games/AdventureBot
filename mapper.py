@@ -56,8 +56,8 @@ def visualize_adventure(adventure):
   for edge in G.edges:
     print(f"edge {edge[0]} -> {edge[1]}")
   database.pp(G.nodes)
-  pos = nx.spring_layout(G, k=400.0, iterations=50)
-  nx.draw_networkx(G, pos, labels=labels, node_size=2500, font_size=12, font_weight="bold", margins=0.1, arrowsize=20, edge_color="gray", node_color=color_map, width=1.5, connectionstyle='arc3, rad = 0.2')
+  pos = nx.spring_layout(G, k=0.9, iterations=50)
+  nx.draw_networkx(G, pos, labels=labels, node_size=2500, font_size=12, font_weight="bold", margins=0.1, arrowsize=20, edge_color="gray", node_color=color_map, width=1.5)
   plt.box(False)
 
   # Save the plot to a buffer

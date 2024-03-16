@@ -3,8 +3,8 @@ import database
 
 class Key:
   def __init__(self, id=None,
-    displayname="", subkeys=None, author=None, 
-    description="", inventory=False, journal=False, alt_description=None,
+    displayname=None, subkeys=None, author=None, note=None, alt_note=None,
+    description=None, deconstruct=False, inventory=False, journal=False,
     unique=False, repeating=False, stackable=False):
     if not id:
       self.id = database.generate_unique_id()
@@ -14,10 +14,12 @@ class Key:
     self.author = author
     self.displayname = displayname
     self.description = description
-    self.alt_description = alt_description
+    self.note = note
+    self.alt_note = alt_note
 
     #boolean attributes
     self.inventory = inventory
+    self.deconstruct = deconstruct
     self.journal = journal
     self.unique = unique
     self.repeating = repeating

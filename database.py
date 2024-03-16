@@ -56,7 +56,23 @@ class ConfirmButton(discord.ui.Button):
       await interaction.delete_original_response()
     #player wants to leave an adventure
     elif self.action == "leave":
-      await interaction.followup.send(f"This would have made a player leave an adventure, and delete channel {self.id} but it is not implemented yet.", ephemeral=True)
+      update_player({"disc" : interaction.user.id, "guild_thread" : None, "room" : None})
+      guild = interaction.guild
+      if not guild:
+        await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
+        await interaction.delete_original_response()
+        return
+      thread_id = self.id
+      if not thread_id:
+        await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
+        await interaction.delete_original_response()
+        return
+      thread = guild.get_thread(thread_id)
+      if thread:
+        await thread.delete()
+        await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
+        await interaction.delete_original_response()
+        return
     elif self.action == "new_room":
       create_new_room(self.dict)
       await interaction.followup.send("Room successfully created!", ephemeral=True)

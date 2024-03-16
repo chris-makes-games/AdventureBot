@@ -1,8 +1,9 @@
+import formatter
+
 import discord
 from discord.ext import commands
 
 import database
-import formatter
 import perms_ctx as permissions
 from player import Player
 
@@ -27,7 +28,8 @@ async def leave(ctx):
     confirm = await database.confirm_embed("It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your adventure and erase your adventure data?", action="leave", channel=None)
     embed = confirm[0]
     view = confirm[1]
-    await ctx.reply(embed=embed, view=view)
+    await ctx.defer(ephemeral=True)
+    await ctx.reply(embed=embed, view=view, ephemeral=True)
     return
   guild_thread = player["guild_thread"]
   #if the command isn't sent in the correct thread
@@ -42,6 +44,7 @@ async def leave(ctx):
   tuple = await database.confirm_embed("Leaving the adventure will erase your adventure progress. Are you sure you want to do this?", "leave" , channel=channel, id=channel)
   embed = tuple[0]
   view = tuple[1]
+  await ctx.defer(ephemeral=True)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
 
 async def setup(bot):
