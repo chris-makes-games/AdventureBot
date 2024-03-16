@@ -51,7 +51,7 @@ class ConfirmButton(discord.ui.Button):
     #must defer response or error will occur!
     await interaction.response.defer()
     #if they hit the red x it does nothing
-    #embed that is asking the conform is deleted
+    #embed that is asking the confirm is deleted
     if self.action == "cancel":
       await interaction.delete_original_response()
     #player wants to leave an adventure
@@ -73,39 +73,57 @@ class ConfirmButton(discord.ui.Button):
         await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
         await interaction.delete_original_response()
         return
-    elif self.action == "new_room":
+    #new room is created
+    elif self.action == "new_room" and self.dict:
       create_new_room(self.dict)
-      await interaction.followup.send("Room successfully created!", ephemeral=True)
+      await interaction.followup.send(f"Room {self.dict['displayname']}successfully created!", ephemeral=True)
       await interaction.delete_original_response()
-    elif self.action == "new_key":
-      await interaction.followup.send("This would create a key but it isn't implememnted yet! Check database.ConfirmButton", ephemeral=True)
-    elif self.action == "delete_key":
-      await interaction.followup.send(f"This would delete key {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
-    elif self.action == "delete_room":
-      await interaction.followup.send(f"This would delete room {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
+    #new key is created
+    elif self.action == "new_key" and self.dict:
+      create_new_key(self.dict)
+      await interaction.followup.send(f"Key {self.dict['displayname']} successfully created!", ephemeral=True)
+      await interaction.delete_original_response()
+    #key deleted
+    elif self.action == "delete_key" and self.dict:
+      delete_key(self.dict['id'])
+      await interaction.followup.send(f"Key {self.dict['displayname']} Deleted!", ephemeral=True)
+    #room deleted
+    elif self.action == "delete_room" and self.dict:
+      delete_room(self.dict['id'])
+      await interaction.followup.send(f"Room {self.dict['displayname']} deleted!", ephemeral=True)
+      await interaction.delete_original_response()
+    #adventure deleted
     elif self.action == "delete_adventure":
+      delete_adventure(self.id)
       await interaction.followup.send(f"This would delete adventure {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
+    #player deleted
     elif self.action == "delete_player":
       await interaction.followup.send(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
+    #edit room
     elif self.action == "edit_room":
       update_room(self.dict)
-      await interaction.followup.send(f"Room successfully updated!", ephemeral=True)
+      await interaction.followup.send("Room successfully updated!", ephemeral=True)
       await interaction.delete_original_response()
+    #edit key
     elif self.action == "edit_key":
-      await interaction.followup.send(f"This would edit key {self.id} but it's not implemented yet! Check database.ConfirmButton. Edit key properties:\n{str(self.dict)}", ephemeral=True)
+      update_key(self.dict)
+      await interaction.followup.send("Key successfully updated!", ephemeral=True)
+      await interaction.delete_original_response()
+    #connect rooms together using edit
     elif self.action == "connect":
       if self.dict:
         for room_id, room_data in self.dict.items():
           rooms.update_one({"id": room_id}, {"$set": room_data})
       await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
       await interaction.delete_original_response()
+    #catch-all for any other action
     else:
-      await interaction.followup.send(f"ERROR: That button has no interaction yet! Check databse.ConfirmButton()", ephemeral=True)
+      await interaction.followup.send("ERROR: That button has no interaction yet!", ephemeral=True)
       return
 
 #deactivated valentines function
 class CupidModal(discord.ui.Modal):
-  def __init__(self, title="Valentines Event Sign-up", *args):
+  def __init__(self, title="Valentines Event Sign-up"):
     super().__init__(title=title)
     self.likes = discord.ui.TextInput(label="What short story would you like?", placeholder="remember that it should stay within 3k words", style=discord.TextStyle.long, required=True)
     self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="these topics will not be included in the story you recieve.", style=discord.TextStyle.long, required=True)
@@ -289,6 +307,7 @@ async def move_player(interaction, destination):
   new_room = get_room(destination)
   if player and new_room:
     keys = player["keys"]
+    destroy = new_room["destroy"]
     history = player["history"]
     print(f"player {player['displayname']} is moving to {destination}...")
     print("keys: " + str(keys))
@@ -308,13 +327,20 @@ async def move_player(interaction, destination):
   if new_room["keys"]:
     pp("keys found!" + str(new_room["keys"]))
     found_keys, new_keys, new_history = process_player_keys(new_room["keys"], player["keys"], player["history"])
-    pp(f"new keys: {new_keys}")
-    pp(f"new history: {new_history}")
   else:
     pp("no keys found!")
     new_keys = keys
     new_history = history
     found_keys = []
+  #destroys keys if room needs to destroy them
+  if destroy:
+    print("destroying keys...")
+    for key in destroy:
+      if key in new_keys:
+        new_keys.remove(key)
+        print(f"key {key} destroyed")
+  pp(f"new keys: {new_keys}")
+  pp(f"new history: {new_history}")
   #adds room to history if not in history
   if new_room["id"] not in new_history:
     new_history.append(new_room["id"])
@@ -361,8 +387,10 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
       member = guild.get_member(player_dict["disc"])
       embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
       await channel.send(f"{member.mention} has died during {adventure_name}! They were ||{room_dict['deathnote']}||")
-      return embed, view
     embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
+    if room_dict["epilogue"]:
+      embed.add_field(name="Epilogue", value="While the adventure is concluded, you may freely explore the rooms to see what you might have missed", inline=False)
+    update_player({"id" : player_dict["id"], "dead": True})
     return (embed, view)
   #error for when a room has no exits but is also not an end
   if len(room_dict["exits"]) == 0 and not room_dict["end"]:
@@ -552,6 +580,17 @@ def create_new_adventure(dict):
   pp(dict)
   adventures.insert_one(dict)
 
+#updates an adventure by dict
+def update_adventure(dict):
+  print("updating adventure:")
+  pp(dict)
+  adventures.update_one({"name": dict["name"]}, {"$set": dict})
+
+#deletes an adventure by name
+def delete_adventure(name):
+  print("deleting adventure:")
+  adventures.delete_one({"name": name})
+
 #creates a room from a dict
 def create_new_room(dict):
   print("creating new room:")
@@ -563,15 +602,7 @@ def create_new_room(dict):
   if adventure:
     adventure["rooms"].append(dict["id"])
     adventures.update_one({"name": dict["adventure"]}, {"$set": adventure})
-
-#creates a key from a dict
-def create_new_key(dict):
-  print("creating new key:")
-  pp(dict)
-  keys.insert_one(dict)
-  id = {"id": dict["id"], "type" : "key", "displayname": dict["displayname"]}
-  ids.insert_one(id)
-
+    
 #updates room in databse
 #optionally deletes a field in the room
 def update_room(dict, delete=""):
@@ -594,6 +625,36 @@ def delete_room(id):
     ids.delete_one({"id": id})
   else:
     print(f"ERROR - Room {id} does not exist")
+
+#creates new key from dict
+def create_new_key(dict):
+  print("creating new key:")
+  pp(dict)
+  keys.insert_one(dict)
+  id = {"id": dict["id"], "type" : "key", "displayname": dict["displayname"]}
+  ids.insert_one(id)
+
+#updates key in database
+def update_key(dict, delete=""):
+  if delete == "":
+    print("updating key:")
+    pp(str(dict))
+    keys.update_one({"id": dict["id"]}, {"$set": dict})
+  else:
+    print("updating key:")
+    pp(str(dict))
+    print("deleting field from key:" + delete)
+    keys.update_one({"id": dict["id"]}, {"$set": dict}, {"$unset": {delete: ""}})
+
+#deletes key from database
+def delete_key(id):
+  key = keys.find_one({"id": id})
+  if key:
+    print(f"deleting key {key['displayname']}")
+    keys.delete_one({"id": id})
+    ids.delete_one({"id": id})
+  else:
+    print(f"ERROR key {id} not found")
 
 #deletes every specified field from every room
 def delete_room_fields(field):

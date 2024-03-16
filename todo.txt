@@ -18,3 +18,14 @@ TODO for April soft launch
 - Persistent Buttons
 - Update Formatter
 - Dialogue Trees
+
+
+List of possible Adventure Styles:
+- strict CYOA
+  (no ends, no keys, no nonliniar paths)
+
+- Dungeon Crawler
+  (nonlinear paths, keys to unlock, traps and secrets)
+
+- Dating Sim
+  (dialogue options, keys as favor points, semi-linear)
