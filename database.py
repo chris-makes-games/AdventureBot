@@ -442,7 +442,7 @@ def valid_exit(keys, lock):
   lock_counter = Counter(lock)
   return all(key_counter[element] >= count for element, count in lock_counter.items())
 
-#generic confirmation embed for when an action requires confirmation
+#generic confirmation embed for yes/no
 #adds a ConfirmButton to itself at the bottom
 #action is the action that the button will do
 async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id=None):
@@ -657,6 +657,7 @@ def delete_key(id):
     print(f"ERROR key {id} not found")
 
 #deletes every specified field from every room
+#be careful!
 def delete_room_fields(field):
   rooms.update_many({}, {"$unset": {field: ""}})
 
@@ -666,7 +667,7 @@ def delete_player(name):
 
 #gets every player from the database
 def get_all_players():
-  return users.find()
+  return users.find()3
 
 #gets every room from the database
 def get_all_rooms():
@@ -698,10 +699,10 @@ def get_adventure_by_author(disc):
 
 #sets the kill value to true for a given player discord ID
 #increments their death count by one
-def kill_player(name):
-  player = users.find_one({"disc": name})
+def kill_player(disc):
+  player = users.find_one({"disc": disc})
   player_deaths = player["deaths"] + 1
-  users.update_one({"disc": name}, {"$set": {"alive": False, "deaths": player_deaths}})
+  users.update_one({"disc": disc}, {"$set": {"alive": False, "deaths": player_deaths}})
 
 #returns a room dict of a room by room name
 def get_room(id):
@@ -723,14 +724,6 @@ def get_adventure_by_room(room):
 #can return any valid player info
 def get_player_info(name, info):
   player = users.find_one({"disc": int(name)})
-  if player:
-    return player[info]
-  else:
-    return None
-
-#gets any player info from only the player displayname
-def get_player_info_by_displayname(name, info):
-  player = users.find_one({"displayname": name})
   if player:
     return player[info]
   else:
