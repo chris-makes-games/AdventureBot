@@ -270,7 +270,7 @@ def get_all_commands():
 #any new admin command needs to be added to this list
 def get_player_commands():
   all_commands = []
-  admin_commands = ["register", "load", "unload", "reload", "sync", "updaterooms", "ping", "activate", "deactivate", "newassistant", "newmaintainer"]
+  admin_commands = ["register", "load", "unload", "reload", "sync", "updaterooms", "ping", "activate", "deactivate", "newassistant", "newmaintainer", "updaterooms", "fixall"]
   for cmd_file in CMDS_DIR.glob("*.py"):
     if cmd_file.name != "__init__.py" and cmd_file.name[:-3] not in admin_commands:
       all_commands.append(cmd_file.name[:-3])
@@ -351,6 +351,62 @@ async def move_player(interaction, destination):
   embed = tuple[0]
   view = tuple[1]
   await interaction.response.edit_message(embed=embed, view=view)
+
+#returns an inventory of the player with view
+async def embed_inventory(player_dict):
+  embed = discord.Embed(title="Inventory", color=0x00ff00)
+  counted_keys = []
+  for key in player_dict["keys"]:
+    found_key = keys.find_one({"id": key})
+    count = Counter(player_dict["keys"])
+    plurality = count[key] > 1
+    if not found_key:
+      room = rooms.find_one({"id": player_dict["room"]})
+      author = room["author"] if room else "Unknown"
+      print(f"ERROR: key {key} does not exist!")
+      embed.add_field(name=f"Key {key} does not exist!", value=f"Please let <@${author}> know.")
+      continue
+    if found_key["inventory"] and found_key not in counted_keys:
+      if plurality:
+        embed.add_field(name=f"{found_key['name']}", value=f"{found_key['discription']}\nYou have {count}" , inline=False)
+      else:
+        embed.add_field(name=f"{found_key['name']}", value=f"{found_key['discription']}" , inline=False)
+      counted_keys.append(found_key)
+
+  view = discord.ui.View()
+  return embed, view
+
+#returns a journal of the player with view
+async def embed_journal(player_dict):
+  all_keys = {}
+  for key in keys.find():
+    all_keys[key["id"]] = key
+  print("all keys:")
+  pp(all_keys)
+  embed = discord.Embed(title="Journal", color=0x00ff00)
+  current = player_dict["keys"]
+  history = []
+  for key in current:
+    if key not in all_keys:
+      continue
+    elif all_keys[key]["journal"]:
+      history.append(key)
+  while len(history) > 24:
+    history.pop(0)
+  count = 1
+  for key in player_dict["history"]:
+    found_key = keys.find_one({"id": key})
+    if not found_key:
+      continue
+    if found_key["journal"]:
+      if found_key not in current:
+        embed.add_field(name=f"Entry {count}", value=f"{found_key['alt_note']}" , inline=False)
+      else:
+        embed.add_field(name=f"Entry {count}", value=f"{found_key['note']}" , inline=False)
+    count += 1
+
+  view = discord.ui.View()
+  return embed, view
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view
@@ -667,7 +723,7 @@ def delete_player(name):
 
 #gets every player from the database
 def get_all_players():
-  return users.find()3
+  return users.find()
 
 #gets every room from the database
 def get_all_rooms():

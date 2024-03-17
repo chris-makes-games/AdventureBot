@@ -19,7 +19,7 @@ subkey1="A key that can be combined with other subkeys to make this key",
 subkey2="A key that can be combined with other subkeys to make this key",
 subkey3="A key that can be combined with other subkeys to make this key",
 subkey4="A key that can be combined with other subkeys to make this key",
-deconstruct="Whether the key can be turned into its subkeys with /deconstruct",
+deconstruct="Whether this key can be turned into its subkeys by deconstructing",
 inventory="Whether the key will appear in an inventory",
 journal="Whether the key will appear in a journal",
 unique="If they player adds this to their inventory, they may not do so again",
@@ -48,20 +48,6 @@ async def newkey(ctx,
     for subkey in [subkey1, subkey2, subkey3, subkey4]:
       if subkey: 
         subkeys.append(subkey[:4])
-        
-
-  #checks if the user is trying to edit a key that doesn't exist
-  key_query = database.keys.find_one({"id": id})
-  if key_query is None:
-    await ctx.send(f"Key {id} does not exist. You should select a key from the drop-down menu.", ephemeral=True)
-    return
-
-#checks if the user is trying to edit a key that is already in use
-  if subkeys:
-    for subkey in subkeys:
-      if database.keys.find_one({"displayname": subkey}) is not None:
-        await ctx.send("Subkey already in use.")
-        return
 
 #tries to create a key object from all the data
 #if it fails for any reason, sends the error

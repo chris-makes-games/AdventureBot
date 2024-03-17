@@ -17,8 +17,11 @@ TODO for April soft launch
   Future
 - Persistent Buttons
 - Update Formatter
-- Dialogue Trees
+- Dialogue Trees/quicktime events
+- player HP
+- Coauthor options
 
+------------------------------
 
 List of possible Adventure Styles:
 - strict CYOA

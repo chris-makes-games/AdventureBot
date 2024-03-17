@@ -9,23 +9,46 @@ import database
 
 #edits a key with whatever the user selects
 @commands.hybrid_command(name="editkey", description="Edit key attributes. Leave options blank to keep the current value")
-async def editkey(ctx, id: str,
-    #giant block of optional arguments!
-    displayname | None = None,
-    description | None = None,
-    note : str | None = None,
-    alt_note : str | None = None,
-    subkey1 : str | None = None,
-    subkey2 : str | None = None,
-    subkey3 : str | None = None,
-    subkey4 : str | None = None,
-    inventory : bool | None = None,
-    journal : bool | None = None,
-    deconstruct : bool | None = None,
-    unique : bool | None = None,
-    repeating : bool | None = None,
-    stackable : bool | None = None,
-                  ):
+@app_commands.describe(
+displayname="The name of the key, for inventory/journal purposes",
+description="The description of an item, for inventory purposes only",
+note="The text as it appears in the journal to players",
+alt_note="For follow-up journal entries after the key is removed",
+subkey1="A key that can be combined with other subkeys to make this key",
+subkey2="A key that can be combined with other subkeys to make this key",
+subkey3="A key that can be combined with other subkeys to make this key",
+subkey4="A key that can be combined with other subkeys to make this key",
+deconstruct="Whether this key can be turned into its subkeys by deconstructing",
+inventory="Whether the key will appear in an inventory",
+journal="Whether the key will appear in a journal",
+unique="If they player adds this to their inventory, they may not do so again",
+repeating="Every time the player enters the room, the room will try to give them the key",
+stackable="Whether The player may have more than one.")
+async def editkey(ctx, id : str,
+  #giant block of arguments!
+  displayname : str | None = None,
+  description : str | None = None,
+  note : str | None = None,
+  alt_note : str | None=None,
+  subkey1 : str | None = None,
+  subkey2 : str | None = None,
+  subkey3 : str | None = None,
+  subkey4 : str | None = None,
+  inventory : bool | None = None,
+  journal : bool | None = None,
+  deconstruct : bool | None = None,
+  unique : bool | None = None,
+  repeating : bool | None = None,
+  stackable : bool | None = None,
+                ):
+
+  #generates a list of Keys by ID
+  subkeys = []
+  if subkey1 or subkey2 or subkey3 or subkey4:
+    for subkey in [subkey1, subkey2, subkey3, subkey4]:
+      if subkey: 
+        subkeys.append(subkey[:4])
+  
   found_key = database.keys.find_one({"id": id})
   if not found_key:
     await ctx.reply(f"Error: No key found with id **{id}**! Double check you've selected a valid key. If you need to make a new key, try /newkey", ephemeral=True)
@@ -34,28 +57,38 @@ async def editkey(ctx, id: str,
   embed = discord.Embed(title=f"Editing key: {found_key['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
   if description:
     new_dict["description"] = description
-    embed.add_field(name="Description", value=f"Old: {found_key['description']}\nNew: {description}", inline=False)
+    embed.add_field(name="Description", value=f"**Old:** {found_key['description']}\n**New:** {description}", inline=False)
   if displayname:
     new_dict["displayname"] = displayname
-    embed.add_field(name="Displayname", value=f"Old: {found_key['displayname']}\nNew: {displayname}", inline=False)
+    embed.add_field(name="Displayname", value=f"**Old:** {found_key['displayname']}\n**New:** {displayname}", inline=False)
+  if note:
+    new_dict["note"] = note
+    embed.add_field(name="Note", value=f"**Old:** {found_key['note']}\n**New:** {note}", inline=False)
+  if alt_note:
+    new_dict["alt_note"] = alt_note
+    embed.add_field(name="Alt_Note", value=f"**Old:** {found_key['alt_note']}\n**New:** {alt_note}", inline=False)
   if subkeys:
     new_dict["subkeys"] = subkeys
-    embed.add_field(name="Subkeys", value=f"Old: {found_key['subkeys']}\nNew: {subkeys}", inline=False)
+    embed.add_field(name="Subkeys", value=f"**Old:** {found_key['subkeys']}\n**New:** {subkeys}", inline=False)
   if inventory:
     new_dict["inventory"] = inventory
-    embed.add_field(name="Inventory", value=f"Old: {found_key['inventory']}\nNew: {inventory}", inline=False)
+    embed.add_field(name="Inventory", value=f"**Old:** {found_key['inventory']}\n**New:** {inventory}", inline=False)
   if journal:
     new_dict["journal"] = journal
-    embed.add_field(name="Journal", value=f"Old: {found_key['journal']}\nNew: {journal}", inline=False)
+    embed.add_field(name="Journal", value=f"**Old:** {found_key['journal']}\n**New:** {journal}", inline=False)
   if unique:
     new_dict["unique"] = unique
-    embed.add_field(name="Unique", value=f"Old: {found_key['unique']}\nNew: {unique}", inline=False)
+    embed.add_field(name="Unique", value=f"**Old:** {found_key['unique']}\n**New:** {unique}", inline=False)
   if repeating:
     new_dict["repeating"] = repeating
-    embed.add_field(name="Repeating", value=f"Old: {found_key['repeating']}\nNew: {repeating}", inline=False)
+    embed.add_field(name="Repeating", value=f"**Old:** {found_key['repeating']}\n**New:** {repeating}", inline=False)
+  if deconstruct:
+    new_dict["deconstruct"] = deconstruct
+    embed.add_field(name="Deconstruct", value=f"**Old:** {found_key['decstruct']}\n**New:** {deconstruct}", inline=False)
   if stackable:
     new_dict["stackable"] = stackable
-    embed.add_field(name="Stackable", value=f"Old: {found_key['stackable']}\nNew: {stackable}", inline=False)
+    embed.add_field(name="Stackable", value=f"**Old:**{found_key['stackable']}\n**New:** {stackable}", inline=False)
+  
   
   if not embed.fields:
     embed.description = "ERROR"
