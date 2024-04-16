@@ -13,3 +13,6 @@ async def journal(ctx):
     print("ERROR!!!!")
     return
   await ctx.reply(embed=embed, view=view, ephemeral=True)
+
+async def setup(bot):
+  bot.add_command(journal)

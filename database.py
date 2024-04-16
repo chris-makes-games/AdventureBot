@@ -1,5 +1,5 @@
 import os  #stores secrets
-import pathlib
+import pathlib  #finds the commands folder
 import random as rand  #random number generator
 from collections import Counter  # keys list comprehension
 from pprint import pprint as pp  #pretty printing

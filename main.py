@@ -1,20 +1,17 @@
-import formatter  #formats embeds
 import os  #used to store secrets
 import pathlib  #to get commands from command folder
-import re  #for regex autocompletion
-from collections import Counter  #list comparing tool
 
 import discord  #all bot functionality
-from discord import app_commands  #slash commands
 from discord.ext import commands  #commands for bot
 
 import database  #mongodb database
-import mapper  #for ascii map
-from player import Player  #player class
-from room import Room  #room class
 
+# USE THESE LINES TO SWAP BETWEEN TEST AND LIVE
 #token for use with discord API
-my_secret = os.environ['TOKEN']
+#my_secret = os.environ['TOKEN']
+
+#test token for test branch
+my_secret = os.environ['TEST_TOKEN']
 
 #intents rescricts scope of discord bot
 intents = discord.Intents().all()
