@@ -1,15 +1,13 @@
-import discord
-
 import database
 
 
 class Room:
   def __init__(
-    self, id=None, displayname="", description="", entrance="",
-    author="", url=None, alt_entrance="", deathnote=None,
+    self, id="", displayname="", description="", entrance="",
+    author="", url="", alt_entrance="", deathnote="", adventure="",
     end=False, once=False, hidden=False, locked=False, 
-    keys=None, exits=None, unlock=None, reveal=None, destroy=None, adventure=None,
-    hide=None, lock=None):
+    keys=None, destroy=None, exits=None, 
+    unlock="", reveal="", hide="", lock=""):
     #generates new id if none is given
     if not id:
       self.id = database.generate_unique_id()
@@ -24,30 +22,27 @@ class Room:
     self.author = author
     self.url = url
     self.adventure = adventure
+    #string attributes that used to be lists
+    self.unlock = unlock
+    self.reveal = reveal
+    self.hide = hide
+    self.lock = lock
     #boolean attributes
     self.end = end
     self.once = once
     self.hidden = hidden
     self.locked = locked
-    #list attributes
+    
+    #keys is now a dict
+    #key_id, number_of_keys
     if keys is None:
-        keys = []
+        keys = {}
+    #destroy is also dict
+    if destroy is None:
+        destroy = {}
+    #exits still a list of strings
     if exits is None:
         exits = []
-    if unlock is None:
-        unlock = []
-    if reveal is None:
-        reveal = []
-    if destroy is None:
-        destroy = []
-    if hide is None:
-        hide = []
-    if lock is None:
-        lock = []
     self.keys = keys
-    self.exits = exits
-    self.unlock = unlock
-    self.reveal = reveal
     self.destroy = destroy
-    self.hide = hide
-    self.lock = lock
+    self.exits = exits

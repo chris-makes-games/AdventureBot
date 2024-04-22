@@ -24,7 +24,7 @@ hidden= "This room will not appear as a choice unless the player has the keys in
 locked= "The choice for this room will be alt_text and be unselectable unless player has keys in 'unlock'",
 end= "Room that ends the adventure. Include a deathnote if the ending is a death",
 once= "If the player selects the option to go into this room, the option to do so will not appear again",
-keys= "Keys that will be given to the player when they enter the room, if they can recieve them",    
+keys= "Keys that will be given when they enter the room, separate by commas. <keyid> 2, <keyid> 4",    
 lock= "IDs of keys that will lock this room if they player has them. Separate by commas",  
 unlock= "Keys required to unlock the room. Separate by commas",  
 hide= "IDs of keys that will make this room hidden if the player has them. Separate by commas",  
@@ -57,8 +57,8 @@ async def newroom(ctx,
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
     return
-  #need to rework this check/logic
-  adventure_of_room = "Error: Unknown Adventure"
+
+  #parse exit selections into one list
   exits = None
   found_exits = ""
   for exit in [exit1, exit2, exit3, exit4]:
@@ -69,25 +69,46 @@ async def newroom(ctx,
       found_exits.join(exit)
   if found_exits:
     exits = found_exits
+
+  #parse keys into one dict
+  new_keys = {}
+  if keys:
+    pairs = keys.split(',')
+    for pair in pairs:
+      item, quantity = pair.strip().split()
+      new_keys[item.strip()] = int(quantity)
+
+  #parse destroys into one dict
+  new_destroy = {}
+  if destroy:
+    pairs = destroy.split(',')
+    for pair in pairs:
+      item, quantity = pair.strip().split()
+      new_destroy[item.strip()] = int(quantity)
+
+  #adds the adventure name to the room
   if player["edit_thread"]:
     adventure_of_room = player["edit_thread"][1]
+  else:
+    adventure_of_room = "Error: Unknown Adventure"
   new_id = database.generate_unique_id()
-  new_room = Room(id=new_id, description=description,
+  try:
+    new_room = Room(id=new_id, description=description,
     displayname=displayname, entrance=entrance, 
     alt_entrance=alt_entrance, 
     exits=exits.replace(' ', '').split(',') if exits else None, 
-    deathnote=deathnote, url=url, hidden=hidden, 
-    locked=locked, end=end, once=once, 
-    keys=keys.replace(' ', '').split(',') if keys else None, 
-    lock=lock.replace(' ', '').split(',') if lock else None, 
-    unlock=unlock.replace(' ', '').split(',') if unlock else None, 
-    hide=hide.replace(' ', '').split(',') if hide else None, 
-    reveal=reveal.replace(' ', '').split(',') if reveal else None, 
+    deathnote=deathnote if deathnote else "", 
+    url=url if url else "", 
+    hidden=hidden, locked=locked, end=end, once=once, 
+    keys=new_keys if keys else None,
+    lock=lock if lock else "", 
+    unlock=unlock if unlock else "", 
+    hide=hide if hide else "", 
+    reveal=reveal if reveal else "", 
     destroy=destroy.replace(' ', '').split(',') if destroy else None, 
     author=ctx.author.id, adventure=adventure_of_room)
-  
-  if not new_room:
-    await ctx.reply("Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.", ephemeral=True)
+  except Exception as e:
+    await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.Error:\n{e}", ephemeral=True)
     return
   dict = new_room.__dict__
   embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: **{new_id}** (automatically generated)\nAny room attributes not specified have been left at their default values.", description="Review the new room and select a button below:")

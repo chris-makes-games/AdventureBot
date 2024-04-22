@@ -279,14 +279,14 @@ def get_player_commands():
 #gives player key in room if applicable
 #adds keys to history if applicable
 def process_player_keys(found_keys, current_keys, history):
-  found_keys = []
   new_keys = current_keys
   new_history = history
-  for key_id in found_keys:
-    key = keys.find_one({"id": key_id})
+  for key in found_keys:
+    key = keys.find_one({"id": key.key})
+    number = key.value
     if not key:
       print("ERROR - Room key not found!")
-      print(f"key {key_id} does not exist")
+      print(f"key {key.key} does not exist")
       continue
     if key["id"] in current_keys and not key["stackable"]:
       continue
@@ -407,6 +407,18 @@ async def embed_journal(player_dict):
 
   view = discord.ui.View()
   return embed, view
+
+#room logic comparator
+async def comparator(string, keys_dict):
+  try:
+    #uses builtins to sanitize input
+    safe_dict = keys_dict
+    safe_dict['__builtins__'] = None
+    result = eval(string, {"__builtins__": None}, safe_dict)
+    return result
+  except Exception as e:
+    print(f"Error: {e}")
+    return False
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view
@@ -687,7 +699,7 @@ def create_new_key(dict):
   print("creating new key:")
   pp(dict)
   keys.insert_one(dict)
-  id = {"id": dict["id"], "type" : "key", "displayname": dict["displayname"]}
+  id = {"id": dict["id"], "type" : "key", "displayname": dict["displayname"], "author": dict["author"]}
   ids.insert_one(id)
 
 #updates key in database

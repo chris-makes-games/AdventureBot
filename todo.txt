@@ -7,6 +7,7 @@ TODO for April soft launch
   Rooms
 - user input validation
 - ending/death handling
+- complex boolean testing with keys
 
   Misc
 - Help Commands

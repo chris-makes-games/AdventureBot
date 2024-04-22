@@ -14,7 +14,7 @@ class Player:
     if journal is None:
       journal = []
     if keys is None:
-      keys = []
+      keys = {}
     if edit_thread is None:
       edit_thread = []
     self.inventory = inventory
