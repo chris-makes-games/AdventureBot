@@ -1,4 +1,63 @@
+exit and exits autocomplete removed
+#autocompletes the IDs of available rooms for exits
+@newroom.autocomplete('exit1')
+async def autocomplete_exit1(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
 
+#autocompletes the IDs of available rooms for exits
+@newroom.autocomplete('exit2')
+async def autocomplete_exit2(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
+
+#autocompletes the IDs of available rooms for exits
+@newroom.autocomplete('exit3')
+async def autocomplete_exit3(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
+
+#autocompletes the IDs of available rooms for exits
+@newroom.autocomplete('exit4')
+async def autocomplete_exit4(interaction: discord.Interaction, current: str):
+  room_query = database.rooms.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  room_info = [(room["id"], room["displayname"]) for room in room_query]
+  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
+  return choices
 
 #edit item no longer applies
 @bot.tree.command(name="edititem", description="Edit item properties")

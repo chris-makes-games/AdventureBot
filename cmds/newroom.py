@@ -1,5 +1,3 @@
-import re
-
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -10,36 +8,33 @@ from room import Room
 
 #edits a room with whatever the user selects
 @commands.hybrid_command(name="newroom", description="Create a new room. Leave options blank to keep the default value")
-@app_commands.describe(displayname="The title of the room displayed to players",
-description="Second-person description of the room displayed to players",
+@app_commands.describe(
+id= "Optionally input your own unique ID, must be unique across ALL player IDs!",
+displayname="The title of the room displayed to players",
+description="Main description of the room displayed to players. Usually second person.",
 entrance="Description of a choice that leads to this room",
 alt_entrance="Description of the choice when the room is blocked and cannot be selected",
-exit1="Select a room to add a one-way connecttion to from here to there",
-exit2="Select a room to add a one-way connecttion to from here to there",
-exit3="Select a room to add a one-way connecttion to from here to there",
-exit4="Select a room to add a one-way connecttion to from here to there",
+exits= "IDs of rooms that can be selected from this room, separated by commas",
 deathnote="For endings that kill the player, describe how they died. No pronouns",
 url= "URL to an image to display in the room next to the description",
 hidden= "This room will not appear as a choice unless the player has the keys in 'reveal'",
 locked= "The choice for this room will be alt_text and be unselectable unless player has keys in 'unlock'",
 end= "Room that ends the adventure. Include a deathnote if the ending is a death",
 once= "If the player selects the option to go into this room, the option to do so will not appear again",
-keys= "Keys that will be given when they enter the room, separate by commas. <keyid> 2, <keyid> 4",    
-lock= "IDs of keys that will lock this room if they player has them. Separate by commas",  
-unlock= "Keys required to unlock the room. Separate by commas",  
-hide= "IDs of keys that will make this room hidden if the player has them. Separate by commas",  
-reveal= "Keys required to reveal the room. Separate by commas",  
+keys= "Keys that will be given when they enter the room, separate by commas. <keyid> 1, <keyid> 4",    
+lock= "Room becomes locked. Example: key1 > 4 and key2 = 0",  
+unlock= "Room will unlock if locked",  
+hide= "Room will become hidden",  
+reveal= "Room will be revealed if hidden",  
 destroy= "Keys that will be removed from the player if they enter this room. Separate by commas")
 async def newroom(ctx,
     #giant block of arguments!
+    id : str | None = None,
     displayname : str= "Room Name",
     description : str="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.",
     entrance : str="Go into the new room",
-    alt_entrance : str="The path into the new room is blocked!",
-    exit1 : str | None = None,
-    exit2 : str | None = None,
-    exit3 : str | None = None,
-    exit4 : str | None = None,
+    alt_entrance : str | None = None,
+    exits : str | None = None,
     deathnote : str | None = None,
     url : str | None = None,
     hidden : bool=False,
@@ -53,22 +48,27 @@ async def newroom(ctx,
     reveal : str | None = None,
     destroy : str | None = None,
                   ):
+  #checks if player exists in the database
   player = database.get_player(ctx.author.id)
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
     return
 
-  #parse exit selections into one list
-  exits = None
-  found_exits = ""
-  for exit in [exit1, exit2, exit3, exit4]:
-    if exit:
-      exit = exit[:4]
-  for exit in [exit1, exit2, exit3, exit4]:
-    if exit:
-      found_exits.join(exit)
-  if found_exits:
-    exits = found_exits
+  warnings = []
+
+  #checks if user input valid unique ID
+  if id and database.get_id(id):
+    found_id = database.get_id(id)
+    await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {id}\nID **Author:** {found_id['author']}", ephemeral=True)
+    return
+
+  #turns string of exits to list of IDs
+  new_exits = []
+  if exits:
+    new_exits = exits.replace(' ', '').split(',')
+    for exit in new_exits:
+      if not database.get_room(exit):
+        warnings.append(f"Room {exit} does not exist. Hopefully you plan on creating it!")
 
   #parse keys into one dict
   new_keys = {}
@@ -77,6 +77,8 @@ async def newroom(ctx,
     for pair in pairs:
       item, quantity = pair.strip().split()
       new_keys[item.strip()] = int(quantity)
+      if not database.get_key(item.strip()):
+        warnings.append(f"Key {item.strip()} does not exist. Hopefully you plan on creating it!")
 
   #parse destroys into one dict
   new_destroy = {}
@@ -85,6 +87,12 @@ async def newroom(ctx,
     for pair in pairs:
       item, quantity = pair.strip().split()
       new_destroy[item.strip()] = int(quantity)
+      if not database.get_key(item.strip()):
+        warnings.append(f"Key {item.strip()} does not exist. Hopefully you plan on creating it!")
+
+  #turns list of warnings to a string
+  if warnings:
+    warnings = "\n".join(warnings)
 
   #adds the adventure name to the room
   if player["edit_thread"]:
@@ -95,8 +103,8 @@ async def newroom(ctx,
   try:
     new_room = Room(id=new_id, description=description,
     displayname=displayname, entrance=entrance, 
-    alt_entrance=alt_entrance, 
-    exits=exits.replace(' ', '').split(',') if exits else None, 
+    alt_entrance=alt_entrance if alt_entrance else "", 
+    exits= new_exits, 
     deathnote=deathnote if deathnote else "", 
     url=url if url else "", 
     hidden=hidden, locked=locked, end=end, once=once, 
@@ -105,7 +113,7 @@ async def newroom(ctx,
     unlock=unlock if unlock else "", 
     hide=hide if hide else "", 
     reveal=reveal if reveal else "", 
-    destroy=destroy.replace(' ', '').split(',') if destroy else None, 
+    destroy=new_destroy if destroy else None, 
     author=ctx.author.id, adventure=adventure_of_room)
   except Exception as e:
     await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.Error:\n{e}", ephemeral=True)
@@ -145,6 +153,7 @@ async def newroom(ctx,
     embed.add_field(name="Reveal", value=f"{reveal.replace(' ', '').split(',')}", inline=False)
   if destroy:
     embed.add_field(name="Destroy", value=f"{destroy.replace(' ', '').split(',')}", inline=False)
+    embed.add_field(name="**WARNING:**", value=warnings)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
   edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", dict=dict)
   cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel")
@@ -152,66 +161,6 @@ async def newroom(ctx,
   view.add_item(edit_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
-
-#autocompletes the IDs of available rooms for exits
-@newroom.autocomplete('exit1')
-async def autocomplete_exit1(interaction: discord.Interaction, current: str):
-  room_query = database.rooms.find(
-    {"author": interaction.user.id,
-      "$or": [
-{"id": {"$regex": re.escape(current), "$options": "i"}},
-{"displayname": {"$regex": re.escape(current),"$options": "i"}}
-         ]},
-{"id": 1, "displayname": 1, "_id": 0}
-    )
-  room_info = [(room["id"], room["displayname"]) for room in room_query]
-  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
-  return choices
-
-#autocompletes the IDs of available rooms for exits
-@newroom.autocomplete('exit2')
-async def autocomplete_exit2(interaction: discord.Interaction, current: str):
-  room_query = database.rooms.find(
-    {"author": interaction.user.id,
-      "$or": [
-{"id": {"$regex": re.escape(current), "$options": "i"}},
-{"displayname": {"$regex": re.escape(current),"$options": "i"}}
-         ]},
-{"id": 1, "displayname": 1, "_id": 0}
-    )
-  room_info = [(room["id"], room["displayname"]) for room in room_query]
-  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
-  return choices
-
-#autocompletes the IDs of available rooms for exits
-@newroom.autocomplete('exit3')
-async def autocomplete_exit3(interaction: discord.Interaction, current: str):
-  room_query = database.rooms.find(
-    {"author": interaction.user.id,
-      "$or": [
-{"id": {"$regex": re.escape(current), "$options": "i"}},
-{"displayname": {"$regex": re.escape(current),"$options": "i"}}
-         ]},
-{"id": 1, "displayname": 1, "_id": 0}
-    )
-  room_info = [(room["id"], room["displayname"]) for room in room_query]
-  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
-  return choices
-
-#autocompletes the IDs of available rooms for exits
-@newroom.autocomplete('exit4')
-async def autocomplete_exit4(interaction: discord.Interaction, current: str):
-  room_query = database.rooms.find(
-    {"author": interaction.user.id,
-      "$or": [
-{"id": {"$regex": re.escape(current), "$options": "i"}},
-{"displayname": {"$regex": re.escape(current),"$options": "i"}}
-         ]},
-{"id": 1, "displayname": 1, "_id": 0}
-    )
-  room_info = [(room["id"], room["displayname"]) for room in room_query]
-  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
-  return choices
 
 async def setup(bot):
   bot.add_command(newroom)

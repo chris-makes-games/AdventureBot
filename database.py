@@ -1,6 +1,7 @@
 import os  #stores secrets
 import pathlib  #finds the commands folder
 import random as rand  #random number generator
+import re
 from collections import Counter  # keys list comprehension
 from pprint import pprint as pp  #pretty printing
 
@@ -412,8 +413,15 @@ async def embed_journal(player_dict):
 async def comparator(string, keys_dict):
   try:
     #uses builtins to sanitize input
-    safe_dict = keys_dict
+    safe_dict = keys_dict.copy()
+    # Set the value of non-existent keys to 0
+    for key in set(re.findall(r'\b\w+\b', string)):
+      if key not in safe_dict:
+        safe_dict[key] = 0
     safe_dict['__builtins__'] = None
+    string = string.replace("=", "==")
+    string = string.replace("not", "!=")
+    print(string)
     result = eval(string, {"__builtins__": None}, safe_dict)
     return result
   except Exception as e:
@@ -723,6 +731,10 @@ def delete_key(id):
     ids.delete_one({"id": id})
   else:
     print(f"ERROR key {id} not found")
+
+#returns an ID if one is found
+def get_id(id):
+  return ids.find_one({"id": id})
 
 #deletes every specified field from every room
 #be careful!
