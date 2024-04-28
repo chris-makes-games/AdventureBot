@@ -59,6 +59,66 @@ async def autocomplete_exit4(interaction: discord.Interaction, current: str):
   choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in room_info[:25]]
   return choices
 
+#autocompletes the IDs of available keys for subkeys
+@newkey.autocomplete('subkey1')
+async def autocomplete_subkey1(interaction: discord.Interaction, current: str):
+  key_query = database.keys.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  key_info = [(key["id"], key["displayname"]) for key in key_query]
+  choices = [app_commands.Choice(name=f"{key_id} - {displayname}", value=key_id) for key_id, displayname in key_info[:25]]
+  return choices
+
+#autocompletes the IDs of available keys for subkeys
+@newkey.autocomplete('subkey2')
+async def autocomplete_subkey2(interaction: discord.Interaction, current: str):
+  key_query = database.keys.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  key_info = [(key["id"], key["displayname"]) for key in key_query]
+  choices = [app_commands.Choice(name=f"{id} - {displayname}", value=key_id) for key_id, displayname in key_info[:25]]
+  return choices
+
+#autocompletes the IDs of available keys for subkeys
+@newkey.autocomplete('subkey3')
+async def autocomplete_subkey3(interaction: discord.Interaction, current: str):
+  key_query = database.keys.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  key_info = [(key["id"], key["displayname"]) for key in key_query]
+  choices = [app_commands.Choice(name=f"{key_id} - {displayname}", value=key_id) for key_id, displayname in key_info[:25]]
+  return choices
+
+#autocompletes the IDs of available keys for subkeys
+@newkey.autocomplete('subkey4')
+async def autocomplete_subkey4(interaction: discord.Interaction, current: str):
+  key_query = database.keys.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"id": {"$regex": re.escape(current), "$options": "i"}},
+{"displayname": {"$regex": re.escape(current),"$options": "i"}}
+         ]},
+{"id": 1, "displayname": 1, "_id": 0}
+    )
+  key_info = [(key["id"], key["displayname"]) for key in key_query]
+  choices = [app_commands.Choice(name=f"{key_id} - {displayname}", value=key_id) for key_id, displayname in key_info[:25]]
+  return choices
+
 #edit item no longer applies
 @bot.tree.command(name="edititem", description="Edit item properties")
 @app_commands.describe(itemid="The ID of the item to edit", field="The property to edit", value="The new value for the property")

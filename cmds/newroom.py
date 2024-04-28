@@ -62,6 +62,9 @@ async def newroom(ctx,
     await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {id}\nID **Author:** {found_id['author']}", ephemeral=True)
     return
 
+  #if no ID, generates a random one
+  new_id = id if id else database.generate_unique_id()
+
   #turns string of exits to list of IDs
   new_exits = []
   if exits:
@@ -78,7 +81,7 @@ async def newroom(ctx,
       item, quantity = pair.strip().split()
       new_keys[item.strip()] = int(quantity)
       if not database.get_key(item.strip()):
-        warnings.append(f"Key {item.strip()} does not exist. Hopefully you plan on creating it!")
+        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse destroys into one dict
   new_destroy = {}
@@ -88,7 +91,7 @@ async def newroom(ctx,
       item, quantity = pair.strip().split()
       new_destroy[item.strip()] = int(quantity)
       if not database.get_key(item.strip()):
-        warnings.append(f"Key {item.strip()} does not exist. Hopefully you plan on creating it!")
+        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #turns list of warnings to a string
   if warnings:
@@ -99,9 +102,12 @@ async def newroom(ctx,
     adventure_of_room = player["edit_thread"][1]
   else:
     adventure_of_room = "Error: Unknown Adventure"
-  new_id = database.generate_unique_id()
+
+  #creates room object
   try:
-    new_room = Room(id=new_id, description=description,
+    new_room = Room(
+    id=new_id, 
+    description=description,
     displayname=displayname, entrance=entrance, 
     alt_entrance=alt_entrance if alt_entrance else "", 
     exits= new_exits, 
@@ -114,7 +120,8 @@ async def newroom(ctx,
     hide=hide if hide else "", 
     reveal=reveal if reveal else "", 
     destroy=new_destroy if destroy else None, 
-    author=ctx.author.id, adventure=adventure_of_room)
+    author=ctx.author.id, 
+    adventure=adventure_of_room)
   except Exception as e:
     await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.Error:\n{e}", ephemeral=True)
     return
@@ -153,6 +160,7 @@ async def newroom(ctx,
     embed.add_field(name="Reveal", value=f"{reveal.replace(' ', '').split(',')}", inline=False)
   if destroy:
     embed.add_field(name="Destroy", value=f"{destroy.replace(' ', '').split(',')}", inline=False)
+  if warnings:
     embed.add_field(name="**WARNING:**", value=warnings)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
   edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", dict=dict)
