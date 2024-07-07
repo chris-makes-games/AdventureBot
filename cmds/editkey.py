@@ -54,6 +54,16 @@ async def editkey(ctx, id : str,
     found_id = database.get_id(new_id)
     await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {new_id}\n**Author:** {found_id['author']}", ephemeral=True)
     return
+
+  #parses subkeys into dict
+  new_subkeys = {}
+  if subkeys:
+    pairs = subkeys.split(',')
+    for pair in pairs:
+      item, quantity = pair.strip().split()
+      new_subkeys[item.strip()] = int(quantity)
+      if not database.get_key(item.strip()):
+        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
   
   new_dict = found_key.copy()
   embed = discord.Embed(title=f"Editing key: {found_key['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
@@ -73,8 +83,8 @@ async def editkey(ctx, id : str,
     new_dict["alt_note"] = alt_note
     embed.add_field(name="Alt_Note", value=f"**Old:** {found_key['alt_note']}\n**New:** {alt_note}", inline=False)
   if subkeys:
-    new_dict["subkeys"] = subkeys
-    embed.add_field(name="Subkeys", value=f"**Old:** {found_key['subkeys']}\n**New:** {subkeys}", inline=False)
+    new_dict["subkeys"] = new_subkeys
+    embed.add_field(name="Subkeys", value=f"**Old:**\n{found_key['subkeys']}\n**New:**\n{subkeys}", inline=False)
   if unique:
     new_dict["unique"] = unique
     embed.add_field(name="Unique", value=f"**Old:** {found_key['unique']}\n**New:** {unique}", inline=False)

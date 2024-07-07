@@ -732,7 +732,7 @@ def create_new_key(dict):
 #updates key in database
 def update_key(dict, delete=""):
   #updates new ids if ID is changed
-  if dict["new_id"]:
+  if "new id" in dict:
     update_key_id(dict["id"], dict["new_id"])
     old_id = dict["id"]
     dict["id"] = dict["new_id"]
