@@ -52,13 +52,14 @@ async def editkey(ctx, id : str,
   #checks if user input valid unique ID
   if id and database.get_id(new_id):
     found_id = database.get_id(new_id)
-    await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {new_id}\nID **Author:** {found_id['author']}", ephemeral=True)
+    await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {new_id}\n**Author:** {found_id['author']}", ephemeral=True)
     return
   
   new_dict = found_key.copy()
   embed = discord.Embed(title=f"Editing key: {found_key['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
-  if id:
-    embed.add_field(name="ID CHANGE", value=f"**Old:***: {found_key['id']}\n**New:** {new_id}\nThis will change the ID of this key, updating across all rooms and subkeys where it appears.", inline=False)
+  if new_id:
+    new_dict["new_id"] = new_id
+    embed.add_field(name="ID CHANGE", value=f"**Old:**: {found_key['id']}\n**New:** {new_id}\nThis will change the ID of this key, updating across all rooms and subkeys where it appears.", inline=False)
   if description:
     new_dict["description"] = description
     embed.add_field(name="Description", value=f"**Old:** {found_key['description']}\n**New:** {description}", inline=False)

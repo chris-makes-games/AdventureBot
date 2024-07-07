@@ -731,7 +731,14 @@ def create_new_key(dict):
 
 #updates key in database
 def update_key(dict, delete=""):
-  if delete == "":
+  #updates new ids if ID is changed
+  if dict["new_id"]:
+    update_key_id(dict["id"], dict["new_id"])
+    old_id = dict["id"]
+    dict["id"] = dict["new_id"]
+    del dict["new_id"]
+    keys.update_one({"id": old_id}, {"$set": dict})
+  elif delete == "":
     print("updating key:")
     pp(str(dict))
     keys.update_one({"id": dict["id"]}, {"$set": dict})
@@ -740,29 +747,37 @@ def update_key(dict, delete=""):
     pp(str(dict))
     print("deleting field from key:" + delete)
     keys.update_one({"id": dict["id"]}, {"$set": dict}, {"$unset": {delete: ""}})
-  if dict["displayname"]:
-    ids.update_one({"id": dict["id"]}, {"$set": {"displayname": dict["displayname"]}})
 
 #updates all uses of key ID in database
 def update_key_id(id, new_id):
+  #ensures ID is not already in use
+  id_check = ids.find_one({"id": new_id})
+  if id_check:
+    print("FATAL ERROR - ID already exists!!!")
+    return
+  #updates ID in IDs collection
   ids.update_one({"id": id}, {"$set": {"id": new_id}})
   all_keys = keys.find()
   all_rooms = rooms.find()
+  #updates every subkey mention
   for key in all_keys:
     if id in key["subkeys"]:
       old_id = key["subkeys"].pop(id)
+      #sets subkey dict to same value as old, changing the key only
       key["subkeys"][new_id] = old_id.value
       keys.update_one({"id": key["id"]}, {"$set": key})
+  #updates every room mention
   for room in all_rooms:
     need_update = False
-    if id in room["keys"]:
+    if room["keys"] and id in room["keys"]:
       need_update = True
       old_id = room["keys"].pop(id)
       room["keys"][new_id] = old_id.value
-    if id in room["destroy"]:
+    if room["destroy"] and id in room["destroy"]:
       need_update = True
       old_id = room["destroy"].pop(id)
       room["destroy"][new_id] = old_id.value
+    #only updates the rooms that have the key
     if need_update:
       rooms.update_one({"id": room["id"]}, {"$set": room})
 
