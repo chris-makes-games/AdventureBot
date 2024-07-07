@@ -50,14 +50,21 @@ async def newkey(ctx,
   new_id = id if id else database.generate_unique_id()
 
   #parses subkeys into dict
+  subkeys_string = ""
   new_subkeys = {}
   if subkeys:
     pairs = subkeys.split(',')
     for pair in pairs:
-      item, quantity = pair.strip().split()
-      new_subkeys[item.strip()] = int(quantity)
-      if not database.get_key(item.strip()):
-        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      try:
+        item, quantity = pair.strip().split()
+        new_subkeys[item.strip()] = int(quantity)
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      except ValueError:
+        await ctx.reply("Invalid subkey format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the subkeys to one of somekey and three of otherkey)", ephemeral=True)
+    #parses subkeys into neat string
+    for key in new_subkeys:
+      subkeys_string += f"{key} x{new_subkeys[key]}\n"
 
   #turns list of warnings to a string
   if warnings:
@@ -91,7 +98,7 @@ author = ctx.author.id)
   if dict['alt_note']:
     embed.add_field(name="Alt_Note", value=f"{alt_note}", inline=False)
   if dict['subkeys']:
-    embed.add_field(name="Subkeys", value=f"{subkeys}", inline=False)
+    embed.add_field(name="Subkeys", value=subkeys_string, inline=False)
   if dict['unique']:
     embed.add_field(name="Unique", value=f"{unique}", inline=False)
   if dict['repeating']:

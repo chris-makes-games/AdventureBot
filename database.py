@@ -85,13 +85,13 @@ class ConfirmButton(discord.ui.Button):
       await interaction.followup.send(f"Key {self.dict['displayname']} successfully created!", ephemeral=True)
       await interaction.delete_original_response()
     #key deleted
-    elif self.action == "delete_key" and self.dict:
-      delete_key(self.dict['id'])
-      await interaction.followup.send(f"Key {self.dict['displayname']} Deleted!", ephemeral=True)
+    elif self.action == "delete_key":
+      delete_key(self.id)
+      await interaction.followup.send(f"Key {self.id} Deleted!", ephemeral=True)
     #room deleted
-    elif self.action == "delete_room" and self.dict:
-      delete_room(self.dict['id'])
-      await interaction.followup.send(f"Room {self.dict['displayname']} deleted!", ephemeral=True)
+    elif self.action == "delete_room":
+      delete_room(self.id)
+      await interaction.followup.send(f"Room {self.id} deleted!", ephemeral=True)
       await interaction.delete_original_response()
     #adventure deleted
     elif self.action == "delete_adventure":
@@ -111,15 +111,14 @@ class ConfirmButton(discord.ui.Button):
       await interaction.followup.send("Key successfully updated!", ephemeral=True)
       await interaction.delete_original_response()
     #connect rooms together using edit
-    elif self.action == "connect":
-      if self.dict:
-        for room_id, room_data in self.dict.items():
-          rooms.update_one({"id": room_id}, {"$set": room_data})
+    elif self.action == "connect" and self.dict:
+      for room_id, room_data in self.dict.items():
+        rooms.update_one({"id": room_id}, {"$set": room_data})
       await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
       await interaction.delete_original_response()
     #catch-all for any other action
     else:
-      await interaction.followup.send("ERROR: That button has no interaction yet!", ephemeral=True)
+      await interaction.followup.send(f"ERROR: That button has no interaction yet!\nAction: {self.action}", ephemeral=True)
       return
 
 #deactivated valentines function

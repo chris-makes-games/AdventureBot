@@ -56,14 +56,21 @@ async def editkey(ctx, id : str,
     return
 
   #parses subkeys into dict
+  subkeys_string = ""
   new_subkeys = {}
   if subkeys:
     pairs = subkeys.split(',')
     for pair in pairs:
-      item, quantity = pair.strip().split()
-      new_subkeys[item.strip()] = int(quantity)
-      if not database.get_key(item.strip()):
-        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      try:
+        item, quantity = pair.strip().split()
+        new_subkeys[item.strip()] = int(quantity)
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      except ValueError:
+        await ctx.reply("Invalid subkey format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the subkeys to one of somekey and three of otherkey)", ephemeral=True)
+        return
+    for key in new_subkeys:
+      subkeys_string += f"{key} x{new_subkeys[key]}\n"
   
   new_dict = found_key.copy()
   embed = discord.Embed(title=f"Editing key: {found_key['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
@@ -83,8 +90,11 @@ async def editkey(ctx, id : str,
     new_dict["alt_note"] = alt_note
     embed.add_field(name="Alt_Note", value=f"**Old:** {found_key['alt_note']}\n**New:** {alt_note}", inline=False)
   if subkeys:
+    old_subkeys = ""
+    for key in found_key["subkeys"]:
+      old_subkeys += f"{key} x{found_key['subkeys'][key]}\n"
     new_dict["subkeys"] = new_subkeys
-    embed.add_field(name="Subkeys", value=f"**Old:**\n{found_key['subkeys']}\n**New:**\n{subkeys}", inline=False)
+    embed.add_field(name="Subkeys", value=f"**Old:**\n{old_subkeys}\n**New:**\n{subkeys_string}", inline=False)
   if unique:
     new_dict["unique"] = unique
     embed.add_field(name="Unique", value=f"**Old:** {found_key['unique']}\n**New:** {unique}", inline=False)
