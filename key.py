@@ -22,7 +22,7 @@ deconstruct=False, unique=False, repeating=False, stackable=False):
     self.repeating = repeating
     self.stackable = stackable
 
-    #list attributes
+    #subkeys now a dict
     if subkeys is None:
-      self.subkeys = []
+      self.subkeys = {}
     self.subkeys = subkeys

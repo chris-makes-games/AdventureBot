@@ -53,9 +53,8 @@ async def on_ready():
     try:
       if cmd_file.name != "__init__.py":
         if database.inactive_check(cmd_file.name[0:-3]):
-          print(f"Skipping command: /{cmd_file.name[:-3]}...")
+          print(f"Skipped command: /{cmd_file.name[:-3]}...")
         else:
-          print(f"Loading command: /{cmd_file.name[:-3]}...")
           await bot.load_extension(f"cmds.{cmd_file.name[:-3]}")
     except Exception as e:
       print(f"Failed to load command: /{cmd_file.name[:-3]}")

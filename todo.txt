@@ -1,4 +1,4 @@
-TODO for April soft launch
+TODO TRIAGE JUNE
   Keys
 - newkey/editkey command
 - inventory/journal system

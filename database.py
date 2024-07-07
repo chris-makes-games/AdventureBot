@@ -690,7 +690,26 @@ def update_room(dict, delete=""):
     print("updating room:")
     pp(str(dict))
     print("deleting field from room:" + delete)
+    if dict["new_id"]:
+      update_room_id(dict["id"], dict["new_id"])
+      del dict["new_id"]
     rooms.update_one({"id": dict["id"]}, {"$set": dict}, {"$unset": {delete: ""}})
+
+#updates all uses of room to new ID
+def update_room_id(id, new_id):
+  ids.update_one({"id": id}, {"$set": {"id": new_id}})
+  all_rooms = rooms.find()
+  all_adventures = adventures.find()
+  for room in all_rooms:
+    if id in room["exits"]:
+      room["exits"].remove(id)
+      room["exits"].append(new_id)
+      rooms.update_one({"id": id}, {"$set": room})
+  for adventure in all_adventures:
+    if id in adventure["rooms"]:
+      adventure["rooms"].remove(id)
+      adventure["rooms"].append(new_id)
+      adventures.update_one({"name": adventure["name"]}, {"$set": adventure})
 
 #deletes room from database
 def delete_room(id):
@@ -721,6 +740,31 @@ def update_key(dict, delete=""):
     pp(str(dict))
     print("deleting field from key:" + delete)
     keys.update_one({"id": dict["id"]}, {"$set": dict}, {"$unset": {delete: ""}})
+  if dict["displayname"]:
+    ids.update_one({"id": dict["id"]}, {"$set": {"displayname": dict["displayname"]}})
+
+#updates all uses of key ID in database
+def update_key_id(id, new_id):
+  ids.update_one({"id": id}, {"$set": {"id": new_id}})
+  all_keys = keys.find()
+  all_rooms = rooms.find()
+  for key in all_keys:
+    if id in key["subkeys"]:
+      old_id = key["subkeys"].pop(id)
+      key["subkeys"][new_id] = old_id.value
+      keys.update_one({"id": key["id"]}, {"$set": key})
+  for room in all_rooms:
+    need_update = False
+    if id in room["keys"]:
+      need_update = True
+      old_id = room["keys"].pop(id)
+      room["keys"][new_id] = old_id.value
+    if id in room["destroy"]:
+      need_update = True
+      old_id = room["destroy"].pop(id)
+      room["destroy"][new_id] = old_id.value
+    if need_update:
+      rooms.update_one({"id": room["id"]}, {"$set": room})
 
 #deletes key from database
 def delete_key(id):

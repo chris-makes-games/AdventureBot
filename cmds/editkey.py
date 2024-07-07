@@ -10,51 +10,55 @@ import database
 #edits a key with whatever the user selects
 @commands.hybrid_command(name="editkey", description="Edit key attributes. Leave options blank to keep the current value")
 @app_commands.describe(
+new_id = "Change key ID. Changing this will automatically update all uses of the key",
 displayname="The name of the key, for inventory/journal purposes",
 description="The description of an item, for inventory purposes only",
 note="The text as it appears in the journal to players",
 alt_note="For follow-up journal entries after the key is removed",
-subkey1="A key that can be combined with other subkeys to make this key",
-subkey2="A key that can be combined with other subkeys to make this key",
-subkey3="A key that can be combined with other subkeys to make this key",
-subkey4="A key that can be combined with other subkeys to make this key",
+subkeys="A key that can be combined with other subkeys to make this key",
 deconstruct="Whether this key can be turned into its subkeys by deconstructing",
-inventory="Whether the key will appear in an inventory",
-journal="Whether the key will appear in a journal",
 unique="If they player adds this to their inventory, they may not do so again",
 repeating="Every time the player enters the room, the room will try to give them the key",
 stackable="Whether The player may have more than one.")
 async def editkey(ctx, id : str,
   #giant block of arguments!
+  new_id : str | None = None,
   displayname : str | None = None,
   description : str | None = None,
   note : str | None = None,
   alt_note : str | None=None,
-  subkey1 : str | None = None,
-  subkey2 : str | None = None,
-  subkey3 : str | None = None,
-  subkey4 : str | None = None,
-  inventory : bool | None = None,
-  journal : bool | None = None,
+  subkeys : str | None = None,
   deconstruct : bool | None = None,
   unique : bool | None = None,
   repeating : bool | None = None,
   stackable : bool | None = None,
                 ):
-
-  #generates a list of Keys by ID
-  subkeys = []
-  if subkey1 or subkey2 or subkey3 or subkey4:
-    for subkey in [subkey1, subkey2, subkey3, subkey4]:
-      if subkey: 
-        subkeys.append(subkey[:4])
   
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
+    return
+
+  #warnings for subkeys not found
+  warnings = []
+
+  #error for no key found
   found_key = database.keys.find_one({"id": id})
   if not found_key:
     await ctx.reply(f"Error: No key found with id **{id}**! Double check you've selected a valid key. If you need to make a new key, try /newkey", ephemeral=True)
     return
+
+  #checks if user input valid unique ID
+  if id and database.get_id(new_id):
+    found_id = database.get_id(new_id)
+    await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {new_id}\nID **Author:** {found_id['author']}", ephemeral=True)
+    return
+  
   new_dict = found_key.copy()
   embed = discord.Embed(title=f"Editing key: {found_key['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
+  if id:
+    embed.add_field(name="ID CHANGE", value=f"**Old:***: {found_key['id']}\n**New:** {new_id}\nThis will change the ID of this key, updating across all rooms and subkeys where it appears.", inline=False)
   if description:
     new_dict["description"] = description
     embed.add_field(name="Description", value=f"**Old:** {found_key['description']}\n**New:** {description}", inline=False)
@@ -70,12 +74,6 @@ async def editkey(ctx, id : str,
   if subkeys:
     new_dict["subkeys"] = subkeys
     embed.add_field(name="Subkeys", value=f"**Old:** {found_key['subkeys']}\n**New:** {subkeys}", inline=False)
-  if inventory:
-    new_dict["inventory"] = inventory
-    embed.add_field(name="Inventory", value=f"**Old:** {found_key['inventory']}\n**New:** {inventory}", inline=False)
-  if journal:
-    new_dict["journal"] = journal
-    embed.add_field(name="Journal", value=f"**Old:** {found_key['journal']}\n**New:** {journal}", inline=False)
   if unique:
     new_dict["unique"] = unique
     embed.add_field(name="Unique", value=f"**Old:** {found_key['unique']}\n**New:** {unique}", inline=False)
@@ -89,12 +87,13 @@ async def editkey(ctx, id : str,
     new_dict["stackable"] = stackable
     embed.add_field(name="Stackable", value=f"**Old:**{found_key['stackable']}\n**New:** {stackable}", inline=False)
   
-  
   if not embed.fields:
     embed.description = "ERROR"
     embed.add_field(name="No changes", value="No changes were made. You need to select one of the options to edit the key. If you're unsure, try /help editkey")
     await ctx.reply(embed=embed, ephemeral=True)
     return
+  if warnings:
+    embed.add_field(name="**WARNING**", value="\n".join(warnings), inline=False)
   edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_key", id=id, dict=new_dict)
   cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
   view = discord.ui.View()
