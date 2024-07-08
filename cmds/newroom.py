@@ -74,24 +74,38 @@ async def newroom(ctx,
         warnings.append(f"Room {exit} does not exist. Hopefully you plan on creating it!")
 
   #parse keys into one dict
+  keys_string = ""
   new_keys = {}
   if keys:
     pairs = keys.split(',')
     for pair in pairs:
-      item, quantity = pair.strip().split()
-      new_keys[item.strip()] = int(quantity)
-      if not database.get_key(item.strip()):
-        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      try:
+        item, quantity = pair.strip().split()
+        new_keys[item.strip()] = int(quantity)
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      except ValueError:
+        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
+        return
+    for key in new_keys:
+      keys_string += f"{key} x{new_keys[key]}\n"
 
   #parse destroys into one dict
+  destroy_string = ""
   new_destroy = {}
   if destroy:
     pairs = destroy.split(',')
     for pair in pairs:
-      item, quantity = pair.strip().split()
-      new_destroy[item.strip()] = int(quantity)
-      if not database.get_key(item.strip()):
-        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      try:
+        item, quantity = pair.strip().split()
+        new_destroy[item.strip()] = int(quantity)
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      except ValueError:
+        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
+        return
+    for key in new_destroy:
+      destroy_string += f"{key} x{new_destroy[key]}\n"
 
   #turns list of warnings to a string
   if warnings:
@@ -141,7 +155,9 @@ async def newroom(ctx,
   if url:
     embed.add_field(name="URL", value=f"{url}", inline=False)
   if keys:
-    embed.add_field(name="Keys", value=f"{keys.replace(' ', '').split(',')}", inline=False)
+    embed.add_field(name="Keys", value=keys_string, inline=False)
+  if destroy:
+    embed.add_field(name="Destroy", value=destroy_string, inline=False)
   if hidden:
     embed.add_field(name="Hidden", value=f"{hidden}", inline=False)
   if locked:
@@ -158,8 +174,6 @@ async def newroom(ctx,
     embed.add_field(name="Hide", value=f"{hide.replace(' ', '').split(',')}", inline=False)
   if reveal:
     embed.add_field(name="Reveal", value=f"{reveal.replace(' ', '').split(',')}", inline=False)
-  if destroy:
-    embed.add_field(name="Destroy", value=f"{destroy.replace(' ', '').split(',')}", inline=False)
   if warnings:
     embed.add_field(name="**WARNING:**", value=warnings)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")

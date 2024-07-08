@@ -62,6 +62,7 @@ async def newkey(ctx,
           warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
         await ctx.reply("Invalid subkey format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the subkeys to one of somekey and three of otherkey)", ephemeral=True)
+        return
     #parses subkeys into neat string
     for key in new_subkeys:
       subkeys_string += f"{key} x{new_subkeys[key]}\n"
