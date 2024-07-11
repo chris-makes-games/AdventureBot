@@ -16,18 +16,19 @@ description="Main description of the room displayed to players. Usually second p
 entrance="Description of a choice that leads to this room",
 alt_entrance="Description of the choice when the room is blocked and cannot be selected",
 exits= "IDs of rooms that can be selected from this room, separated by commas",
-deathnote="For endings that kill the player, describe how they died. No pronouns",
 url= "URL to an image to display in the room next to the description",
 hidden= "This room will not appear as a choice unless the player has the keys in 'reveal'",
 locked= "The choice for this room will be alt_text and be unselectable unless player has keys in 'unlock'",
-end= "Room that ends the adventure. Include a deathnote if the ending is a death",
 once= "If the player selects the option to go into this room, the option to do so will not appear again",
-keys= "Keys that will be given when they enter the room, separate by commas. <keyid> 1, <keyid> 4",    
+end= "Room that ends the adventure. Include a deathnote if the ending is a death",
+deathnote="For endings that kill the player, describe how they died. No pronouns",
+keys= "Keys that will be given when they enter the room, separate by commas. <keyid> 1, <keyid> 4",
+destroy= "Keys that will be removed from the player if they enter this room. Separate by commas",
 lock= "Room becomes locked. Example: key1 > 4 and key2 = 0",  
 unlock= "Room will unlock if locked",  
 hide= "Room will become hidden",  
-reveal= "Room will be revealed if hidden",  
-destroy= "Keys that will be removed from the player if they enter this room. Separate by commas")
+reveal= "Room will be revealed if hidden"
+)
 async def editroom(ctx, id: str,
     #giant block of optional arguments!
     new_id: str | None = None,
@@ -36,18 +37,18 @@ async def editroom(ctx, id: str,
     entrance : str | None = None,
     alt_entrance : str | None = None,
     exits : str | None = None,
-    deathnote : str | None = None,
     url : str | None = None,
-    keys : str | None = None,
     hidden : bool | None = None,
     locked : bool | None = None,
-    end : bool | None = None,
     once : bool | None = None,
+    end : bool | None = None,
+    deathnote : str | None = None,
+    keys : str | None = None,
+    destroy : str | None = None,
     lock : str | None = None,
     unlock : str | None = None,
     hide: str | None = None,
-    reveal : str | None = None,
-    destroy : str | None = None
+    reveal : str | None = None
                   ):
   #ensures the room ID entered is valid
   found_room = database.rooms.find_one({"id": id})
@@ -69,7 +70,7 @@ async def editroom(ctx, id: str,
     new_exits = exits.replace(' ', '').split(',')
     for exit in new_exits:
       if not database.get_room(exit):
-        warnings.append(f"Room {exit} does not exist. Hopefully you plan on creating it!")
+        warnings.append(f"Room '{exit}' does not exist. Hopefully you plan on creating it!")
 
   new_keys = {}
   new_keys_list = []
@@ -77,12 +78,17 @@ async def editroom(ctx, id: str,
   if keys:
     pairs = keys.split(',')
     for pair in pairs:
-      item, quantity = pair.strip().split()
-      new_keys[item.strip()] = int(quantity)
-      new_keys_list.append(f"{item} : {quantity}")
-      if not database.get_key(item.strip()):
-        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
-  new_keys_string = "\n".join(new_keys_list) if found_room["keys"] else "None"
+      try:
+        item, quantity = pair.strip().split()
+        new_keys[item.strip()] = int(quantity)
+        new_keys_list.append(f"{item} : {quantity}")
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
+  
+      except ValueError:
+        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
+        return
+  new_keys_string = "\n".join(new_keys_list)
 
   old_keys = []
   old_keys_string = ""
@@ -97,13 +103,17 @@ async def editroom(ctx, id: str,
   new_destroy_list = []
   new_destroy_string = ""
   if destroy:
-    pairs = destroy.split(',')
-    for pair in pairs:
-      item, quantity = pair.strip().split()
-      new_destroy[item.strip()] = int(quantity)
-      new_destroy_list.append(f"{item} : {quantity}")
-      if not database.get_key(item.strip()):
-        warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    try:
+      pairs = destroy.split(',')
+      for pair in pairs:
+        item, quantity = pair.strip().split()
+        new_destroy[item.strip()] = int(quantity)
+        new_destroy_list.append(f"{item} : {quantity}")
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    except ValueError:
+      await ctx.reply("Invalid destroy key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the destroyed keys to one of somekey and three of otherkey)", ephemeral=True)
+      return
   new_destroy_string = "\n".join(new_destroy_list) if found_room["destroy"] else "None"
 
   old_destroy = []
@@ -144,7 +154,7 @@ async def editroom(ctx, id: str,
     embed.add_field(name="URL", value=f"Old: {found_room['url']}\nNew: {url}", inline=False)
   if keys:
     new_dict["keys"] = keys
-    embed.add_field(name="Keys", value=f"Old:\n{old_keys_string}\nNew:\n{new_keys_string}", inline=False)
+    embed.add_field(name="Keys", value=f"Old:\n{old_keys_string}\n\nNew:\n{new_keys_string}", inline=False)
   if hidden:
     new_dict["hidden"] = hidden
     embed.add_field(name="Hidden", value=f"Old: {found_room['hidden']}\nNew: {hidden}", inline=False)

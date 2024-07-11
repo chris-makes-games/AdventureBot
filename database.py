@@ -77,7 +77,7 @@ class ConfirmButton(discord.ui.Button):
     #new room is created
     elif self.action == "new_room" and self.dict:
       create_new_room(self.dict)
-      await interaction.followup.send(f"Room {self.dict['displayname']}successfully created!", ephemeral=True)
+      await interaction.followup.send(f"Room {self.dict['displayname']} successfully created!", ephemeral=True)
       await interaction.delete_original_response()
     #new key is created
     elif self.action == "new_key" and self.dict:

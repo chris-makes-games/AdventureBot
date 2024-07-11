@@ -15,18 +15,18 @@ description="Main description of the room displayed to players. Usually second p
 entrance="Description of a choice that leads to this room",
 alt_entrance="Description of the choice when the room is blocked and cannot be selected",
 exits= "IDs of rooms that can be selected from this room, separated by commas",
-deathnote="For endings that kill the player, describe how they died. No pronouns",
 url= "URL to an image to display in the room next to the description",
 hidden= "This room will not appear as a choice unless the player has the keys in 'reveal'",
 locked= "The choice for this room will be alt_text and be unselectable unless player has keys in 'unlock'",
-end= "Room that ends the adventure. Include a deathnote if the ending is a death",
 once= "If the player selects the option to go into this room, the option to do so will not appear again",
-keys= "Keys that will be given when they enter the room, separate by commas. <keyid> 1, <keyid> 4",    
-lock= "Room becomes locked. Example: key1 > 4 and key2 = 0",  
-unlock= "Room will unlock if locked",  
-hide= "Room will become hidden",  
-reveal= "Room will be revealed if hidden",  
-destroy= "Keys that will be removed from the player if they enter this room. Separate by commas")
+end= "Room that ends the adventure. Include a deathnote if the ending is a death",
+deathnote="For endings that kill the player, describe how they died. Ex; 'Killed by X during Y'",
+keys= "Keys that will be given when they enter the room, separate by commas.",
+destroy= "Keys that will be removed from the player if they enter this room. Separate by commas",
+lock= "Room becomes locked if player possesses these keys. Can use math expression",  
+unlock= "Room will unlock if locked, if player possesses these keys. Can use math expression",  
+hide= "Room will become hidden if player posesses these keys. Can use math expression",  
+reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression")
 async def newroom(ctx,
     #giant block of arguments!
     id : str | None = None,
@@ -35,18 +35,18 @@ async def newroom(ctx,
     entrance : str="Go into the new room",
     alt_entrance : str | None = None,
     exits : str | None = None,
-    deathnote : str | None = None,
     url : str | None = None,
     hidden : bool=False,
     locked : bool=False,
-    end : bool=False,
     once : bool=False,
+    end : bool=False,
+    deathnote : str | None = None,
     keys : str | None = None,
+    destroy : str | None = None,
     lock : str | None = None,
     unlock : str | None = None,
     hide: str | None = None,
-    reveal : str | None = None,
-    destroy : str | None = None,
+    reveal : str | None = None
                   ):
   #checks if player exists in the database
   player = database.get_player(ctx.author.id)
@@ -140,7 +140,7 @@ async def newroom(ctx,
     await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.Error:\n{e}", ephemeral=True)
     return
   dict = new_room.__dict__
-  embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: **{new_id}** (automatically generated)\nAny room attributes not specified have been left at their default values.", description="Review the new room and select a button below:")
+  embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: **{new_id}**\nAny room attributes not specified have been left at their default values.", description="Review the new room and select a button below:")
   embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
   if description:
     embed.add_field(name="Description", value=f"{description}", inline=False)
