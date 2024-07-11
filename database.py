@@ -289,10 +289,12 @@ def get_architect_commands():
 #gives player key in room if applicable
 #adds keys to history if applicable
 def process_player_keys(found_keys, current_keys, history):
+  print("found keys:")
+  print(found_keys)
   new_keys = current_keys
   new_history = history
   for key in found_keys:
-    key = keys.find_one({"id": key.key})
+    key = keys.find_one({"id": key})
     number = key.value
     if not key:
       print("ERROR - Room key not found!")
@@ -691,34 +693,52 @@ def create_new_room(dict):
 #updates room in databse
 #optionally deletes a field in the room
 def update_room(dict, delete=""):
-  if delete == "":
+  if "new_id" in dict:
+    update_room_id(dict)
+    print(f"updating room id {dict['id']} to {dict['new_id']}:")
+    pp(str(dict))
+    old_id = dict["id"]  
+    new_id = dict["new_id"]
+    dict["id"] = new_id
+    del dict["new_id"]
+    pp(str(dict))
+    rooms.update_one({"id": old_id}, {"$set": dict})
+    return
+  elif delete == "":
     print("updating room:")
     pp(str(dict))
     rooms.update_one({"id": dict["id"]}, {"$set": dict})
+    return
   else:
     print("updating room:")
     pp(str(dict))
     print("deleting field from room:" + delete)
-    if dict["new_id"]:
-      update_room_id(dict["id"], dict["new_id"])
-      del dict["new_id"]
     rooms.update_one({"id": dict["id"]}, {"$set": dict}, {"$unset": {delete: ""}})
 
 #updates all uses of room to new ID
-def update_room_id(id, new_id):
+def update_room_id(dict):
+  id = dict["id"]
+  new_id = dict["new_id"]
   ids.update_one({"id": id}, {"$set": {"id": new_id}})
   all_rooms = rooms.find()
   all_adventures = adventures.find()
+  print("found rooms:")
+  pp(all_rooms)
   for room in all_rooms:
     if id in room["exits"]:
-      room["exits"].remove(id)
-      room["exits"].append(new_id)
-      rooms.update_one({"id": id}, {"$set": room})
+      print("ROOM ID FOUND IN EXIT")
+      room_dict = room.copy()
+      pp(room_dict)
+      room_dict["exits"].remove(id)
+      room_dict["exits"].append(new_id)
+      pp(room_dict)
+      rooms.update_one({"id": room_dict['id']}, {"$set": room_dict})
   for adventure in all_adventures:
     if id in adventure["rooms"]:
-      adventure["rooms"].remove(id)
-      adventure["rooms"].append(new_id)
-      adventures.update_one({"name": adventure["name"]}, {"$set": adventure})
+      adventure_dict = adventure.copy()
+      adventure_dict["rooms"].remove(id)
+      adventure_dict["rooms"].append(new_id)
+      adventures.update_one({"name": adventure["name"]}, {"$set": adventure_dict})
 
 #deletes room from database
 def delete_room(id):

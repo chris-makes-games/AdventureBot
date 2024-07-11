@@ -82,7 +82,7 @@ async def editroom(ctx, id: str,
       try:
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
-        new_keys_list.append(f"{item} : {quantity}")
+        new_keys_list.append(f"{item} x{quantity}")
         if not database.get_key(item.strip()):
           warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
   
@@ -154,7 +154,7 @@ async def editroom(ctx, id: str,
     new_dict["url"] = url
     embed.add_field(name="URL", value=f"Old: {found_room['url']}\nNew: {url}", inline=False)
   if keys:
-    new_dict["keys"] = keys
+    new_dict["keys"] = new_keys
     embed.add_field(name="Keys", value=f"Old:\n{old_keys_string}\n\nNew:\n{new_keys_string}", inline=False)
   if hidden:
     new_dict["hidden"] = hidden
@@ -181,7 +181,7 @@ async def editroom(ctx, id: str,
     new_dict["reveal"] = reveal
     embed.add_field(name="Reveal", value=f"Old: {found_room['reveal']}\nNew: {reveal}", inline=False)
   if destroy:
-    new_dict["destroy"] = destroy
+    new_dict["destroy"] = new_destroy
     embed.add_field(name="Destroy", value=f"Old:\n{old_destroy_string}\nNew:\n{new_destroy_string}", inline=False)
   if not embed.fields:
     embed.description = "ERROR"

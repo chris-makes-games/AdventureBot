@@ -119,6 +119,8 @@ async def newroom(ctx,
 
   #creates room object
   try:
+    print("Keys being crteated:")
+    print(new_keys)
     new_room = Room(
     id=new_id, 
     description=description,
