@@ -270,7 +270,17 @@ def get_all_commands():
 #any new admin command needs to be added to this list
 def get_player_commands():
   all_commands = []
-  admin_commands = ["register", "load", "unload", "reload", "sync", "updaterooms", "ping", "activate", "deactivate", "newassistant", "newmaintainer", "updaterooms", "fixall"]
+  architect_commands = ["newroom", "newkey", "connectrooms", "editroom", "editkey", "deleteroom", "deletekey", "map", "newadventure", "preview"]
+  admin_commands = ["cupid", "register", "load", "unload", "reload", "sync", "updaterooms", "ping", "activate", "deactivate", "newassistant", "newmaintainer", "updaterooms", "fixall", "viewall"]
+  for cmd_file in CMDS_DIR.glob("*.py"):
+    if cmd_file.name != "__init__.py" and cmd_file.name[:-3] not in admin_commands and cmd_file.name[:-3] not in architect_commands:
+      all_commands.append(cmd_file.name[:-3])
+  return all_commands
+
+#returns regular commands plus architect commands
+def get_architect_commands():
+  all_commands = []
+  admin_commands = ["cupid", "register", "load", "unload", "reload", "sync", "updaterooms", "ping", "activate", "deactivate", "newassistant", "newmaintainer", "updaterooms", "fixall", "viewall"]
   for cmd_file in CMDS_DIR.glob("*.py"):
     if cmd_file.name != "__init__.py" and cmd_file.name[:-3] not in admin_commands:
       all_commands.append(cmd_file.name[:-3])

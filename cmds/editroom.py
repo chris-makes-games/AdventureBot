@@ -15,20 +15,21 @@ displayname="The title of the room displayed to players",
 description="Main description of the room displayed to players. Usually second person.",
 entrance="Description of a choice that leads to this room",
 alt_entrance="Description of the choice when the room is blocked and cannot be selected",
-exits= "IDs of rooms that can be selected from this room, separated by commas",
+exits= "IDs of rooms that can be selected to travel to from this room, separated by commas",
 url= "URL to an image to display in the room next to the description",
 hidden= "This room will not appear as a choice unless the player has the keys in 'reveal'",
 locked= "The choice for this room will be alt_text and be unselectable unless player has keys in 'unlock'",
 once= "If the player selects the option to go into this room, the option to do so will not appear again",
 end= "Room that ends the adventure. Include a deathnote if the ending is a death",
-deathnote="For endings that kill the player, describe how they died. No pronouns",
+deathnote="For endings that kill the player, describe how they died. Ex; 'Killed by X during Y'",
 keys= "Keys that will be given when they enter the room, separate by commas. <keyid> 1, <keyid> 4",
 destroy= "Keys that will be removed from the player if they enter this room. Separate by commas",
-lock= "Room becomes locked. Example: key1 > 4 and key2 = 0",  
-unlock= "Room will unlock if locked",  
-hide= "Room will become hidden",  
-reveal= "Room will be revealed if hidden"
+lock= "Room becomes locked if player possesses these keys. Can use math expression",  
+unlock= "Room will unlock if locked, if player possesses these keys. Can use math expression",  
+hide= "Room will become hidden if player posesses these keys. Can use math expression",  
+reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression"
 )
+
 async def editroom(ctx, id: str,
     #giant block of optional arguments!
     new_id: str | None = None,
