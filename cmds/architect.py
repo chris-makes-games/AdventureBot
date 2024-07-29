@@ -60,7 +60,7 @@ async def architect(ctx, command=None):
     
 
   else:
-    embed = formatter.help(command)
+    embed = discord.Embed(title=f"Unknown Term", description=f"That term {command} was not recognized. Try /architect for a list of all the terms you can use with the architect command. If you are having issues, please conact Ironically-Tall.")
 
 
   await ctx.reply(embed=embed, ephemeral=True)
