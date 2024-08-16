@@ -1,5 +1,3 @@
-import formatter
-
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -10,7 +8,7 @@ from discord.ext import commands
 @commands.hybrid_command()
 async def architect(ctx, term=None):
   if term:
-    command = term.lower()
+    term = term.lower()
   if not term:
     #basic info if no term specified
     embed = discord.Embed(title="Architect Information", description="Architects are able to create thier own adventures. You can read about how to do that here. If you have more specific questions about how things work, try /architect <topic> for one of the topics below. Feel free to ask Ironically-Tall if you still have questions.", color=discord.Color.yellow())
@@ -71,7 +69,7 @@ async def architect(ctx, term=None):
 
   await ctx.reply(embed=embed, ephemeral=True)
 
-@architect.autocomplete("command")
+@architect.autocomplete("term")
 async def autocomplete_help(interaction: discord.Interaction, current: str):
   all_commands = ["Adventures", "Rooms", "Keys", "Journal", "Inventory", "Operators"]
   choices = []

@@ -8,10 +8,10 @@ import database  #mongodb database
 
 # USE THESE LINES TO SWAP BETWEEN TEST AND LIVE
 #token for use with discord API
-#my_secret = os.environ['TOKEN']
-
+my_secret = os.environ['TOKEN'] #live
+ 
 #test token for test branch
-my_secret = os.environ['TEST_TOKEN']
+#my_secret = os.environ['TEST_TOKEN'] #test
 
 #intents rescricts scope of discord bot
 intents = discord.Intents().all()
@@ -27,16 +27,14 @@ protectedchannels = [
   908522799772102739,
   1183954110513414164,
   1187417491576729620,
-  1192186126623064084
+  1192186126623064084,
+  1273689927305007137
 ]
 
 #bot will be the async client for running commands
 #remove help to replace with my own
 bot = commands.Bot(command_prefix='!', intents=intents)
 bot.remove_command('help')
-
-#guild IDs that the bot is in, for now
-guild_ids = [730468423586414624]
 
 #sets the parent directory of the bot
 BASE_DIR = pathlib.Path(__file__).parent

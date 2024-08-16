@@ -14,7 +14,7 @@ async def adventures(ctx):
   authors = []
   word_counts = []
   all_players = []
-  total_plays = []
+  all_playcounts = []
   if guild is None:
     return
   for adventure in adventures:
@@ -22,6 +22,8 @@ async def adventures(ctx):
     players = database.get_players_in_adventure(adventure["name"])
     if players:
       all_players.append(players)
+    else:
+      all_players.append("0")
     for roomid in adventure["rooms"]:
       found_room = database.get_room(roomid)
       if found_room:
@@ -29,7 +31,7 @@ async def adventures(ctx):
     word_counts.append(word_count)
     adventure_names.append(adventure["name"])
     descriptions.append(adventure["description"])
-    total_plays.append(adventure["total_plays"])
+    all_playcounts.append(adventure["total_plays"])
     author_id = adventure["author"]
     author = guild.get_member(author_id)
     if author:
@@ -42,7 +44,13 @@ async def adventures(ctx):
   else:
     embed = discord.Embed(title="Adventures", description="These are the adventures you can join. Before you can try an adventure, you must first use /newplayer to get started. More adventures will be available later!", color=0x00ff00)
   for i in range(len(adventure_names)):
-    embed.add_field(name=adventure_names[i].title(), value=f"{descriptions[i]}\nCreated by: ***{authors[i]}***\nWord count: {word_counts[i]}\nCurrent Players: {all_players[i]}\nTotal Plays: {total_plays[i]}", inline=False)
+    name = adventure_names[i]
+    description = descriptions[i]
+    author = authors[i]
+    word_count = word_counts[i]
+    players = all_players[i]
+    total_plays = all_playcounts[i]
+    embed.add_field(name=name.title(), value=f"{description}\nCreated by: ***{author}***\nWord count: {word_count}\nCurrent Players: {players}\nTotal Plays: {total_plays}", inline=False)
   await ctx.reply(embed=embed, ephemeral=True)
   return
 
