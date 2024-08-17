@@ -5,7 +5,7 @@ from discord.ext import commands
 
 #command for architect details about creating content
 #works like help command but for architects
-@commands.hybrid_command()
+@commands.hybrid_command(name= "architect", description= "Help for architects to make adventures")
 async def architect(ctx, term=None):
   if term:
     term = term.lower()

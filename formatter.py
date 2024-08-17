@@ -145,7 +145,6 @@ def help(helpword):
     help_info["join"] + "\n" +
     help_info["leave"] + "\n" +
     help_info["adventures"] + "\n" +
-    help_info["info"] + "\n" +
     help_info["inventory"] + "\n" +
     help_info["combine"] + "\n" + 
     help_info["deconstruct"] + "\n" +

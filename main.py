@@ -8,10 +8,9 @@ import database  #mongodb database
 
 # USE THESE LINES TO SWAP BETWEEN TEST AND LIVE
 #token for use with discord API
-my_secret = os.environ['TOKEN'] #live
- 
-#test token for test branch
-#my_secret = os.environ['TEST_TOKEN'] #test
+test = False
+my_secret = os.environ['TEST_TOKEN'] if test else os.environ['TOKEN'] 
+
 
 #intents rescricts scope of discord bot
 intents = discord.Intents().all()
