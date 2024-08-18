@@ -6,9 +6,8 @@ from discord.ext import commands  #commands for bot
 
 import database  #mongodb database
 
-# USE THESE LINES TO SWAP BETWEEN TEST AND LIVE
 #token for use with discord API
-test = False
+test = True #SWAP BETWEEN TEST AND LIVE
 my_secret = os.environ['TEST_TOKEN'] if test else os.environ['TOKEN'] 
 
 
