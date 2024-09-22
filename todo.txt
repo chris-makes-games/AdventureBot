@@ -1,35 +1,29 @@
-TODO TRIAGE JUNE
+TODO
   Keys
-- newkey/editkey command
 - inventory/journal system
 - combine/deconstruct
 
   Rooms
 - user input validation
+    - rooms can only have max 5 exits
 - ending/death handling
 - complex boolean testing with keys
+
+  Inventory/Journal
+- need buttons which appear as player gets them
+- recheck inventory management
 
   Misc
 - Help Commands
 - ConfirmButton options
-- Mapper reconfig
+- Mapper reconfig (deprecated)
 ------------------------------
 
   Future
 - Persistent Buttons
-- Update Formatter
+- Update Formatter 
 - Dialogue Trees/quicktime events
 - player HP
 - Coauthor options
 
 ------------------------------
-
-List of possible Adventure Styles:
-- strict CYOA
-  (no ends, no keys, no nonliniar paths)
-
-- Dungeon Crawler
-  (nonlinear paths, keys to unlock, traps and secrets)
-
-- Dating Sim
-  (dialogue options, keys as favor points, semi-linear)

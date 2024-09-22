@@ -26,7 +26,29 @@ class RoomButton(discord.ui.Button):
     self.disabled = disabled
     self.row = row
   async def callback(self, interaction: discord.Interaction):
-      await move_player(interaction, self.destination)
+    await move_player(interaction, self.destination)
+
+#button class for inventory and journal buttons
+#button opens a journal or inventory and closes the current room
+class KeyButton(discord.ui.Button):
+  def __init__(self, type, disabled=False, row=1, playerdict):
+    if type == "inventory":
+      label = "Inventory"
+      emoji = "🎒"
+    elif type == "journal":
+      label = "Journal"
+      emoji = "📜"
+    else:
+      pp("ERROR - Keybutton must have type of inventory or journal")
+      label = "ERROR"
+      emoji = "❌"
+    super().__init__(label=label, emoji=emoji, style=discord.ButtonStyle.gray)
+    self.type = type
+    self.disabled = disabled
+    self.row = row
+    self.playerdict = playerdict
+  async def callback(self, interaction: discord.Interaction):
+    await open_menu(interaction, playerdict, self.type)
 
 #simple button class to confirm or cancel any action
 #can be placed on any embed that requires a confirmation
@@ -270,7 +292,7 @@ def get_all_commands():
 #any new admin command needs to be added to this list
 def get_player_commands():
   all_commands = []
-  architect_commands = ["newroom", "newkey", "connectrooms", "editroom", "editkey", "deleteroom", "deletekey", "map", "newadventure", "preview"]
+  architect_commands = ["architect","newroom", "newkey", "connectrooms", "editroom", "editkey", "deleteroom", "deletekey", "map", "newadventure", "preview"]
   admin_commands = ["cupid", "register", "load", "unload", "reload", "sync", "updaterooms", "ping", "activate", "deactivate", "newassistant", "newmaintainer", "updaterooms", "fixall", "viewall"]
   for cmd_file in CMDS_DIR.glob("*.py"):
     if cmd_file.name != "__init__.py" and cmd_file.name[:-3] not in admin_commands and cmd_file.name[:-3] not in architect_commands:
@@ -310,6 +332,14 @@ def process_player_keys(found_keys, current_keys, history):
       if key["unique"]:
         new_history.append(key["id"])
   return found_keys, new_keys, new_history
+
+async def open_menu(interaction, playerdict, type):
+  embed = discord.Embed
+  view = discord.ui.View
+  if type == "inventory":
+    embed, view = await embed_inventory(interaction, playerdict)
+  elif type == "journal":
+    embed, view = await embed_journal(interaction, playerdict)
     
 #moves player to a new room
 #sends an embed with the new room's description and buttons
@@ -384,7 +414,6 @@ async def embed_inventory(player_dict):
       else:
         embed.add_field(name=f"{found_key['name']}", value=f"{found_key['discription']}" , inline=False)
       counted_keys.append(found_key)
-
   view = discord.ui.View()
   return embed, view
 
@@ -416,7 +445,6 @@ async def embed_journal(player_dict):
       else:
         embed.add_field(name=f"Entry {count}", value=f"{found_key['note']}" , inline=False)
     count += 1
-
   view = discord.ui.View()
   return embed, view
 
@@ -484,9 +512,9 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     embed.add_field(name="Exits", value="There are no exits from this room. This is the end of the line. Unless this room is broken? You might have to /leave this adventure to get out.", inline=False)
   if len(room_dict["exits"]) == 1:
     embed.add_field(
-  name="You have only one option.",value="press the button below to continue:", inline=False)
+  name="You have only one option.",value="press the button below to continue", inline=False)
   else:
-    embed.add_field(name="Make a Choice", value="Click a button below to continue:", inline=False)
+    embed.add_field(name="Make a Choice", value="Click a button below to continue", inline=False)
   for room_id in room_dict["exits"]:
     found_room = get_room(room_id)
     #no room found in database
