@@ -31,11 +31,11 @@ class RoomButton(discord.ui.Button):
 #button class for inventory and journal buttons
 #button opens a journal or inventory and closes the current room
 class KeyButton(discord.ui.Button):
-  def __init__(self, type, disabled=False, row=1, playerdict):
-    if type == "inventory":
+  def __init__(self, button_type, playerdict, disabled=False, row=1,):
+    if button_type == "inventory":
       label = "Inventory"
       emoji = "🎒"
-    elif type == "journal":
+    elif button_type == "journal":
       label = "Journal"
       emoji = "📜"
     else:
@@ -43,12 +43,12 @@ class KeyButton(discord.ui.Button):
       label = "ERROR"
       emoji = "❌"
     super().__init__(label=label, emoji=emoji, style=discord.ButtonStyle.gray)
-    self.type = type
+    self.button_type = button_type
     self.disabled = disabled
     self.row = row
     self.playerdict = playerdict
   async def callback(self, interaction: discord.Interaction):
-    await open_menu(interaction, playerdict, self.type)
+    await open_menu(interaction, self.playerdict, self.button_type)
 
 #simple button class to confirm or cancel any action
 #can be placed on any embed that requires a confirmation
@@ -310,36 +310,59 @@ def get_architect_commands():
 
 #gives player key in room if applicable
 #adds keys to history if applicable
+#found_keys and current_keys are now dicts
+#histories are still lists of IDs
 def process_player_keys(found_keys, current_keys, history):
   print("found keys:")
-  print(found_keys)
+  pp(found_keys)
+  print("current keys:")
+  pp(current_keys)
   new_keys = current_keys
   new_history = history
-  for key in found_keys:
-    key = keys.find_one({"id": key})
-    number = key.value
+  new_found_keys = {}
+  errors = []
+  for pair in found_keys:
+    #key, value pair in dict of found keys
+    key_id = pair.key
+    key_amount = pair.value
+    key = keys.find_one({"id": key_id})
+    #skips if no such key by that ID
     if not key:
       print("ERROR - Room key not found!")
-      print(f"key {key.key} does not exist")
+      print(f"key {key_id} does not exist")
+      errors.append(f"Key `{key_id}` does not exist!\nPlease notify the room author!")
       continue
+    #skips key if player has one already and key isn't stackable
     if key["id"] in current_keys and not key["stackable"]:
       continue
+    #skips if player had unique key but lost it
+    if key["id"] in history and key["unique"]:
+      continue
+    #skips if player already has unique key
+    if key["id"] in current_keys and key["unique"]:
+      continue
+    #succeeds if player doesnt have the key or has one but it's stackable
     if key["id"] not in current_keys or key["repeating"]:
-      if key["unique"] and key["id"] in history:
-        continue
-      new_keys.append(key["id"])
-      found_keys.append(key["id"])
-      if key["unique"]:
+      #increments the keys if player can have more
+      new_amount = current_keys[key_id].value + key_amount
+      new_keys.update({key_id : new_amount})
+      new_found_keys.update({key_id : key_amount})
+      if key["id"] not in history:
         new_history.append(key["id"])
-  return found_keys, new_keys, new_history
+  print("new found keys:")
+  pp(found_keys)
+  print("new current keys:")
+  pp(current_keys)
+  print("new history:")
+  pp(new_history)
+  return new_found_keys, new_keys, new_history, errors
 
+#when one of the menu buttons are clicked, opens the appropriate embed
 async def open_menu(interaction, playerdict, type):
-  embed = discord.Embed
-  view = discord.ui.View
   if type == "inventory":
-    embed, view = await embed_inventory(interaction, playerdict)
+    await embed_inventory(interaction, playerdict)
   elif type == "journal":
-    embed, view = await embed_journal(interaction, playerdict)
+    await embed_journal(interaction, playerdict)
     
 #moves player to a new room
 #sends an embed with the new room's description and buttons
@@ -347,6 +370,7 @@ async def move_player(interaction, destination):
   guild = interaction.guild
   player = get_player(interaction.user.id)
   new_room = get_room(destination)
+  errors =[]
   if player and new_room:
     keys = player["keys"]
     destroy = new_room["destroy"]
@@ -356,7 +380,6 @@ async def move_player(interaction, destination):
     print("history: " + str(history))
     newroomname = new_room["id"]
     newroomauthor = new_room["author"]
-    guild = interaction.guild
     author = guild.get_member(newroomauthor).display_name
     if not author:
       author = "Unknown"
@@ -368,7 +391,7 @@ async def move_player(interaction, destination):
   #if the room has keys, process keys
   if new_room["keys"]:
     pp("keys found!" + str(new_room["keys"]))
-    found_keys, new_keys, new_history = process_player_keys(new_room["keys"], player["keys"], player["history"])
+    found_keys, new_keys, new_history, errors = process_player_keys(new_room["keys"], player["keys"], player["history"])
   else:
     pp("no keys found!")
     new_keys = keys
@@ -393,9 +416,14 @@ async def move_player(interaction, destination):
   embed = tuple[0]
   view = tuple[1]
   await interaction.response.edit_message(embed=embed, view=view)
+  if errors:
+    error_message = "ERRORS FOUND IN ROOM:\n"
+    for error in errors:
+      error_message += error + "\n"
+    await interaction.followup.send(error_message, ephemeral=True)
 
 #returns an inventory of the player with view
-async def embed_inventory(player_dict):
+async def embed_inventory(interaction, player_dict):
   embed = discord.Embed(title="Inventory", color=0x00ff00)
   counted_keys = []
   for key in player_dict["keys"]:
@@ -415,10 +443,10 @@ async def embed_inventory(player_dict):
         embed.add_field(name=f"{found_key['name']}", value=f"{found_key['discription']}" , inline=False)
       counted_keys.append(found_key)
   view = discord.ui.View()
-  return embed, view
+  await interaction.response.edit_message(embed=embed, view=view)
 
 #returns a journal of the player with view
-async def embed_journal(player_dict):
+async def embed_journal(interaction, player_dict):
   all_keys = {}
   for key in keys.find():
     all_keys[key["id"]] = key
@@ -446,7 +474,7 @@ async def embed_journal(player_dict):
         embed.add_field(name=f"Entry {count}", value=f"{found_key['note']}" , inline=False)
     count += 1
   view = discord.ui.View()
-  return embed, view
+  await interaction.response.edit_message(embed=embed, view=view)
 
 #room logic comparator
 async def comparator(string, keys_dict):
@@ -783,8 +811,8 @@ def create_new_key(dict):
   print("creating new key:")
   pp(dict)
   keys.insert_one(dict)
-  id = {"id": dict["id"], "type" : "key", "displayname": dict["displayname"], "author": dict["author"]}
-  ids.insert_one(id)
+  ids.insert_one(dict["id"])
+  print(f"key created! id: {dict['id']}")
 
 #updates key in database
 def update_key(dict, delete=""):

@@ -4,8 +4,6 @@ TODO
 - combine/deconstruct
 
   Rooms
-- user input validation
-    - rooms can only have max 5 exits
 - ending/death handling
 - complex boolean testing with keys
 
@@ -17,6 +15,13 @@ TODO
 - Help Commands
 - ConfirmButton options
 - Mapper reconfig (deprecated)
+
+  Error Handling
+- Only 5 exits
+- Character limit for exits
+- Can't have the same key twice in a room
+- Reject giving player more than one stackable key?
+
 ------------------------------
 
   Future
