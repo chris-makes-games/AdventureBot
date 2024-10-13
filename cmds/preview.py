@@ -17,6 +17,11 @@ import perms_ctx as permissions
     app_commands.Choice(name="Player", value="Player"),
     ])
 async def preview(ctx, type: app_commands.Choice[str], id : str):
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
+    return
   #allows to look at a player if admin
   if type.name == "Player":
     print(f"finding player: {id}")

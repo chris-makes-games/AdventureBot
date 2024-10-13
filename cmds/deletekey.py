@@ -11,6 +11,11 @@ import perms_ctx as permissions
 #deletes an key from the database
 @commands.hybrid_command(name="deletekey", description="Delete an key by its ID")
 async def deletekey(ctx, id: str):
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
+    return
   key = database.keys.find_one({"id": id})
   if not key:
     await ctx.reply("Error: Item not found! Double check your key ID!", ephemeral=True)

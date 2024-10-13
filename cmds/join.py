@@ -1,11 +1,12 @@
+import formatter
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 import database
-import formatter
-from player import Player
 import perms_ctx as permissions
+from player import Player
 
 
 #player join an adventure
@@ -15,25 +16,24 @@ async def join(ctx, adventure_name : str):
   truename = ctx.author.id
   displayname = ctx.author.display_name
   channel = ctx.channel
-  player = database.get_player(truename)
   adventure = database.get_adventure(adventure_name)
-  #if no player is found in the database
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
   if not player:
-    embed = formatter.embed_message(displayname, "Error", "notplayer" , "red")
-    await ctx.reply(embed=embed, ephemeral=True)
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
   #if the correct thread does not exist anymore
-  if player["guild_thread"] and not permissions.thread_exists(ctx):
+  if player["thread"] and not permissions.thread_exists(ctx):
     confirm = await database.confirm_embed("It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your old adventure and start a new one?", action="join", channel=None, title="Thread Deleted!")
     embed = confirm[0]
     view = confirm[1]
     await ctx.reply(embed=embed, view=view)
     return
   #if the player is already in an adventure
-  if player["guild_thread"]:
-    guild_thread = player["guild_thread"]
-    guild = ctx.bot.get_guild(guild_thread[0])
-    thread = guild.get_thread(guild_thread[1])
+  if player["guild"]:
+    play_thread = player["play_thread"]
+    guild = ctx.bot.get_guild(player["guild"])
+    thread = guild.get_thread(play_thread)
     link = f"https://discord.com/channels/{guild.id}/{thread.id}"
     await ctx.reply(f"You are already in an adventure! If you want to start a new adventure, you must use /leave in this one first:\n{link}", ephemeral=True, suppress_embeds=True)
     return
@@ -57,7 +57,7 @@ async def join(ctx, adventure_name : str):
       await ctx.reply("Error - Channel is not a text channel.", ephemeral=True)
       return
     #player object generated from player class
-    player = Player(discord=truename, displayname=displayname, room=adventure["start"], guild_thread=[guild.id, thread.id])
+    player = Player(discord=truename, displayname=displayname, room=adventure["start"], guild=guild.id, play_thread=thread.id)
     database.update_player(player.__dict__)
     room = database.get_player_room(truename)
     #error if the start room is not found

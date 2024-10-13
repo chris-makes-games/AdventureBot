@@ -75,14 +75,6 @@ async def on_message(message):
     return
   if message.channel.id in protectedchannels:
     await bot.process_commands(message)
-  else:
-    # makes sure that player can only respond to specific thread
-    player_id = message.author.id
-    player_channel_id = database.get_player_info(player_id, "guild_thread")
-    if message.channel.id != player_channel_id:
-      return
-    else:
-      await bot.process_commands(message)
 
 #runs the bot and throws generic errors
 try:

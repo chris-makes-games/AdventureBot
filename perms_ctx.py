@@ -8,10 +8,13 @@ def correct_game_thread(ctx):
   player = database.get_player(ctx.author.id)
   if player is None:
     return False
-  guild_thread = player["guild_thread"]
-  if ctx.channel.id in guild_thread and ctx.guild.id in guild_thread:
-      return True
-  return False
+  guild = player["guild"]
+  thread = player["thread"]
+  if guild != ctx.guild.id:
+    return False
+  if thread != ctx.channel.id:
+    return False
+  return True
 
 #checks if the message is sent in a valid edit thread
 def correct_edit_thread(ctx):
@@ -19,25 +22,20 @@ def correct_edit_thread(ctx):
   if player is None:
     return False
   edit_thread = player["edit_thread"]
-  if ctx.channel.id == edit_thread:
-      return True
-  return False
+  return ctx.channel.id == edit_thread
 
 #checks if the thread the player was in still exists
 def thread_exists(ctx):
   player = database.get_player(ctx.author.id)
   if player is None:
     return False
-  guild_thread = player["guild_thread"]
-  if player is None:
+  guild = player["guild"]
+  if guild is None:
     return False
-  if guild_thread is None:
-    return False
-  guild = ctx.bot.get_guild(guild_thread[0])
-  thread = guild.get_thread(guild_thread[1])
-  if thread:
-    return True
-  return False
+  thread = player["play_thread"]
+  guild = ctx.bot.get_guild(guild)
+  found_thread = guild.get_thread(thread)
+  return bool(found_thread)
 
 #checks for guild admin permissions
 def is_admin(ctx):

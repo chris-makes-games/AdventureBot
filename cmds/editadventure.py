@@ -15,6 +15,11 @@ import database
   app_commands.Choice(name="Description", value="description")])
 
 async def editadventure(ctx, name: str, attribute: app_commands.Choice[str], value: str, epilogue : bool, ready :bool):
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
+    return
   # Retrieve adventure and verify author
   adventure = database.adventures.find_one({"name": name})
   if not adventure:

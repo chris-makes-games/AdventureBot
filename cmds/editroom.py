@@ -51,6 +51,13 @@ async def editroom(ctx, id: str,
     hide: str | None = None,
     reveal : str | None = None
                   ):
+
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
+    return
+  
   #ensures the room ID entered is valid
   found_room = database.rooms.find_one({"id": id})
   if not found_room:

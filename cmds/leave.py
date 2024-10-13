@@ -15,12 +15,13 @@ async def leave(ctx):
   displayname = ctx.author.display_name
   player = database.get_player(truename)
   guild = ctx.guild
-  #if the player is not in the database
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
   if not player:
-    await ctx.reply("You are not registered as a player! You must use /newplayer to begin", ephemeral=True)
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
   #if the guild thread is empty
-  if not player["guild_thread"]:
+  if not player["play_thread"]:
     await ctx.reply("You are not in an adventure! Try to /join an adventure first. Use /adventures for a list of available adventures.", ephemeral=True)
     return
   #if the proper thread does not exist
@@ -31,11 +32,10 @@ async def leave(ctx):
     await ctx.defer(ephemeral=True)
     await ctx.reply(embed=embed, view=view, ephemeral=True)
     return
-  guild_thread = player["guild_thread"]
   #if the command isn't sent in the correct thread
   if not permissions.correct_game_thread(ctx):
-    guild = ctx.bot.get_guild(guild_thread[0])
-    thread = guild.get_thread(guild_thread[1])
+    guild = ctx.bot.get_guild(player["guild"])
+    thread = guild.get_thread(player["thread"])
     link = f"https://discord.com/channels/{guild.id}/{thread.id}"
     await ctx.reply(f"You must send this command in your adventure thread. Use /leave in the thread to leave your adventure:\n{link}", ephemeral=True, suppress_embeds=True)
     return

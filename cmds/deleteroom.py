@@ -11,6 +11,11 @@ import perms_ctx as permissions
 #deletes a single room from the database
 @commands.hybrid_command(name="deleteroom", description="Delete a room by its ID")
 async def deleteroom(ctx, room_id: str):
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
+    return
   # Retrieve room information from the database based on room_id
   room = database.rooms.find_one({"id": room_id})
   if not room:

@@ -12,6 +12,11 @@ import perms_ctx as permissions
 #notably does not delete the rooms in the adventure
 @commands.hybrid_command(name="deleteadventure", description="Deletes an adventure by its name")
 async def deleteadventure(ctx, adventure_name: str):
+  #checks if player is in database
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
+    return
   adventure = database.adventures.find_one({"name": adventure_name})
   if not adventure:
     await ctx.reply("Error: Adventure not found! Double check your Advenutre name!", ephemeral=True)

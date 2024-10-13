@@ -17,7 +17,7 @@ async def resend(ctx):
   author = ctx.guild.get_member(room["author"]).display_name
   if not author:
     author = "Unknown"
-  thread = ctx.guild.get_thread(player["guild_thread"][1])
+  thread = ctx.guild.get_thread(player["play_thread"])
   if not thread:
     await ctx.reply(f"{ctx.author.mention} It seems the thread you were playing in was deleted... Creating a new thread...", ephemeral=True)
     thread = await ctx.channel.create_thread(name=f"{ctx.author.display_name} playing {room['adventure']}")

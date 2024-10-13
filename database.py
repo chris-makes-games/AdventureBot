@@ -79,7 +79,7 @@ class ConfirmButton(discord.ui.Button):
       await interaction.delete_original_response()
     #player wants to leave an adventure
     elif self.action == "leave":
-      update_player({"disc" : interaction.user.id, "guild_thread" : None, "room" : None})
+      update_player({"disc" : interaction.user.id, "play_thread" : None, "room" : None})
       guild = interaction.guild
       if not guild:
         await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)

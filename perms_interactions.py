@@ -6,7 +6,7 @@ import database
 #checks if the message is being sent in a thread that belongs to the player sending the message
 def thread_check(interaction):
   player = database.get_player(interaction.user.id)
-  return player and interaction.channel.id in player["game_threads"]
+  return player and interaction.channel.id in player["play_thread"]
 
 #checks for guild admin permissions
 def is_admin(interaction):

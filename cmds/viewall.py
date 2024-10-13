@@ -12,6 +12,9 @@ import perms_ctx as permissions
 # Can also preview player info, but only as a maintainer
 @commands.hybrid_command(name="viewall", description="Shows all the keys and rooms you've created")
 async def viewall(ctx):
+  if not permissions.is_assistant_or_maintainer(ctx):
+    await ctx.reply("You don't have permission to use this command")
+    return
   #shows all rooms
   all_rooms = database.rooms.find({"author": ctx.author.id})
   for room in all_rooms:
