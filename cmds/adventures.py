@@ -15,8 +15,6 @@ async def adventures(ctx):
   word_counts = []
   all_players = []
   all_playcounts = []
-  if guild is None:
-    return
   for adventure in adventures:
     word_count = 0
     players = database.get_players_in_adventure(adventure["name"])
@@ -39,6 +37,14 @@ async def adventures(ctx):
     else:
       authors.append("Unknown")
   player = database.get_player(ctx.author.id)
+  if player and player["guild"] != guild.id:
+    old_guild = ctx.client.get_guild(player["guild"])
+    if old_guild:
+      await ctx.reply(f"You are already a player in a different server:\n{old_guild.name}\n Use /newplayer to delete your old data and start fresh in this server.", ephemeral=True)
+      return
+    else:
+      await ctx.reply("You are not a player in this server. It seems you were a player in a server that was deleted? If this is an error contact @sarnt\nUse /newplayer to start fresh.", ephemeral=True)
+      return
   if player:
     embed = discord.Embed(title="Adventures", description="These are the adventures you can join. Use /join to start an adventure. More adventures will be available later!", color=0x00ff00)
   else:

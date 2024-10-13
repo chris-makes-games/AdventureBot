@@ -15,7 +15,7 @@ async def deletekey(ctx, id: str):
   if not key:
     await ctx.reply("Error: Item not found! Double check your key ID!", ephemeral=True)
     return
-  if ctx.author.id == key["author"] or permissions.is_maintainer:
+  if ctx.author.id == key["author"] or permissions.check_any_admin:
     confirm = await database.confirm_embed(confirm_text=f"This will delete the key {key['displayname'].title()} permenantly, are you sure you want to do this?\n**THIS CANNOT BE UNDONE!**", title="Confirm Item Deletion", action="delete_key", channel=ctx.channel, id=id)
     embed = confirm[0]
     view = confirm[1]

@@ -24,7 +24,7 @@ async def deleteplayer(ctx, player_name: str):
     await ctx.send(embed=embed, view=view, ephemeral=True)
     return
   #if player is not trying to delete themselves, check permissions
-  if not permissions.is_admin and not permissions.is_maintainer:
+  if not permissions.is_maintainer:
     await ctx.reply("You do not have permission to use this command. Contact a server admin or bot maintainer.", ephemeral=True)
     print(f"User [{ctx.author.display_name}] tried to delete player [{player_name}] but does not have permission!")
     return

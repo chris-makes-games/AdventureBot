@@ -37,7 +37,7 @@ async def editkey(ctx, id : str,
   #checks if player is in database
   player = database.get_player(ctx.author.id)
   if not player:
-    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
 
   #warnings for subkeys not found

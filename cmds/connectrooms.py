@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 import database
+import perms_ctx as permissions
 
 
 @commands.hybrid_command(name="connectrooms", description="Connect one room to others. Mutual for two-way connects")
@@ -24,6 +25,18 @@ async def connectrooms(ctx, room1: str, room2: str,
     return
   if not room_2:
     await ctx.reply(f"ERROR: Room '{room2}' not found.", ephemeral=True)
+    return
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
+    return
+
+  perms_errors = []
+  for room in room_1, room_2, room_3, room_4, room_5:
+    if room and room["author"] != player["discord"] and not permissions.is_maintainer:
+      perms_errors.append(f"Room '{room['displayname']}' is not yours.\n")
+  if perms_errors:
+    await ctx.reply(f"ERROR: You do not have permission to connect those rooms!\n{perms_errors}", ephemeral=True)
     return
 
   embed = discord.Embed(title="Update Connecttions", description="Review the changes below and confirm the new connections:")

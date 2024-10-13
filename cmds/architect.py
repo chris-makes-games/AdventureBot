@@ -2,12 +2,18 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+import database
+
 
 #command for architect details about creating content
 #works like help command but for architects
 @commands.hybrid_command(name= "architect", description= "Help for architects to make adventures")
 @app_commands.describe(topic = "Optionally specify a specific architect topic")
 async def architect(ctx, topic=None):
+  player = database.get_player(ctx.author.id)
+  if not player:
+    await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
+    return
   if topic:
     topic = topic.lower()
   if not topic:

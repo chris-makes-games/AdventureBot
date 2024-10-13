@@ -138,9 +138,13 @@ class ConfirmButton(discord.ui.Button):
         rooms.update_one({"id": room_id}, {"$set": room_data})
       await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
       await interaction.delete_original_response()
+    elif self.action == "overwrite_player" and self.dict:
+      update_player(self.dict)
+      await interaction.followup.send("Player successfully overwritten!", ephemeral=True)
+      await interaction.delete_original_response()
     #catch-all for any other action
     else:
-      await interaction.followup.send(f"ERROR: That button has no interaction yet!\nAction: {self.action}", ephemeral=True)
+      await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction: {self.action}", ephemeral=True)
       return
 
 #deactivated valentines function
@@ -588,9 +592,9 @@ def valid_exit(keys, lock):
 #generic confirmation embed for yes/no
 #adds a ConfirmButton to itself at the bottom
 #action is the action that the button will do
-async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id=None):
+async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id=None, dict=None):
   embed = discord.Embed(title=title, description=confirm_text, color=discord.Color.orange())
-  confirm_button = ConfirmButton(label="Yes", confirm=True, action=action, channel=channel, id=id)
+  confirm_button = ConfirmButton(label="Yes", confirm=True, action=action, channel=channel, id=id, dict=dict)
   deny_button = ConfirmButton(label="No", confirm=False, action="cancel", channel=channel)
   view = discord.ui.View()
   view.add_item(confirm_button)
