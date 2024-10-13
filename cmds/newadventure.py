@@ -23,12 +23,16 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool=False):
     embed = formatter.blank_embed(displayname, "Error", "You are not a player. Please use /newplayer to begin. You can create an adventure once you've been added to the database", "red")
     await ctx.reply(embed=embed, ephemeral=True)
     return
+  #if the player already made an adventure
+  if player["owned_adventures"]:
+    embed = formatter.blank_embed(displayname, "Error", "You already have an adventure! You can only have one. Please use /editadventure to edit your adventure.", "red")
+    await ctx.reply(embed=embed, ephemeral=True)
+    return
   #if they are in giantessworld, make sure they are an architect
-  if ctx.guild.id == 730468423586414624:
-    if not permissions.has_role(ctx, "architect"):
-      embed = formatter.blank_embed(displayname, "Error", "You do not have permission to create an adventure. You need the architect role, please go to #role-select to get the role or contact Ironially-Tall", "red")
-      await ctx.reply(embed=embed, ephemeral=True)
-      return
+  if ctx.guild.id == 730468423586414624 and not permissions.has_role(ctx, "architect"):
+    embed = formatter.blank_embed(displayname, "Error", "You do not have permission to create an adventure. You need the architect role, please go to #role-select to get the role or contact Ironially-Tall", "red")
+    await ctx.reply(embed=embed, ephemeral=True)
+    return
   # Check if the author already has an adventure to edit
   if player["edit_thread"]:
     adventure = database.adventures.find_one({"author": truename})
@@ -61,7 +65,7 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool=False):
       thread = await channel.create_thread(name=f"{displayname} editing {name}")
       await thread.send(ctx.author.mention + ", your adventure is ready. Use the commands to add/edit keys and rooms in this thread. A start room was automatically created for you. Use /editroom to edit it.")
         # Update the player's editthread field with the new thread ID
-      database.update_player({'disc': truename, 'edit_thread': [thread.id, adventure.name]})
+      database.update_player({'disc': truename, 'edit_thread': [thread.id, adventure.name], 'owned_adventures': [name]})
       link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
       embed = formatter.blank_embed(displayname, "Success", f"{name} was created and your edit thread is ready:\n{link}", "green")
       await ctx.reply(embed=embed, ephemeral=True)
