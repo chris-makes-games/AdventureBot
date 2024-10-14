@@ -16,7 +16,9 @@ async def deleteplayer(ctx, user: discord.User):
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
-  deletedplayer = database.users.find_one({"discord": user.id})
+  print("user ID")
+  print(user.id)
+  deletedplayer = database.users.find_one({"disc": user.id})
   #checks if player is in the database
   if not deletedplayer:
     await ctx.send(f"ERROR: Player '{user.display_name}' not found.", ephemeral=True)
@@ -40,13 +42,6 @@ async def deleteplayer(ctx, user: discord.User):
     view = confirm[1]
     await ctx.send(embed=embed, view=view, ephemeral=True)
     return
-
-# returns ten players that match the typing of the player name
-@deleteplayer.autocomplete('player_name')
-async def autocomplete_deleteplayer(interaction: discord.Interaction, current: str):
-    players_query = database.get_all_players()
-    possible_players = [player["displayname"] for player in players_query if current.lower() in player["displayname"].lower()]
-    return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_players[:10]]
 
 async def setup(bot):
   bot.add_command(deleteplayer)

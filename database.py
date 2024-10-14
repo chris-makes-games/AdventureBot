@@ -79,69 +79,117 @@ class ConfirmButton(discord.ui.Button):
       await interaction.delete_original_response()
     #player wants to leave an adventure
     elif self.action == "leave":
-      update_player({"disc" : interaction.user.id, "play_thread" : None, "room" : None})
-      guild = interaction.guild
-      if not guild:
-        await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
-        await interaction.delete_original_response()
-        return
-      thread_id = self.id
-      if not thread_id:
-        await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
-        await interaction.delete_original_response()
-        return
-      thread = guild.get_thread(thread_id)
-      if thread:
-        await thread.delete()
-        await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
-        await interaction.delete_original_response()
-        return
+      try:
+        update_player({"disc" : interaction.user.id, "play_thread" : None, "room" : None})
+        guild = interaction.guild
+        if not guild:
+          await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
+          await interaction.delete_original_response()
+          return
+        thread_id = self.id
+        if not thread_id:
+          await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
+          await interaction.delete_original_response()
+          return
+        thread = guild.get_thread(thread_id)
+        if thread:
+          await thread.delete()
+          await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
+          await interaction.delete_original_response()
+          return
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Failed to leave adventure! There was an issue with the button press:\n{e}", ephemeral=True)
     #new room is created
     elif self.action == "new_room" and self.dict:
-      create_new_room(self.dict)
-      await interaction.followup.send(f"Room {self.dict['displayname']} successfully created!", ephemeral=True)
-      await interaction.delete_original_response()
+      try:
+        create_new_room(self.dict)
+        await interaction.followup.send(f"Room {self.dict['displayname']} successfully created!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Failed to create room! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #new key is created
     elif self.action == "new_key" and self.dict:
-      create_new_key(self.dict)
-      await interaction.followup.send(f"Key {self.dict['displayname']} successfully created!", ephemeral=True)
-      await interaction.delete_original_response()
+      try:
+        create_new_key(self.dict)
+        await interaction.followup.send(f"Key {self.dict['displayname']} successfully created!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Failed to create key! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #key deleted
     elif self.action == "delete_key":
-      delete_key(self.id)
-      await interaction.followup.send(f"Key {self.id} Deleted!", ephemeral=True)
+      try:
+        delete_key(self.id)
+        await interaction.followup.send(f"Key {self.id} Deleted!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Key was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #room deleted
     elif self.action == "delete_room":
-      delete_room(self.id)
-      await interaction.followup.send(f"Room {self.id} deleted!", ephemeral=True)
-      await interaction.delete_original_response()
+      try:
+        delete_room(self.id)
+        await interaction.followup.send(f"Room {self.id} deleted!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Room was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #adventure deleted
     elif self.action == "delete_adventure":
-      delete_adventure(self.id)
-      await interaction.followup.send(f"This would delete adventure {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
+      try:
+        delete_adventure(self.id)
+        await interaction.followup.send(f"Adventure {self.id} deleted!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Adventure was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #player deleted
     elif self.action == "delete_player":
-      await interaction.followup.send(f"This would delete player {self.id} but it's not implemented yet! Check database.ConfirmButton", ephemeral=True)
+      try:
+        delete_player(self.id)
+        await interaction.followup.send(f"Player {self.id} successfully deleted!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Player was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #edit room
     elif self.action == "edit_room":
-      update_room(self.dict)
-      await interaction.followup.send("Room successfully updated!", ephemeral=True)
-      await interaction.delete_original_response()
+      try:
+        update_room(self.dict)
+        await interaction.followup.send("Room successfully updated!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Room update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #edit key
     elif self.action == "edit_key":
-      update_key(self.dict)
-      await interaction.followup.send("Key successfully updated!", ephemeral=True)
-      await interaction.delete_original_response()
+      try:
+        update_key(self.dict)
+        await interaction.followup.send("Key successfully updated!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Key update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #connect rooms together using edit
     elif self.action == "connect" and self.dict:
-      for room_id, room_data in self.dict.items():
-        rooms.update_one({"id": room_id}, {"$set": room_data})
-      await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
-      await interaction.delete_original_response()
+      try:
+        for room_id, room_data in self.dict.items():
+          rooms.update_one({"id": room_id}, {"$set": room_data})
+        await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Rooms connection failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
+    #overwrite player data
     elif self.action == "overwrite_player" and self.dict:
-      update_player(self.dict)
-      await interaction.followup.send("Player successfully overwritten!", ephemeral=True)
-      await interaction.delete_original_response()
+      try:
+        update_player(self.dict)
+        await interaction.followup.send("Player successfully overwritten!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Player update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
     #catch-all for any other action
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction: {self.action}", ephemeral=True)
