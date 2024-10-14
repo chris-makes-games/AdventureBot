@@ -1,5 +1,5 @@
 class Player:
-  def __init__(self, discord, displayname, room, guild, owned_adventures=None, coauthor=None, play_thread=None, edit_thread=None, keys=None, alive=True, deaths=0, architect=False, history=None):
+  def __init__(self, discord, displayname, room, guild, owned_adventures=None, coauthor=None, play_thread=None, keys=None, alive=True, deaths=0, architect=False, history=None):
     self.disc = discord #their discord name
     self.displayname = displayname #their displayname in the server they became a player
     self.alive = alive #bool if they are alive
@@ -8,7 +8,6 @@ class Player:
     self.architect = architect #bool if they are an architect, used for architect commands
     self.guild = guild #the server ID where they were created as a player
     self.play_thread = play_thread #thread ID where they are currently playing
-    self.edit_thread = edit_thread #thread ID where they are currently editing
     
     #empty defaults turn to empty lists/dicts
     if history is None:

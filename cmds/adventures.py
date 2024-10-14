@@ -17,7 +17,7 @@ async def adventures(ctx):
   all_playcounts = []
   for adventure in adventures:
     word_count = 0
-    players = database.get_players_in_adventure(adventure["name"])
+    players = database.get_players_in_adventure(adventure["name"].title())
     if players:
       all_players.append(players)
     else:
@@ -27,7 +27,7 @@ async def adventures(ctx):
       if found_room:
         word_count += len(found_room["description"].split())
     word_counts.append(word_count)
-    adventure_names.append(adventure["name"])
+    adventure_names.append(adventure["name"].title())
     descriptions.append(adventure["description"])
     all_playcounts.append(adventure["total_plays"])
     author_id = adventure["author"]

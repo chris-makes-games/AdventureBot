@@ -16,7 +16,6 @@ room="The room ID the player is currently playing in",
 architect="Whether the player is an architect",
 guild="The server ID where the player was created",
 play_thread="The thread ID where the player is playing",
-edit_thread="The thread ID where the player is editing",
 owned_adventures="List of adventures owned by the player",
 coauthor="List of adventures where the player is allowed as coauthor",
 history="The list of all the IDs the player has encountered",
@@ -30,7 +29,6 @@ async def updateplayer(ctx, id : str,
   architect : bool | None = None,
   guild : str | None = None,
   play_thread : str | None = None,
-  edit_thread : str | None = None,
   owned_adventures : str | None = None,
   coauthor : str | None = None,
   history : str | None = None,
@@ -109,13 +107,6 @@ async def updateplayer(ctx, id : str,
     except Exception as e:
       await ctx.reply(f"Error: You must use a number for the play thread.\n{e}", ephemeral=True)
 
-  #casts edit_thread to int
-  new_edit_thread = None
-  if edit_thread is not None:
-    try:
-      new_edit_thread = int(edit_thread)
-    except Exception as e:
-      await ctx.reply(f"Error: You must use a number for the edit thread.\n{e}", ephemeral=True)
 
   new_dict = found_player.copy()
   embed = discord.Embed(title=f"Editing player: {found_player['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
@@ -137,9 +128,6 @@ async def updateplayer(ctx, id : str,
   if play_thread:
     new_dict["play_thread"] = new_play_thread
     embed.add_field(name="Play Thread", value=f"**Old:**{found_player['play_thread']}\n**New:** {play_thread}", inline=False)
-  if edit_thread:
-    new_dict["edit_thread"] = new_edit_thread
-    embed.add_field(name="Edit Thread", value=f"**Old:** {found_player['edit_thread']}\n**New:** {edit_thread}", inline=False)
   if owned_adventures:
     new_dict["owned_adventures"] = new_owned
     embed.add_field(name="Owned Adventures", value=f"**Old:** {found_player['owned_adventures']}\n**New:** {owned_string}", inline=False)

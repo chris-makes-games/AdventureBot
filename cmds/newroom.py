@@ -1,3 +1,5 @@
+import re
+
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -9,7 +11,8 @@ from room import Room
 #edits a room with whatever the user selects
 @commands.hybrid_command(name="newroom", description="Create a new room. Leave options blank to keep the default value")
 @app_commands.describe(
-id= "Optionally input your own unique ID, must be unique across ALL player IDs!",
+adventure="The adventure this new room will belong to. Case agnostic.",
+id="Optionally input your own unique ID, must be unique across ALL player IDs!",
 displayname="The title of the room displayed to players",
 description="Main description of the room displayed to players. Usually second person.",
 entrance="Description of a choice that leads to this room",
@@ -29,6 +32,7 @@ hide= "Room will become hidden if player posesses these keys. Can use math expre
 reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression")
 async def newroom(ctx,
     #giant block of arguments!
+    adventure,
     id : str | None = None,
     displayname : str= "Room Name",
     description : str="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.",
@@ -53,6 +57,18 @@ async def newroom(ctx,
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
     return
+
+  #adds the adventure name to the room
+  if not adventure:
+    await ctx.reply("ERROR: You must specify an adventure for this room.", ephemeral=True)
+    return
+  else:
+    found_adventure = database.get_adventure(adventure.lower())
+    if not found_adventure:
+      await ctx.reply(f"ERROR: The adventure {adventure} does not exist.", ephemeral=True)
+      return
+    else:
+      adventure_of_room = found_adventure["name"].title()
 
   warnings = []
 
@@ -111,12 +127,6 @@ async def newroom(ctx,
   if warnings:
     warnings = "\n".join(warnings)
 
-  #adds the adventure name to the room
-  if player["edit_thread"]:
-    adventure_of_room = player["edit_thread"][1]
-  else:
-    adventure_of_room = "Error: Unknown Adventure"
-
   #creates room object
   try:
     print("Keys being crteated:")
@@ -139,7 +149,7 @@ async def newroom(ctx,
     author=ctx.author.id, 
     adventure=adventure_of_room)
   except Exception as e:
-    await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.Error:\n{e}", ephemeral=True)
+    await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.\nError:\n{e}", ephemeral=True)
     return
   dict = new_room.__dict__
   embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: **{new_id}**\nAny room attributes not specified have been left at their default values.", description="Review the new room and select a button below:")
@@ -185,6 +195,23 @@ async def newroom(ctx,
   view.add_item(edit_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
+
+#returns adventures either owned or coauthored with matching name
+@newroom.autocomplete('adventure')
+async def autocomplete_newroom(interaction: discord.Interaction, current: str):
+  player = database.get_player(interaction.user.id)
+  coauthors = None if not player else player["coauthor"]
+  pattern = re.compile(re.escape(current), re.IGNORECASE)
+  owned_adventures_query = database.adventures.find({"author": interaction.user.id})
+  owned_adventures = [(adventure["name"], adventure["author"]) for adventure in owned_adventures_query]
+  coauthored_adventures_query = database.adventures.find({"name": {"$in": coauthors}})
+  coauthored_adventures = [(adventure["name"], adventure["author"]) for adventure in coauthored_adventures_query]
+  all_adventures = owned_adventures + coauthored_adventures
+  filtered_adventures = [
+        (adventurename, author) for adventurename, author in all_adventures if pattern.search(adventurename)
+    ]
+  choices = [app_commands.Choice(name=f"{adventurename}", value=adventurename) for adventurename, _ in filtered_adventures[:25]]
+  return choices
 
 async def setup(bot):
   bot.add_command(newroom)

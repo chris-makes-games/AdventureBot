@@ -33,30 +33,11 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool=False):
     embed = formatter.blank_embed(displayname, "Error", "You do not have permission to create an adventure. You need the architect role, please go to #role-select to get the role or contact Ironially-Tall", "red")
     await ctx.reply(embed=embed, ephemeral=True)
     return
-  # Check if the author already has an adventure to edit
-  if player["edit_thread"]:
-    adventure = database.adventures.find_one({"author": truename})
-    thread = ctx.guild.get_thread(player["edit_thread"][0])
-    #if the thread is broken/deleted, make a new one
-    if not thread:
-      embed = formatter.blank_embed(displayname, "Error", "It seems like the thread you were using to edit your previous adventure has been deleted. A new thread is being generated...", "red")
-      await ctx.reply(embed=embed, ephemeral=True)
-      thread = await channel.create_thread(name=f"{displayname} editing {player['edit_thread'][1]}")
-      await thread.send(ctx.author.mention + ", your new thread is ready. Use the commands to add/edit keys and rooms here.")
-      database.update_player({'disc': truename, 'edit_thread': [thread.id, adventure.name]})
-      link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
-      await ctx.reply(f"A new thread was created to edit your adventure:\n{link}", ephemeral=True, suppress_embeds=True)
-      return
-    #if the thread is still active, reply with link
-    else:
-      link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
-      embed = formatter.blank_embed(displayname, "Error", f"You already have an existing adventure. You cannot create more than one. Go to your editing thread to modify your adventure:\n{link}", "red")
-      await ctx.reply(embed=embed, ephemeral=True)
-      return
   #if no adventure found, create a new one
   else:
     start_room = database.create_blank_room(truename)
     start = start_room.id
+    name = name.lower()
     adventure = Adventure(name=name, start=start, rooms=[start], description=description, epilogue=epilogue, author=truename)
     database.adventures.insert_one(adventure.__dict__)
     # Then, create a new thread for editing this adventure
@@ -65,7 +46,7 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool=False):
       thread = await channel.create_thread(name=f"{displayname} editing {name}")
       await thread.send(ctx.author.mention + ", your adventure is ready. Use the commands to add/edit keys and rooms in this thread. A start room was automatically created for you. Use /editroom to edit it.")
         # Update the player's editthread field with the new thread ID
-      database.update_player({'disc': truename, 'edit_thread': [thread.id, adventure.name], 'owned_adventures': [name]})
+      database.update_player({'disc': truename, 'owned_adventures': [name]})
       link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
       embed = formatter.blank_embed(displayname, "Success", f"{name} was created and your edit thread is ready:\n{link}", "green")
       await ctx.reply(embed=embed, ephemeral=True)

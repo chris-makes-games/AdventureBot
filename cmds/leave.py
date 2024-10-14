@@ -35,7 +35,7 @@ async def leave(ctx):
   #if the command isn't sent in the correct thread
   if not permissions.correct_game_thread(ctx):
     guild = ctx.bot.get_guild(player["guild"])
-    thread = guild.get_thread(player["thread"])
+    thread = guild.get_thread(player["play_thread"])
     link = f"https://discord.com/channels/{guild.id}/{thread.id}"
     await ctx.reply(f"You must send this command in your adventure thread. Use /leave in the thread to leave your adventure:\n{link}", ephemeral=True, suppress_embeds=True)
     return

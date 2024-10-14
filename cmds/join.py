@@ -23,14 +23,14 @@ async def join(ctx, adventure_name : str):
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
   #if the correct thread does not exist anymore
-  if player["thread"] and not permissions.thread_exists(ctx):
+  if player["play_thread"] and not permissions.thread_exists(ctx):
     confirm = await database.confirm_embed("It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your old adventure and start a new one?", action="join", channel=None, title="Thread Deleted!")
     embed = confirm[0]
     view = confirm[1]
     await ctx.reply(embed=embed, view=view)
     return
   #if the player is already in an adventure
-  if player["guild"]:
+  if player["play_thread"]:
     play_thread = player["play_thread"]
     guild = ctx.bot.get_guild(player["guild"])
     thread = guild.get_thread(play_thread)

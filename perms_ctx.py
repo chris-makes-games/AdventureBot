@@ -9,20 +9,12 @@ def correct_game_thread(ctx):
   if player is None:
     return False
   guild = player["guild"]
-  thread = player["thread"]
+  thread = player["play_thread"]
   if guild != ctx.guild.id:
     return False
   if thread != ctx.channel.id:
     return False
   return True
-
-#checks if the message is sent in a valid edit thread
-def correct_edit_thread(ctx):
-  player = database.get_player(ctx.author.id)
-  if player is None:
-    return False
-  edit_thread = player["edit_thread"]
-  return ctx.channel.id == edit_thread
 
 #checks if the thread the player was in still exists
 def thread_exists(ctx):

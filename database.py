@@ -94,8 +94,6 @@ class ConfirmButton(discord.ui.Button):
         thread = guild.get_thread(thread_id)
         if thread:
           await thread.delete()
-          await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
-          await interaction.delete_original_response()
           return
       except Exception as e:
         await interaction.followup.send(f"ERROR: Failed to leave adventure! There was an issue with the button press:\n{e}", ephemeral=True)
@@ -134,6 +132,15 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Room was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        await interaction.delete_original_response()
+    #adventure edited
+    elif self.action == "edit_adventure":
+      try:
+        edit_adventure(self.id, self.dict)
+        await interaction.followup.send(f"Adventure {self.id} edited!", ephemeral=True)
+        await interaction.delete_original_response()
+      except Exception as e:
+        await interaction.followup.send(f"ERROR: Adventure was not edited! There was an issue with the button press:\n{e}", ephemeral=True)
         await interaction.delete_original_response()
     #adventure deleted
     elif self.action == "delete_adventure":
@@ -731,6 +738,11 @@ def create_blank_room(author_name, room_name="Blank Room"):
 def create_blank_adventure(author):
   adventure = Adventure(name="New Advenuture", author=author, start= "", description="Blank Description")
   adventures.insert_one(adventure.__dict__)
+
+#edits an adevnture by name using dict
+def edit_adventure(name, dict):
+  adventures.update_one({"name": name}, {"$set": dict})
+    
 
 #creates a blank key for testing purposes
 def create_blank_key(author):
