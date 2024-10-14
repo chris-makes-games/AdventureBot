@@ -103,7 +103,7 @@ async def editkey(ctx, id : str,
     embed.add_field(name="Repeating", value=f"**Old:** {found_key['repeating']}\n**New:** {repeating}", inline=False)
   if deconstruct:
     new_dict["deconstruct"] = deconstruct
-    embed.add_field(name="Deconstruct", value=f"**Old:** {found_key['decstruct']}\n**New:** {deconstruct}", inline=False)
+    embed.add_field(name="Deconstruct", value=f"**Old:** {found_key['deconstruct']}\n**New:** {deconstruct}", inline=False)
   if stackable:
     new_dict["stackable"] = stackable
     embed.add_field(name="Stackable", value=f"**Old:**{found_key['stackable']}\n**New:** {stackable}", inline=False)
