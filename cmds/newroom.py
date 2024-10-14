@@ -203,18 +203,15 @@ async def newroom(ctx,
 #returns adventures either owned or coauthored with matching name
 @newroom.autocomplete('adventure')
 async def autocomplete_newroom(interaction: discord.Interaction, current: str):
-  player = database.get_player(interaction.user.id)
-  coauthors = None if not player else player["coauthor"]
-  pattern = re.compile(re.escape(current), re.IGNORECASE)
-  owned_adventures_query = database.adventures.find({"author": interaction.user.id})
-  owned_adventures = [(adventure["name"], adventure["author"]) for adventure in owned_adventures_query]
-  coauthored_adventures_query = database.adventures.find({"name": {"$in": coauthors}})
-  coauthored_adventures = [(adventure["name"], adventure["author"]) for adventure in coauthored_adventures_query]
-  all_adventures = owned_adventures + coauthored_adventures
-  filtered_adventures = [
-        (adventurename, author) for adventurename, author in all_adventures if pattern.search(adventurename)
-    ]
-  choices = [app_commands.Choice(name=f"{adventurename}", value=adventurename) for adventurename, _ in filtered_adventures[:25]]
+  adventure_query = database.adventures.find(
+    {"author": interaction.user.id,
+      "$or": [
+{"name": {"$regex": re.escape(current), "$options": "i"}},
+         ]},
+{"name": 1, "author": 1, "_id": 0}
+    )
+  adventure_info = [(adventure["name"], adventure["author"]) for adventure in adventure_query]
+  choices = [app_commands.Choice(name=f"{name} - {author}", value=name) for name, author in adventure_info[:25]]
   return choices
 
 async def setup(bot):
