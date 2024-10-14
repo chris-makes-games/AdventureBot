@@ -118,13 +118,13 @@ async def updateplayer(ctx, id : str,
     embed.add_field(name="Edit Thread", value=f"**Old:** {found_player['edit_thread']}\n**New:** {edit_thread}", inline=False)
   if owned_adventures:
     new_dict["owned_adventures"] = new_owned
-    embed.add_field(name="Owned Adventures", value=f"**Old:** {found_player['owned_adventures']}\n**New:** {owned_adventures}", inline=False)
+    embed.add_field(name="Owned Adventures", value=f"**Old:** {found_player['owned_adventures']}\n**New:** {owned_string}", inline=False)
   if coauthor:
     new_dict["coauthor"] = new_coauthor
-    embed.add_field(name="Coauthor", value=f"**Old:** {found_player['coauthor']}\n**New:** {coauthor}", inline=False)
+    embed.add_field(name="Coauthor", value=f"**Old:** {found_player['coauthor']}\n**New:** {coauthor_string}", inline=False)
   if history:
     new_dict["history"] = new_history
-    embed.add_field(name="History", value=f"**Old:**{found_player['history']}\n**New:** {history}", inline=False)
+    embed.add_field(name="History", value=f"**Old:**{found_player['history']}\n**New:** {history_string}", inline=False)
   if keys:
     old_keys = ""
     for key in found_player["keys"]:
