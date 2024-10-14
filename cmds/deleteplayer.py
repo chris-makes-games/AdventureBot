@@ -16,8 +16,9 @@ async def deleteplayer(ctx, user: discord.User):
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
-  print("user ID")
-  print(user.id)
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   deletedplayer = database.users.find_one({"disc": user.id})
   #checks if player is in the database
   if not deletedplayer:

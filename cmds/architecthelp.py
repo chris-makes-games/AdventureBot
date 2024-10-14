@@ -10,6 +10,9 @@ import database
 @commands.hybrid_command(name= "architecthelp", description= "Help for architects to make adventures")
 @app_commands.describe(topic = "Optionally specify a specific architect topic")
 async def architecthelp(ctx, topic=None):
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   player = database.get_player(ctx.author.id)
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)

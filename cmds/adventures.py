@@ -7,6 +7,9 @@ import database
 #Lists the current adventures from the database
 @commands.hybrid_command(name= "adventures", description= "A list of all playable adventures")
 async def adventures(ctx):
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   guild = ctx.guild
   adventures = database.get_adventures()
   adventure_names = []

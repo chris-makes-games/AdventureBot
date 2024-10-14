@@ -16,6 +16,9 @@ async def deletekey(ctx, id: str):
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   key = database.keys.find_one({"id": id})
   if not key:
     await ctx.reply("Error: Item not found! Double check your key ID!", ephemeral=True)

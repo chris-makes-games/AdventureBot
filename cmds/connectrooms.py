@@ -14,6 +14,9 @@ async def connectrooms(ctx, room1: str, room2: str,
             room4: str | None = None, 
             room5: str | None = None,
             mutual: bool = False):
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   room_1 = database.get_room(room1)
   room_2 = database.get_room(room2)
   room_3 = database.get_room(room3) if room3 else None

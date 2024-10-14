@@ -19,6 +19,9 @@ async def map(ctx, adventure_name: str):
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   adventure = database.adventures.find_one({"name": adventure_name})
   if not adventure:
     await ctx.reply("Error: Adventure not found! Double check your Advenutre name!", ephemeral=True)

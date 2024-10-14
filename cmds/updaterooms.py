@@ -13,6 +13,9 @@ async def updaterooms(ctx):
   if not permissions.is_maintainer(ctx):
     await ctx.reply("You do not have permission to use this command.", ephemeral=True)
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   all_rooms = database.rooms.find()
   for room in all_rooms:
     room_object = Room(dict=room)

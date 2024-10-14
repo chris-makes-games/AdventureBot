@@ -15,6 +15,9 @@ async def viewall(ctx):
   if not permissions.is_assistant_or_maintainer(ctx):
     await ctx.reply("You don't have permission to use this command")
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   #shows all rooms
   all_rooms = database.rooms.find({"author": ctx.author.id})
   for room in all_rooms:

@@ -58,6 +58,10 @@ async def newroom(ctx,
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
     return
 
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
+
   #adds the adventure name to the room
   if not adventure:
     await ctx.reply("ERROR: You must specify an adventure for this room.", ephemeral=True)

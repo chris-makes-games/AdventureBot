@@ -303,6 +303,12 @@ def register_channel(channel_id, guild_id):
     botinfo.insert_one(bot_info_dict)
     return True
 
+#checks if the channel is registered
+def check_channel(channel_id, guild_id):
+  channel_info = botinfo.find_one({"channel": channel_id})
+  if guild_id == channel_info["guild"]:
+    return True
+
 #checks if a command is inactive in botinfo
 def inactive_check(command):
   return botinfo.find_one({"inactive": command})

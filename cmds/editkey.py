@@ -39,6 +39,10 @@ async def editkey(ctx, id : str,
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
+  
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
 
   #warnings for subkeys not found
   warnings = []

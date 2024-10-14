@@ -14,6 +14,9 @@ async def deactivate(ctx, command: str):
   if not permissions.is_maintainer(ctx):
     await ctx.reply("You do not have permission to use this command.", ephemeral=True)
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   banned_commands = ["unload", "reload", "load", "deactivate", "activate"]
   if command.lower() in banned_commands:
     await ctx.reply("You cannot deactivate commands that load/unload!", ephemeral=True)

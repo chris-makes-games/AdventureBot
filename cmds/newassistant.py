@@ -8,12 +8,15 @@ import perms_ctx as permissions
 @commands.hybrid_command(name="newassistant", description="Add a user as a bot maintenance assistant")
 async def newassistant(ctx, user: discord.User):
   id = user.id
-  if user is None:
-    await ctx.send("User not found! Must be in this guild to add")
-    return
   print(f"adding {user} as an assistant")
   if not permissions.is_maintainer(ctx):
     await ctx.reply("You must be a maintainer to add an assistant.")
+    return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
+  if user is None:
+    await ctx.send(f"User {user} not found! Must be in this server to add")
     return
   if database.botinfo.find_one({"assistants": id}):
     await ctx.reply(f"User {user.mention} is already an assistant")

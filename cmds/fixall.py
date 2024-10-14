@@ -11,6 +11,9 @@ async def fixall(ctx, adventure : str):
   if not permissions.is_maintainer(ctx):
     await ctx.reply("You do not have permission to use this command.", ephemeral=True)
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   found_adventure = database.adventures.find_one({"name": adventure})
   new_rooms = []
   new_start = ""

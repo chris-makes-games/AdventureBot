@@ -38,6 +38,10 @@ async def newkey(ctx,
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
     return
 
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
+
   warnings = []
   
   #checks if user input valid unique ID

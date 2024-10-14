@@ -15,6 +15,9 @@ async def newplayer(ctx, user: discord.User):
   if not same_player and not permissions.is_assistant_or_maintainer:
     await ctx.repl("You must be a bot admin to add someone else as a player! Try adding yourself instead.")
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   player = database.get_player(user.id)
   if player and player["guild"] != guild:
     old_guild = ctx.client.get_guild(player["guild"])

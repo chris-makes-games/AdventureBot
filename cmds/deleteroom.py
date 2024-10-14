@@ -16,6 +16,9 @@ async def deleteroom(ctx, room_id: str):
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   # Retrieve room information from the database based on room_id
   room = database.rooms.find_one({"id": room_id})
   if not room:

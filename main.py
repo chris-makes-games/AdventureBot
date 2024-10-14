@@ -15,21 +15,6 @@ my_secret = os.environ['TEST_TOKEN'] if test else os.environ['TOKEN']
 #intents rescricts scope of discord bot
 intents = discord.Intents().all()
 
-#the channel ID needs to be in this list
-#bot ignores all other channels
-protectedchannels = [
-  770017224844116031,
-  1180274480807956631,
-  1180315816294625291,
-  1186398826148417707,
-  1186464529366921286,
-  908522799772102739,
-  1183954110513414164,
-  1187417491576729620,
-  1192186126623064084,
-  1273689927305007137
-]
-
 #bot will be the async client for running commands
 #remove help to replace with my own
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -72,10 +57,7 @@ async def on_ready():
 async def on_message(message):
   if message.author == bot.user:
     return
-  if not message.content.startswith("!"):
-    return
-  if message.channel.id in protectedchannels:
-    await bot.process_commands(message)
+  await bot.process_commands(message)
 
 #runs the bot and throws generic errors
 try:

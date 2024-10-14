@@ -8,15 +8,18 @@ import perms_ctx as permissions
 @commands.hybrid_command(name="newmaintainer", description="Add a user as a bot maintainer")
 async def newmaintainer(ctx, user: discord.User):
   id = user.id
-  if user is None:
-    await ctx.send("User not found! Must be in this guild to add")
-    return
   print(user)
   if not permissions.is_maintainer(ctx):
     await ctx.reply("You must be a maintainer to add a maintainer.")
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
+  if user is None:
+    await ctx.send("User not found! Must be in this guild to add")
+    return
   if database.botinfo.find_one({"maintainers": id}):
-    await ctx.reply(f"User {user.mention} is already a maintainer")
+    await ctx.reply(f"User {user} is already a maintainer")
     return
   document = database.botinfo.find_one({"permissions": "maintainers"})
   if not document:

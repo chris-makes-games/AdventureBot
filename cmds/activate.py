@@ -15,6 +15,9 @@ async def activate(ctx, command: str):
   if not permissions.is_maintainer(ctx):
     await ctx.reply("You do not have permission to use this command.", ephemeral=True)
     return
+  if not database.check_channel(ctx.channel.id, ctx.guild.id):
+    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    return
   if not database.botinfo.find_one({"inactive": command}):
     await ctx.reply("That command is already active.", ephemeral=True)
     return
