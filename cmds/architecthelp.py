@@ -7,9 +7,9 @@ import database
 
 #command for architect details about creating content
 #works like help command but for architects
-@commands.hybrid_command(name= "architect", description= "Help for architects to make adventures")
+@commands.hybrid_command(name= "architecthelp", description= "Help for architects to make adventures")
 @app_commands.describe(topic = "Optionally specify a specific architect topic")
-async def architect(ctx, topic=None):
+async def architecthelp(ctx, topic=None):
   player = database.get_player(ctx.author.id)
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
@@ -18,7 +18,7 @@ async def architect(ctx, topic=None):
     topic = topic.lower()
   if not topic:
     #basic info if no topic specified
-    embed = discord.Embed(title="Architect Information", description="Architects are able to create thier own adventures. You can read about how to do that here. If you have more specific questions about how things work, try /architect <topic> for one of the topics below. Feel free to ask Ironically-Tall if you still have questions.", color=discord.Color.yellow())
+    embed = discord.Embed(title="Architect Help", description="Architects are able to create thier own adventures. You can read about how to do that here. If you have more specific questions about how things work, try /architect <topic> for one of the topics below. Feel free to ask Ironically-Tall if you still have questions.", color=discord.Color.yellow())
     embed.add_field(name="Adventures", value="Everything you create will be stored in an adventure. An adventure is a list of rooms, and rooms can contain various keys. You can only create one adventure, and someone can only play one adventure at a time. People can play adventures more than once.")
     embed.add_field(name="Rooms", value="Rooms are the primary vehicle by which the game is delivered to players. Here the information and description of the environment is given to players, and players are given choices about which room to enter next. Rooms are connected together in a variety of ways, and can be restricted to requiring certain keys to enter. Rooms need not be literal rooms, and can include just about anything you can think of. Consider rooms to be like a 'page' of the adventure story.")
     embed.add_field(name="Keys", value="Keys are ways to track how players are progressing through the adventure. The adventure does not change, nor do the rooms change. The keys the player has change, which may change which rooms are available to the player. Keys need not be literal keys which unlock rooms, but can be conecpts like the favor of an NPC. Keys can optionally be shown to the player, in their journal or inventory or both.")
@@ -96,7 +96,7 @@ async def architect(ctx, topic=None):
 
   await ctx.reply(embed=embed, ephemeral=True)
 
-@architect.autocomplete("topic")
+@architecthelp.autocomplete("topic")
 async def autocomplete_help(interaction: discord.Interaction, current: str):
   all_commands = ["Adventures", "Rooms", "Keys", "Journal", "Inventory", "Operators"]
   choices = []
@@ -106,4 +106,4 @@ async def autocomplete_help(interaction: discord.Interaction, current: str):
   return choices
 
 async def setup(bot):
-  bot.add_command(architect)
+  bot.add_command(architecthelp)

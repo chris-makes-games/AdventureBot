@@ -28,9 +28,9 @@ async def updateplayer(ctx, id : str,
   deaths : int | None = None,
   room : str | None=None,
   architect : bool | None = None,
-  guild : bool | None = None,
-  play_thread : bool | None = None,
-  edit_thread : bool | None = None,
+  guild : str | None = None,
+  play_thread : str | None = None,
+  edit_thread : str | None = None,
   owned_adventures : str | None = None,
   coauthor : str | None = None,
   history : str | None = None,
@@ -93,6 +93,30 @@ async def updateplayer(ctx, id : str,
     for id in new_owned:
       owned_string += f"{id}\n"
 
+  #casts guild to int
+  new_guild = None
+  if guild is not None:
+    try:
+      new_guild = int(guild)
+    except Exception as e:
+      await ctx.reply(f"Error: You must use a number for the guild ID.\n{e}", ephemeral=True)
+
+  #casts play_thread to int
+  new_play_thread = None
+  if play_thread is not None:
+    try:
+      new_play_thread = int(play_thread)
+    except Exception as e:
+      await ctx.reply(f"Error: You must use a number for the play thread.\n{e}", ephemeral=True)
+
+  #casts edit_thread to int
+  new_edit_thread = None
+  if edit_thread is not None:
+    try:
+      new_edit_thread = int(edit_thread)
+    except Exception as e:
+      await ctx.reply(f"Error: You must use a number for the edit thread.\n{e}", ephemeral=True)
+
   new_dict = found_player.copy()
   embed = discord.Embed(title=f"Editing player: {found_player['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
   if alive is not None and alive != new_dict["alive"]:
@@ -108,13 +132,13 @@ async def updateplayer(ctx, id : str,
     new_dict["architect"] = architect
     embed.add_field(name="Architect", value=f"**Old:** {found_player['architect']}\n**New:** {architect}", inline=False)
   if guild:
-    new_dict["guild"] = guild
+    new_dict["guild"] = new_guild
     embed.add_field(name="Guild", value=f"**Old:** {found_player['guild']}\n**New:** {guild}", inline=False)
   if play_thread:
-    new_dict["play_thread"] = play_thread
+    new_dict["play_thread"] = new_play_thread
     embed.add_field(name="Play Thread", value=f"**Old:**{found_player['play_thread']}\n**New:** {play_thread}", inline=False)
   if edit_thread:
-    new_dict["edit_thread"] = edit_thread
+    new_dict["edit_thread"] = new_edit_thread
     embed.add_field(name="Edit Thread", value=f"**Old:** {found_player['edit_thread']}\n**New:** {edit_thread}", inline=False)
   if owned_adventures:
     new_dict["owned_adventures"] = new_owned
