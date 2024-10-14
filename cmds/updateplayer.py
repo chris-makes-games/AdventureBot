@@ -7,7 +7,7 @@ from discord.ext import commands
 import database
 
 
-#edits a key with whatever the user selects
+#edits a player with whatever the user selects
 @commands.hybrid_command(name="updateplayer", description="Edit player attributes. For admins only")
 @app_commands.describe(
 alive = "Whether the player is alive. True/False",
@@ -47,9 +47,9 @@ async def updateplayer(ctx, id : str,
   warnings = []
 
   #error for no player found
-  found_player = database.users.find_one({"id": id})
+  found_player = database.users.find_one({"disc": int(id)})
   if not found_player:
-    await ctx.reply(f"Error: No player found with id **{id}**! Double check you've selected a valid key. If you need to make a new key, try /newkey", ephemeral=True)
+    await ctx.reply(f"Error: No player found with id **{id}**! Double check you've selected a valid ID.", ephemeral=True)
     return
 
   #parses keys into dict
@@ -69,9 +69,33 @@ async def updateplayer(ctx, id : str,
     for key in keys:
       keys_string += f"{key} x{new_keys[key]}\n"
 
+  #parses history into list
+  history_string = ""
+  new_history = []
+  if history:
+    new_history = history.split(',')
+    for id in new_history:
+      history_string += f"{id}\n"
+
+  #parses owned adventures into list
+  coauthor_string = ""
+  new_coauthor = []
+  if coauthor:
+    new_coauthor = coauthor.split(',')
+    for id in new_coauthor:
+      coauthor_string += f"{id}\n"
+
+  #parses owned adventures into list
+  owned_string = ""
+  new_owned = []
+  if owned_adventures:
+    new_owned = owned_adventures.split(',')
+    for id in new_owned:
+      owned_string += f"{id}\n"
+
   new_dict = found_player.copy()
   embed = discord.Embed(title=f"Editing player: {found_player['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
-  if alive:
+  if alive is not None and alive != new_dict["alive"]:
     new_dict["alive"] = alive
     embed.add_field(name="Alive", value=f"**Old:**: {found_player['alive']}\n**New:** {alive}\n", inline=False)
   if deaths:
@@ -80,7 +104,7 @@ async def updateplayer(ctx, id : str,
   if room:
     new_dict["room"] = room
     embed.add_field(name="Room", value=f"**Old:** {found_player['room']}\n**New:** {room}", inline=False)
-  if architect:
+  if architect is not None and architect != new_dict["architect"]:
     new_dict["architect"] = architect
     embed.add_field(name="Architect", value=f"**Old:** {found_player['architect']}\n**New:** {architect}", inline=False)
   if guild:
@@ -93,13 +117,13 @@ async def updateplayer(ctx, id : str,
     new_dict["edit_thread"] = edit_thread
     embed.add_field(name="Edit Thread", value=f"**Old:** {found_player['edit_thread']}\n**New:** {edit_thread}", inline=False)
   if owned_adventures:
-    new_dict["owned_adventures"] = owned_adventures
+    new_dict["owned_adventures"] = new_owned
     embed.add_field(name="Owned Adventures", value=f"**Old:** {found_player['owned_adventures']}\n**New:** {owned_adventures}", inline=False)
   if coauthor:
-    new_dict["coauthor"] = coauthor
+    new_dict["coauthor"] = new_coauthor
     embed.add_field(name="Coauthor", value=f"**Old:** {found_player['coauthor']}\n**New:** {coauthor}", inline=False)
   if history:
-    new_dict["history"] = history
+    new_dict["history"] = new_history
     embed.add_field(name="History", value=f"**Old:**{found_player['history']}\n**New:** {history}", inline=False)
   if keys:
     old_keys = ""
@@ -109,32 +133,17 @@ async def updateplayer(ctx, id : str,
   
   if not embed.fields:
     embed.description = "ERROR"
-    embed.add_field(name="No changes", value="No changes were made. You need to select one of the options to edit the key. If you're unsure, try /help editkey")
+    embed.add_field(name="No changes", value="No changes were made. You need to select one of the options to edit the player. If you're unsure, try /help editkey")
     await ctx.reply(embed=embed, ephemeral=True)
     return
   if warnings:
     embed.add_field(name="**WARNING**", value="\n".join(warnings), inline=False)
-  edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_key", id=id, dict=new_dict)
+  edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="overwrite_player", id=id, dict=new_dict)
   cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
   view = discord.ui.View()
   view.add_item(edit_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
-
-#returns keys with matching id OR matching displayname
-@updateplayer.autocomplete('id')
-async def autocomplete_editkey(interaction: discord.Interaction, current: str):
-  key_query = database.keys.find(
-    {"author": interaction.user.id,
-      "$or": [
-{"id": {"$regex": re.escape(current), "$options": "i"}},
-{"displayname": {"$regex": re.escape(current),"$options": "i"}}
-         ]},
-{"id": 1, "displayname": 1, "_id": 0}
-    )
-  key_info = [(key["id"], key["displayname"]) for key in key_query]
-  choices = [app_commands.Choice(name=f"{rid} - {displayname}", value=rid) for rid, displayname in key_info[:25]]
-  return choices
 
 async def setup(bot):
   bot.add_command(updateplayer)
