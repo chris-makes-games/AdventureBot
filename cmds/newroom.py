@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 import database
+import perms_interactions as permissions
 from room import Room
 
 
@@ -203,15 +204,23 @@ async def newroom(ctx,
 #returns adventures either owned or coauthored with matching name
 @newroom.autocomplete('adventure')
 async def autocomplete_newroom(interaction: discord.Interaction, current: str):
-  adventure_query = database.adventures.find(
-    {"author": interaction.user.id,
-      "$or": [
-{"name": {"$regex": re.escape(current), "$options": "i"}},
-         ]},
-{"name": 1, "author": 1, "_id": 0}
+  if permissions.is_assistant_or_maintainer(interaction):
+    adventure_query = database.adventures.find(
+      {"name": {"$regex": re.escape(current), "$options": "i"}},
+      {"name": 1, "author": 1, "_id": 0}
+      )
+  else:
+    adventure_query = database.adventures.find({
+    "$or": [
+      {"author": interaction.user.id},  # Owned by the user
+      {"coauthors": interaction.user.id}  # Coauthored by the user
+      ],
+    "name": {"$regex": re.escape(current), "$options": "i"}
+      },
+    {"name": 1, "author": 1, "_id": 0}
     )
   adventure_info = [(adventure["name"], adventure["author"]) for adventure in adventure_query]
-  choices = [app_commands.Choice(name=f"{name} - {author}", value=name) for name, author in adventure_info[:25]]
+  choices = [app_commands.Choice(name=f"{name.title()}", value=name) for name, author in adventure_info[:25]]
   return choices
 
 async def setup(bot):
