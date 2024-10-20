@@ -884,7 +884,8 @@ def create_new_key(dict):
   print("creating new key:")
   pp(dict)
   keys.insert_one(dict)
-  ids.insert_one(dict["id"])
+  id = {"id": dict["id"], "type" : "key", "displayname": dict["displayname"], "author": dict["author"]}
+  ids.insert_one(id)
   print(f"key created! id: {dict['id']}")
 
 #updates key in database

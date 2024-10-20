@@ -128,6 +128,74 @@ async def newroom(ctx,
     for key in new_destroy:
       destroy_string += f"{key} x{new_destroy[key]}\n"
 
+  #parse locks into one dict
+  lock_string = ""
+  new_lock = {}
+  if lock:
+    pairs = lock.split(',')
+    for pair in pairs:
+      try:
+        item, quantity = pair.strip().split()
+        new_lock[item.strip()] = int(quantity)
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      except ValueError:
+        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
+        return
+    for key in new_lock:
+      lock_string += f"{key} x{new_lock[key]}\n"
+
+  #parse unlocks into one dict
+  unlock_string = ""
+  new_unlock = {}
+  if unlock:
+    pairs = unlock.split(',')
+    for pair in pairs:
+      try:
+        item, quantity = pair.strip().split()
+        new_unlock[item.strip()] = int(quantity)
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      except ValueError:
+        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
+        return
+    for key in new_unlock:
+      unlock_string += f"{key} x{new_unlock[key]}\n"
+
+  #parse hides into one dict
+  hide_string = ""
+  new_hide = {}
+  if hide:
+    pairs = hide.split(',')
+    for pair in pairs:
+      try:
+        item, quantity = pair.strip().split()
+        new_hide[item.strip()] = int(quantity)
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      except ValueError:
+        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
+        return
+    for key in new_hide:
+      hide_string += f"{key} x{new_hide[key]}\n"
+
+  #parse reveals into one dict
+  reveal_string = ""
+  new_reveal = {}
+  if reveal:
+    pairs = reveal.split(',')
+    for pair in pairs:
+      try:
+        item, quantity = pair.strip().split()
+        new_reveal[item.strip()] = int(quantity)
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      except ValueError:
+        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
+        return
+    for key in new_reveal:
+      reveal_string += f"{key} x{new_reveal[key]}\n"
+
   #turns list of warnings to a string
   if warnings:
     warnings = "\n".join(warnings)

@@ -36,7 +36,7 @@ async def connectrooms(ctx, room1: str, room2: str,
 
   perms_errors = []
   for room in room_1, room_2, room_3, room_4, room_5:
-    if room and room["author"] != player["discord"] and not permissions.is_maintainer:
+    if room and room["author"] != player["disc"] and not permissions.is_maintainer:
       perms_errors.append(f"Room '{room['displayname']}' is not yours.\n")
   if perms_errors:
     await ctx.reply(f"ERROR: You do not have permission to connect those rooms!\n{perms_errors}", ephemeral=True)

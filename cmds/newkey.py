@@ -94,7 +94,7 @@ author = ctx.author.id)
     await ctx.reply(f"There was a problem generating your key object. Did you enter in the data correctly? Error:\n{e}", ephemeral=True)
     return
   dict = new_key.__dict__
-  embed = discord.Embed(title=f"New key: {dict['displayname']}", description=f"ID: {dict['id']} \nReview the new key and select a button below. Any attribute not listed have been left at their default blank/False values.")
+  embed = discord.Embed(title=f"New key: {dict['displayname']}", description=f"**ID: `{dict['id']}`** \nReview the new key and select a button below. Any attribute not listed have been left at their default blank/False values.")
   embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
   if dict['description']:
     embed.add_field(name="Description", value=f"{description}", inline=False)

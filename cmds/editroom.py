@@ -105,8 +105,8 @@ async def editroom(ctx, id: str,
   old_keys = []
   old_keys_string = ""
   if found_room['keys']:
-    for key_value in found_room['keys']:
-      old_keys.append(f"{key_value.key} : {key_value.value}")
+    for key, value in found_room['keys'].items():
+      old_keys.append(f"{key} : {value}")
       old_keys_string = "\n".join(old_keys)
   else:
     old_keys_string = "None"
@@ -131,8 +131,8 @@ async def editroom(ctx, id: str,
   old_destroy = []
   old_destroy_string = ""
   if found_room['destroy']:
-    for key_value in found_room['destroy']:
-      old_destroy.append(f"{key_value.key} : {key_value.value}")
+    for key, value in found_room['destroy'].items():
+      old_keys.append(f"{key} : {value}")
       old_destroy_string = "\n".join(old_destroy)
   else:
     old_destroy_string = "None"
