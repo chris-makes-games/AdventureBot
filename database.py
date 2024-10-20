@@ -819,6 +819,9 @@ def create_new_room(dict):
 #updates room in databse
 #optionally deletes a field in the room
 def update_room(dict, delete=""):
+  #updates displalyname if changed
+  if "new_displayname" in dict:
+    ids.update_one({"id": dict["id"]}, {"$set": {"displayname": dict["new_displayname"]}})
   if "new_id" in dict:
     update_room_id(dict)
     print(f"updating room id {dict['id']} to {dict['new_id']}:")
@@ -886,6 +889,9 @@ def create_new_key(dict):
 
 #updates key in database
 def update_key(dict, delete=""):
+  #updates displalyname if changed
+  if "new_displayname" in dict:
+    ids.update_one({"id": dict["id"]}, {"$set": {"displayname": dict["new_displayname"]}})
   #updates new ids if ID is changed
   if "new id" in dict:
     update_key_id(dict["id"], dict["new_id"])

@@ -65,7 +65,7 @@ async def editroom(ctx, id: str,
   #ensures the room ID entered is valid
   found_room = database.rooms.find_one({"id": id})
   if not found_room:
-    await ctx.reply(f"Error: No room found with id **{id}**! Double check the ID, you should just select a room from the list. If you're sure it should be correct, contact Ironically-Tall", ephemeral=True)
+    await ctx.reply(f"Error: No room found with id `{id}`! Double check the ID, you should just select a room from the list. If you're sure it should be correct, contact Ironically-Tall", ephemeral=True)
     return
 
   #warnings for exits not found
@@ -147,6 +147,7 @@ async def editroom(ctx, id: str,
     new_dict["description"] = description
     embed.add_field(name="Description", value=f"Old: {found_room['description']}\nNew: {description}", inline=False)
   if displayname:
+    new_dict["new_displayname"] = displayname
     new_dict["displayname"] = displayname
     embed.add_field(name="Displayname", value=f"Old: {found_room['displayname']}\nNew: {displayname}", inline=False)
   if entrance:

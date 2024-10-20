@@ -86,6 +86,7 @@ async def editkey(ctx, id : str,
     embed.add_field(name="Description", value=f"**Old:** {found_key['description']}\n**New:** {description}", inline=False)
   if displayname:
     new_dict["displayname"] = displayname
+    new_dict["new_displayname"] = displayname
     embed.add_field(name="Displayname", value=f"**Old:** {found_key['displayname']}\n**New:** {displayname}", inline=False)
   if note:
     new_dict["note"] = note
