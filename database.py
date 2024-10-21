@@ -890,6 +890,7 @@ def delete_room(id):
     print("Deleteing room " + room["displayname"] + " with id " + room["id"])
     rooms.delete_one({"id": id})
     ids.delete_one({"id": id})
+    delete_extra_ids(id)
     adventure = adventures.find_one({"name": room["adventure"].lower()})
     if adventure:
       if id in adventure["rooms"]:
@@ -973,6 +974,7 @@ def delete_key(id):
     print(f"deleting key {key['displayname']}")
     keys.delete_one({"id": id})
     ids.delete_one({"id": id})
+    delete_extra_ids(id)
   else:
     print(f"ERROR key {id} not found")
 
@@ -992,12 +994,14 @@ def delete_extra_ids(id):
   if not found_id:
     print(f"ERROR - ID {id} not found")
     return
+  print(f"deleting extra ids for {found_id['displayname...']}")
   all_players = users.find()
   all_rooms = rooms.find()
   all_keys = keys.find()
   changed = False
   if found_id["type"] == "room":
     for player in all_players:
+      #resets player back to start room if they're inside the deleted room
       if player["room"].lower() == found_id["id"].lower():
         player_adventure = get_adventure_by_room(player["room"])
         if player_adventure:
@@ -1005,6 +1009,8 @@ def delete_extra_ids(id):
           changed = True
         else:
           print(f"ERROR - could not find adventure for room during delete\n{player['room']}")
+          return
+      #removes the deleted room from the player's history
       if id in player["history"]:
         player["history"].remove(id)
         changed = True
@@ -1013,17 +1019,20 @@ def delete_extra_ids(id):
         changed = False
   elif found_id["type"] == "key":
     for room in all_rooms:
+      #removes the deleted key from any room's keys where it appears
       if id in room["keys"]:
-        room["keys"].pop(id)
+        room["keys"].remove(id)
         changed = True
       if changed:
         rooms.update_one({"id": room["id"]}, {"$set": room})
     for key in all_keys:
+      #removes mention of deleted key from any subkeys where it appears
       if id in key["subkeys"]:
-        key["subkeys"].pop(id)
+        key["subkeys"].remove(id)
         changed = True
       if changed:
         keys.update_one({"id": key["id"]}, {"$set": key})
+        changed = False
     
   
 
