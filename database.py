@@ -984,6 +984,47 @@ def get_id(id):
     if i["id"].lower() == id.lower():
       return i
   return None
+
+#deletes instances in database where ID appears
+#handles removing deleted rooms from player histories and deleted items from rooms
+def delete_extra_ids(id):
+  found_id = ids.find_one({"id": id})
+  if not found_id:
+    print(f"ERROR - ID {id} not found")
+    return
+  all_players = users.find()
+  all_rooms = rooms.find()
+  all_keys = keys.find()
+  changed = False
+  if found_id["type"] == "room":
+    for player in all_players:
+      if player["room"].lower() == found_id["id"].lower():
+        player_adventure = get_adventure_by_room(player["room"])
+        if player_adventure:
+          player["room"] = player_adventure["start"]
+          changed = True
+        else:
+          print(f"ERROR - could not find adventure for room during delete\n{player['room']}")
+      if id in player["history"]:
+        player["history"].remove(id)
+        changed = True
+      if changed:
+        users.update_one({"disc": player["disc"]}, {"$set": player})
+        changed = False
+  elif found_id["type"] == "key":
+    for room in all_rooms:
+      if id in room["keys"]:
+        room["keys"].pop(id)
+        changed = True
+      if changed:
+        rooms.update_one({"id": room["id"]}, {"$set": room})
+    for key in all_keys:
+      if id in key["subkeys"]:
+        key["subkeys"].pop(id)
+        changed = True
+      if changed:
+        keys.update_one({"id": key["id"]}, {"$set": key})
+    
   
 
 #deletes every specified field from every room
