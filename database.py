@@ -387,7 +387,7 @@ def get_architect_commands():
 #adds keys to history if applicable
 #found_keys and current_keys are now dicts
 #histories are still lists of IDs
-def process_player_keys(found_keys, current_keys, history):
+def process_player_keys(found_keys, current_keys, history, new_room):
   print("found keys:")
   pp(found_keys)
   print("current keys:")
@@ -396,10 +396,8 @@ def process_player_keys(found_keys, current_keys, history):
   new_history = history
   new_found_keys = {}
   errors = []
-  for pair in found_keys:
-    #key, value pair in dict of found keys
-    key_id = pair.key
-    key_amount = pair.value
+  #key, value pair in dict of found keys
+  for key_id, key_amount in found_keys.items():
     key = keys.find_one({"id": key_id})
     #skips if no such key by that ID
     if not key:
@@ -410,17 +408,23 @@ def process_player_keys(found_keys, current_keys, history):
     #skips key if player has one already and key isn't stackable
     if key["id"] in current_keys and not key["stackable"]:
       continue
-    #skips if player had unique key but lost it
+    #skips if player has seen this key from this room before and key isn't repeating
+    if key["id"] in history and new_room in history and not key["repeating"]:
+      continue
+    #skips if player has seen that unique key
     if key["id"] in history and key["unique"]:
       continue
-    #skips if player already has unique key
-    if key["id"] in current_keys and key["unique"]:
-      continue
-    #succeeds if player doesnt have the key or has one but it's stackable
-    if key["id"] not in current_keys or key["repeating"]:
+    #succeeds if player has one or more keys and key is stackable/repeating
+    if key["id"] in current_keys and key["stackable"]:
       #increments the keys if player can have more
       new_amount = current_keys[key_id].value + key_amount
       new_keys.update({key_id : new_amount})
+      new_found_keys.update({key_id : key_amount})
+      if key["id"] not in history:
+        new_history.append(key["id"])
+    #adds key to player if they meet all other requirements
+    else:
+      new_keys.update({key_id : key_amount})
       new_found_keys.update({key_id : key_amount})
       if key["id"] not in history:
         new_history.append(key["id"])
@@ -466,7 +470,7 @@ async def move_player(interaction, destination):
   #if the room has keys, process keys
   if new_room["keys"]:
     pp("keys found!" + str(new_room["keys"]))
-    found_keys, new_keys, new_history, errors = process_player_keys(new_room["keys"], player["keys"], player["history"])
+    found_keys, new_keys, new_history, errors = process_player_keys(new_room["keys"], player["keys"], player["history"], new_room["id"])
   else:
     pp("no keys found!")
     new_keys = keys
