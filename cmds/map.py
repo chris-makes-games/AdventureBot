@@ -7,8 +7,6 @@ from discord.ext import commands
 import database
 import mapper
 import perms_ctx as permissions
-from adventure import Adventure
-from room import Room
 
 
 #creates a map of an adventure

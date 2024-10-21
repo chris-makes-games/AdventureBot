@@ -46,34 +46,36 @@ async def connectrooms(ctx, room1: str, room2: str,
   if mutual:
     room_1["exits"].append(room_2["id"])
     room_2["exits"].append(room_1["id"])
-    embed.add_field(name="Mutually Connected:", value=f"( {room_1['displayname']} ) <----> ( {room_2['displayname']} )")
+    embed.add_field(name="Mutually Connecting...", value=f"( {room_1['displayname']} ) <----> ( {room_2['displayname']} )")
   else:
     room_1["exits"].append(room_2["id"])
-    embed.add_field(name="Connected:", value=f"( {room_1['displayname']} ) -----> ( {room_2['displayname']} )")
+    embed.add_field(name="Connecting...", value=f"( {room_1['displayname']} ) -----> ( {room_2['displayname']} )")
   if room_3:
     if mutual:
       room_1["exits"].append(room_3["id"])
       room_3["exits"].append(room_1["id"])
-      embed.add_field(name="Mutually Connected:", value=f"( {room_1['displayname']} ) <----> ( {room_3['displayname']} )")
+      embed.add_field(name="Mutually Connecting...", value=f"( {room_1['displayname']} ) <----> ( {room_3['displayname']} )")
     else:
       room_1["exits"].append(room_3["id"])
-      embed.add_field(name="Connected:", value=f"( {room_1['displayname']} ) -----> ( {room_3['displayname']} ) ")
+      embed.add_field(name="Connecting...", value=f"( {room_1['displayname']} ) -----> ( {room_3['displayname']} ) ")
   if room_4:
     if mutual:
       room_1["exits"].append(room_4["id"])
       room_4["exits"].append(room_1["id"])
-      embed.add_field(name="Mutually Connected:", value=f"( {room_1['displayname']} ) <----> ( {room_4['displayname']}")
+      embed.add_field(name="Mutually Connecting...", value=f"( {room_1['displayname']} ) <----> ( {room_4['displayname']}")
     else:
       room_1["exits"].append(room_4["id"])
-      embed.add_field(name="Connected:", value=f"( {room_1['displayname']} ) -----> ( {room_4['displayname']} )")
+      embed.add_field(name="Connecting...", value=f"( {room_1['displayname']} ) -----> ( {room_4['displayname']} )")
   if room_5:
     if mutual:
       room_1["exits"].append(room_5["id"])
       room_5["exits"].append(room_1["id"])
-      embed.add_field(name="Mutually Connected:", value=f"( {room_1['displayname']} ) <----> ( {room_5['displayname']} )")
+      embed.add_field(name="Mutually Connecting...", value=f"( {room_1['displayname']} ) <----> ( {room_5['displayname']} )")
     else:
       room_1["exits"].append(room_5["id"])
-      embed.add_field(name="Connected:", value=f"( {room_1['displayname']} ) -----> ( {room_5['displayname']} )")
+      embed.add_field(name="Connecting...", value=f"( {room_1['displayname']} ) -----> ( {room_5['displayname']} )")
+  if room1 in (room2, room3, room4, room5):
+      embed.add_field(name="WARNING:", value="You are about to connect a room to itself! This will cause a circular loop in that room. Are you sure you want to do this?", inline=False)
 
   dict = {}
   for room in [room_1, room_2, room_3, room_4, room_5]:

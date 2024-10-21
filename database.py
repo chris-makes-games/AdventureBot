@@ -101,6 +101,14 @@ class ConfirmButton(discord.ui.Button):
     elif self.action == "new_room" and self.dict:
       try:
         create_new_room(self.dict)
+        #adds room ID to adventure's list of rooms
+        adventure_dict = get_adventure(self.dict["adventure"])
+        if adventure_dict:
+          adventure_dict["rooms"].append(self.dict["id"])
+          update_adventure(adventure_dict)
+        else:
+          await interaction.followup.send("ERROR: Failed to create new room! The adventure it's being created for doesn't exist.", ephemeral=True)
+          return
         await interaction.followup.send(f"Room {self.dict['displayname']} successfully created!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
@@ -768,7 +776,7 @@ def get_players_in_room(room):
 #useful for checking before editing the rooms/adventure
 def get_players_in_adventure(adventure_name):
   players = []
-  adventure = adventures.find_one({"name": adventure_name})
+  adventure = adventures.find_one({"name": adventure_name.lower()})
   if adventure:
     for room in adventure["rooms"]:
       for player in get_players_in_room(room):
@@ -811,7 +819,7 @@ def create_new_room(dict):
   rooms.insert_one(dict)
   id = {"id": dict["id"], "type" : "room", "displayname": dict["displayname"], "author": dict["author"]}
   ids.insert_one(id)
-  adventure= adventures.find_one({"name": dict["adventure"]})
+  adventure= adventures.find_one({"name": dict["adventure"].lower()})
   if adventure:
     adventure["rooms"].append(dict["id"])
     adventures.update_one({"name": dict["adventure"]}, {"$set": adventure})
@@ -876,6 +884,15 @@ def delete_room(id):
     print("Deleteing room " + room["displayname"] + " with id " + room["id"])
     rooms.delete_one({"id": id})
     ids.delete_one({"id": id})
+    adventure = adventures.find_one({"name": room["adventure"].lower()})
+    if adventure:
+      if id in adventure["rooms"]:
+        adventure["rooms"].remove(id)
+      else:
+        print(f"ERROR - room {id} not found in adventure {adventure['name']}")
+      adventures.update_one({"name": adventure["name"]}, {"$set": adventure})
+    else:
+      print(f"ERROR - adventure {room['adventure']} not found")
   else:
     print(f"ERROR - Room {id} does not exist")
 
@@ -990,11 +1007,11 @@ def get_adventures():
 
 #gets an adventure by name
 def get_adventure(name):
-  adventure = adventures.find_one({"name": name})
-  if adventure:
-    return adventure
-  else:
-    return None
+  all_adventures = adventures.find()
+  for adventure in all_adventures:
+    if adventure["name"].lower() == name.lower():
+      return adventure
+  return None
 
 #gets an adventure by discord author
 def get_adventure_by_author(disc):

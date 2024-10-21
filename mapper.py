@@ -47,6 +47,9 @@ def visualize_adventure(adventure):
       if connected_room_id == found_room["id"]:
         #print("circular room! skipping...")
         continue
+      if connected_room_id not in adventure["rooms"]:
+        #print(f"Room {connected_room_id} not found in adventure! skipping...")
+        continue
       G.add_edge(found_room['id'], connected_room_id)
       #print(f"Added edge: {found_room['id']} -> {connected_room_id}")
     
