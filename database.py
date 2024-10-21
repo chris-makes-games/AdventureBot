@@ -5,6 +5,8 @@ import re
 from collections import Counter  # keys list comprehension
 from pprint import pprint as pp  #pretty printing
 
+from dotenv import load_dotenv #loads environment variables
+
 import discord
 import pymongo  #mongo db api
 
@@ -16,6 +18,9 @@ from room import Room  #room class
 BASE_DIR = pathlib.Path(__file__).parent
 #this is the command folder directory
 CMDS_DIR = BASE_DIR / "cmds"
+
+#for .env file
+load_dotenv()
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -889,19 +894,24 @@ def delete_room(id):
   if room:
     print("Deleteing room " + room["displayname"] + " with id " + room["id"])
     rooms.delete_one({"id": id})
-    ids.delete_one({"id": id})
+    print("Room deleted!")
     delete_extra_ids(id)
+    print("Deleted Extra IDs!")
+    ids.delete_one({"id": id})
     adventure = adventures.find_one({"name": room["adventure"].lower()})
     if adventure:
       if id in adventure["rooms"]:
         adventure["rooms"].remove(id)
       else:
-        print(f"ERROR - room {id} not found in adventure {adventure['name']}")
+        print(f"ERROR - room {id} not found in adventure {adventure['name']} during deletion")
+        return
       adventures.update_one({"name": adventure["name"]}, {"$set": adventure})
     else:
-      print(f"ERROR - adventure {room['adventure']} not found")
+      print(f"ERROR - adventure {room['adventure']} not found during deletion")
+      return
   else:
-    print(f"ERROR - Room {id} does not exist")
+    print(f"ERROR - Room {id} does not exist to be deleted")
+    return
 
 #creates new key from dict
 def create_new_key(dict):
@@ -973,8 +983,8 @@ def delete_key(id):
   if key:
     print(f"deleting key {key['displayname']}")
     keys.delete_one({"id": id})
-    ids.delete_one({"id": id})
     delete_extra_ids(id)
+    ids.delete_one({"id": id})
   else:
     print(f"ERROR key {id} not found")
 
@@ -992,9 +1002,10 @@ def get_id(id):
 def delete_extra_ids(id):
   found_id = ids.find_one({"id": id})
   if not found_id:
-    print(f"ERROR - ID {id} not found")
+    print(f"ERROR - ID {id} not found during extra ID deletion")
     return
-  print(f"deleting extra ids for {found_id['displayname...']}")
+  print(f"deleting extra ids for {id}")
+  pp(found_id)
   all_players = users.find()
   all_rooms = rooms.find()
   all_keys = keys.find()
@@ -1003,6 +1014,7 @@ def delete_extra_ids(id):
     for player in all_players:
       #resets player back to start room if they're inside the deleted room
       if player["room"].lower() == found_id["id"].lower():
+        print(f"resetting player {player['displayname']} to start room, their room is being deleted!")
         player_adventure = get_adventure_by_room(player["room"])
         if player_adventure:
           player["room"] = player_adventure["start"]
@@ -1012,6 +1024,7 @@ def delete_extra_ids(id):
           return
       #removes the deleted room from the player's history
       if id in player["history"]:
+        print(f"removing room {id} from player {player['displayname']}'s history")
         player["history"].remove(id)
         changed = True
       if changed:
@@ -1021,18 +1034,16 @@ def delete_extra_ids(id):
     for room in all_rooms:
       #removes the deleted key from any room's keys where it appears
       if id in room["keys"]:
+        print(f"removing key {id} from room {room['displayname']}")
         room["keys"].remove(id)
-        changed = True
-      if changed:
         rooms.update_one({"id": room["id"]}, {"$set": room})
     for key in all_keys:
       #removes mention of deleted key from any subkeys where it appears
       if id in key["subkeys"]:
+        print(f"removing key {id} from subkey {key['displayname']}")
         key["subkeys"].remove(id)
-        changed = True
-      if changed:
         keys.update_one({"id": key["id"]}, {"$set": key})
-        changed = False
+  print(f"extra ids deleted for {found_id['displayname...']}")
     
   
 

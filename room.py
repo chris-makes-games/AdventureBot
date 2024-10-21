@@ -7,7 +7,7 @@ class Room:
     author="", url="", alt_entrance="", deathnote="", adventure="",
     end=False, once=False, hidden=False, locked=False, 
     keys=None, destroy=None, exits=None, 
-    unlock="", reveal="", hide="", lock=""):
+    unlock=None, reveal=None, hide=None, lock=None):
     #generates new id if none is given
     if not id:
       self.id = database.generate_unique_id()
@@ -22,27 +22,31 @@ class Room:
     self.author = author
     self.url = url
     self.adventure = adventure
-    #string attributes that used to be lists
-    self.unlock = unlock
-    self.reveal = reveal
-    self.hide = hide
-    self.lock = lock
     #boolean attributes
     self.end = end
     self.once = once
     self.hidden = hidden
     self.locked = locked
-    
-    #keys is now a dict
-    #key_id, number_of_keys
+    #dicts
     if keys is None:
         keys = {}
-    #destroy is also dict
     if destroy is None:
         destroy = {}
+    if lock is None:
+        lock = {}
+    if unlock is None:
+        unlock = {}
+    if hide is None:
+        hide = {}
+    if reveal is None:
+        reveal = {}
+    self.keys = keys
+    self.destroy = destroy
+    self.lock = lock
+    self.unlock = unlock
+    self.hide = hide
+    self.reveal = reveal
     #exits still a list of strings
     if exits is None:
         exits = []
-    self.keys = keys
-    self.destroy = destroy
     self.exits = exits

@@ -215,10 +215,10 @@ async def newroom(ctx,
     url=url if url else "", 
     hidden=hidden, locked=locked, end=end, once=once, 
     keys=new_keys if keys else None,
-    lock=lock if lock else "", 
-    unlock=unlock if unlock else "", 
-    hide=hide if hide else "", 
-    reveal=reveal if reveal else "", 
+    lock=new_lock if lock else None, 
+    unlock=new_unlock if unlock else None, 
+    hide=new_hide if hide else None, 
+    reveal=new_reveal if reveal else None, 
     destroy=new_destroy if destroy else None, 
     author=ctx.author.id, 
     adventure=adventure_of_room)
@@ -289,7 +289,7 @@ async def autocomplete_newroom(interaction: discord.Interaction, current: str):
     {"name": 1, "author": 1, "_id": 0}
     )
   adventure_info = [(adventure["name"], adventure["author"]) for adventure in adventure_query]
-  choices = [app_commands.Choice(name=f"{name.title()}", value=name) for name, author in adventure_info[:25]]
+  choices = [app_commands.Choice(name=f"{name.title()}", value=name.title()) for name, author in adventure_info[:25]]
   return choices
 
 async def setup(bot):
