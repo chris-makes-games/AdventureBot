@@ -723,13 +723,13 @@ def get_player(id):
     print("player not found: " + str(id))
     return None
 
-#returns a dict of key for given key id
+#returns a dict of key for given key id, case agnostic
 def get_key(id):
-  key = keys.find_one({"id": id})
-  if key:
-    return key
-  else:
-    return None
+  all_keys = keys.find()
+  for key in all_keys:
+    if key["id"].lower() == id.lower():
+      return key
+  return None
 
 #creates a blank room for testing purposes
 #useful for showing room structure to new database
@@ -956,10 +956,10 @@ def delete_key(id):
 #returns an ID if one is found
 def get_id(id):
   all_ids = ids.find()
-  for id in all_ids:
+  for i in all_ids:
     #ids are always compared to each other in lowercase
-    if id["id"].lower() == id.lower():
-      return id["id"]
+    if i["id"].lower() == id.lower():
+      return i
   return None
   
 
@@ -1011,21 +1011,22 @@ def kill_player(disc):
   player_deaths = player["deaths"] + 1
   users.update_one({"disc": disc}, {"$set": {"alive": False, "deaths": player_deaths}})
 
-#returns a room dict of a room by room name
+#returns a room dict of a room by room name, case agnostic
 def get_room(id):
-  room = rooms.find_one({"id": id})
-  if room:
-    return room
-  else:
-    return None
+  all_rooms = rooms.find()
+  for room in all_rooms:
+    if room["id"].lower() == id.lower():
+      return room
+  return None
 
-#returns the first adventure that has the given room
+#returns the first adventure that has the given room, case agnostic
 def get_adventure_by_room(room):
-  adventure = adventures.find_one({"rooms": room})
-  if adventure:
-    return adventure
-  else:
-    return None
+  all_adventures = adventures.find()
+  for adventure in all_adventures:
+    for found_room in adventure:
+      if found_room.lower() == room.lower():
+        return adventure
+  return None
 
 #gets requested field about a player by discord ID
 #can return any valid player info

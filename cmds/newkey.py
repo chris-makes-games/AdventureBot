@@ -48,7 +48,7 @@ async def newkey(ctx,
   if id:
     found_id = database.get_id(id)
     if found_id:
-      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {id}\nID **Author:** {found_id['author']}", ephemeral=True)
+      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\n**Author:** {found_id['author']}", ephemeral=True)
       return
 
   #if no ID, generates a random one

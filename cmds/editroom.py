@@ -73,10 +73,10 @@ async def editroom(ctx, id: str,
   warnings = []
 
   #checks if user input valid unique ID
-  if id:
+  if new_id:
     found_id = database.get_id(id)
     if found_id:
-      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {id}\nID **Author:** {found_id['author']}", ephemeral=True)
+      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\nID **Author:** {found_id['author']}", ephemeral=True)
       return
 
   #parses exits into usable list and validates the ID
