@@ -314,8 +314,10 @@ def register_channel(channel_id, guild_id):
 #checks if the channel is registered
 def check_channel(channel_id, guild_id):
   channel_info = botinfo.find_one({"channel": channel_id})
-  if guild_id == channel_info["guild"]:
-    return True
+  if not channel_info:
+    print(f"channel info not found!\n{channel_id}\n{guild_id}")
+    return False
+  return guild_id == channel_info["guild"]
 
 #checks if a command is inactive in botinfo
 def inactive_check(command):

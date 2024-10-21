@@ -12,16 +12,12 @@ from player import Player
 @commands.hybrid_command(name= "leave", description= "Leave your current adventure")
 async def leave(ctx):
   truename = ctx.author.id
-  displayname = ctx.author.display_name
   player = database.get_player(truename)
   guild = ctx.guild
   #checks if player is in database
   player = database.get_player(ctx.author.id)
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
-    return
-  if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
     return
   #if the guild thread is empty
   if not player["play_thread"]:
