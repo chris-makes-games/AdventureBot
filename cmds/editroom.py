@@ -58,6 +58,7 @@ async def editroom(ctx, id: str,
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
 
+  #checks if command was issued in protected channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
     await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
     return
@@ -77,6 +78,7 @@ async def editroom(ctx, id: str,
     await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {new_id}\nID **Author:** {found_id['author']}", ephemeral=True)
     return
 
+  #parses exits into usable list and validates the ID
   new_exits = []
   if exits:
     new_exits = exits.replace(' ', '').split(',')
@@ -84,6 +86,7 @@ async def editroom(ctx, id: str,
       if not database.get_room(exit):
         warnings.append(f"Room '{exit}' does not exist. Hopefully you plan on creating it!")
 
+  #parse keys into dict
   new_keys = {}
   new_keys_list = []
   new_keys_string = ""
@@ -96,12 +99,11 @@ async def editroom(ctx, id: str,
         new_keys_list.append(f"{item} x{quantity}")
         if not database.get_key(item.strip()):
           warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
-  
       except ValueError:
         await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
         return
   new_keys_string = "\n".join(new_keys_list)
-
+  #parse old keys to string
   old_keys = []
   old_keys_string = ""
   if found_room['keys']:
@@ -111,6 +113,7 @@ async def editroom(ctx, id: str,
   else:
     old_keys_string = "None"
 
+  #parse destroy into dict
   new_destroy = {}
   new_destroy_list = []
   new_destroy_string = ""
@@ -127,7 +130,7 @@ async def editroom(ctx, id: str,
       await ctx.reply("Invalid destroy key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the destroyed keys to one of somekey and three of otherkey)", ephemeral=True)
       return
   new_destroy_string = "\n".join(new_destroy_list) if found_room["destroy"] else "None"
-
+  #parse old destroy to string
   old_destroy = []
   old_destroy_string = ""
   if found_room['destroy']:
@@ -136,6 +139,115 @@ async def editroom(ctx, id: str,
       old_destroy_string = "\n".join(old_destroy)
   else:
     old_destroy_string = "None"
+
+  #parse lock into dict
+  new_lock = {}
+  new_lock_list = []
+  new_lock_string = ""
+  if lock:
+    try:
+      pairs = lock.split(',')
+      for pair in pairs:
+        item, quantity = pair.strip().split()
+        new_lock[item.strip()] = int(quantity)
+        new_lock_list.append(f"{item} x{quantity}")
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    except ValueError:
+      await ctx.reply("Invalid lock key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
+      return
+  new_lock_string = "\n".join(new_lock_list) if found_room["lock"] else "None"
+  #parse old lock to string
+  old_lock = []
+  old_lock_string = ""
+  if found_room['lock']:
+    for key, value in found_room['lock'].items():
+      old_lock.append(f"{key} : {value}")
+      old_lock_string = "\n".join(old_lock)
+  else:
+    old_lock_string = "None"
+
+  #parse unlock into dict
+  new_unlock = {}
+  new_unlock_list = []
+  new_unlock_string = ""
+  if unlock:
+    try:
+      pairs = unlock.split(',')
+      for pair in pairs:
+        item, quantity = pair.strip().split()
+        new_unlock[item.strip()] = int(quantity)
+        new_unlock_list.append(f"{item} x{quantity}")
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    except ValueError:
+      await ctx.reply("Invalid unlock key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the unlocked keys to one of somekey and three of otherkey)", ephemeral=True)
+      return
+  new_unlock_string = "\n".join(new_unlock_list) if found_room["unlock"] else "None"
+  #parse old unlock to string
+  old_unlock = []
+  old_unlock_string = ""
+  if found_room['unlock']:
+    for key, value in found_room['unlock'].items():
+      old_unlock.append(f"{key} : {value}")
+      old_unlock_string = "\n".join(old_unlock)
+  else:
+    old_unlock_string = "None"
+
+  #parse hide into dict
+  new_hide = {}
+  new_hide_list = []
+  new_hide_string = ""
+  if hide:
+    try:
+      pairs = hide.split(',')
+      for pair in pairs:
+        item, quantity = pair.strip().split()
+        new_hide[item.strip()] = int(quantity)
+        new_hide_list.append(f"{item} x{quantity}")
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    except ValueError:
+      await ctx.reply("Invalid hide key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the hidden keys to one of somekey and three of otherkey)", ephemeral=True)
+      return
+  new_hide_string = "\n".join(new_hide_list) if found_room["hide"] else "None"
+  #parse old hide to string
+  old_hide = []
+  old_hide_string = ""
+  if found_room['hide']:
+    for key, value in found_room['hide'].items():
+      old_hide.append(f"{key} : {value}")
+      old_hide_string = "\n".join(old_hide)
+  else:
+    old_hide_string = "None"
+
+  #parse reveal into dict
+  new_reveal = {}
+  new_reveal_list = []
+  new_reveal_string = ""
+  if reveal:
+    try:
+      pairs = reveal.split(',')
+      for pair in pairs:
+        item, quantity = pair.strip().split()
+        new_reveal[item.strip()] = int(quantity)
+        new_reveal_list.append(f"{item} x{quantity}")
+        if not database.get_key(item.strip()):
+          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    except ValueError:
+      await ctx.reply("Invalid reveal key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the revealed keys to one of somekey and three of otherkey)", ephemeral=True)
+      return
+  new_reveal_string = "\n".join(new_reveal_list) if found_room["reveal"] else "None"
+  #parse old reveal to string
+  old_reveal = []
+  old_reveal_string = ""
+  if found_room['reveal']:
+    for key, value in found_room['reveal'].items():
+      old_reveal.append(f"{key} : {value}")
+      old_reveal_string = "\n".join(old_reveal)
+  else:
+    old_reveal_string = "None"
+
 
   
   new_dict = found_room.copy()
@@ -182,16 +294,16 @@ async def editroom(ctx, id: str,
     embed.add_field(name="Once", value=f"Old: {found_room['once']}\nNew: {once}", inline=False)
   if lock:
     new_dict["lock"] = lock
-    embed.add_field(name="Lock", value=f"Old: {found_room['lock']}\nNew: {lock}", inline=False)
+    embed.add_field(name="Lock", value=f"Old: {old_lock_string}\nNew: {new_lock_string}", inline=False)
   if unlock:
     new_dict["unlock"] = unlock
-    embed.add_field(name="Unlock", value=f"Old: {found_room['unlock']}\nNew: {unlock}", inline=False)
+    embed.add_field(name="Unlock", value=f"Old: {old_unlock_string}\nNew: {new_unlock_string}", inline=False)
   if hide:
     new_dict["hide"] = hide
-    embed.add_field(name="Hide", value=f"Old: {found_room['hide']}\nNew: {hide}", inline=False)
+    embed.add_field(name="Hide", value=f"Old: {old_hide_string}\nNew: {new_hide_string}", inline=False)
   if reveal:
     new_dict["reveal"] = reveal
-    embed.add_field(name="Reveal", value=f"Old: {found_room['reveal']}\nNew: {reveal}", inline=False)
+    embed.add_field(name="Reveal", value=f"Old: {old_reveal_string}\nNew: {new_reveal_string}", inline=False)
   if destroy:
     new_dict["destroy"] = new_destroy
     embed.add_field(name="Destroy", value=f"Old:\n{old_destroy_string}\nNew:\n{new_destroy_string}", inline=False)
