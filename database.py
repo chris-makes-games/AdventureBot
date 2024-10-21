@@ -955,7 +955,13 @@ def delete_key(id):
 
 #returns an ID if one is found
 def get_id(id):
-  return ids.find_one({"id": id})
+  all_ids = ids.find()
+  for id in all_ids:
+    #ids are always compared to each other in lowercase
+    if id["id"].lower() == id.lower():
+      return id["id"]
+  return None
+  
 
 #deletes every specified field from every room
 #be careful!

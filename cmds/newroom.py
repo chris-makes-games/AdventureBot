@@ -78,10 +78,11 @@ async def newroom(ctx,
   warnings = []
 
   #checks if user input valid unique ID
-  if id and database.get_id(id):
+  if id:
     found_id = database.get_id(id)
-    await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {id}\nID **Author:** {found_id['author']}", ephemeral=True)
-    return
+    if found_id:
+      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {id}\nID **Author:** {found_id['author']}", ephemeral=True)
+      return
 
   #if no ID, generates a random one
   new_id = id if id else database.generate_unique_id()

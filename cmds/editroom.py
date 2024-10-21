@@ -10,7 +10,7 @@ import database
 #edits a room with whatever the user selects
 @commands.hybrid_command(name="editroom", description="Edit room attributes. Leave options blank to keep the current value")
 @app_commands.describe(
-new_id = "Change room ID. Changing this will automatically update all uses of the room",
+new_id = "Change room ID. Changing this will also update all mentions of this room",
 displayname="The title of the room displayed to players",
 description="Main description of the room displayed to players. Usually second person.",
 entrance="Description of a choice that leads to this room",
@@ -73,10 +73,11 @@ async def editroom(ctx, id: str,
   warnings = []
 
   #checks if user input valid unique ID
-  if id and database.get_id(new_id):
-    found_id = database.get_id(new_id)
-    await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {new_id}\nID **Author:** {found_id['author']}", ephemeral=True)
-    return
+  if id:
+    found_id = database.get_id(id)
+    if found_id:
+      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {id}\nID **Author:** {found_id['author']}", ephemeral=True)
+      return
 
   #parses exits into usable list and validates the ID
   new_exits = []
@@ -249,8 +250,11 @@ async def editroom(ctx, id: str,
     old_reveal_string = "None"
 
 
-  
+  #copies the dict to alter without changing the completed dict
   new_dict = found_room.copy()
+
+  #creates the embed to be displayed to the architect
+  #only shows fields which have been altered
   embed = discord.Embed(title=f"Editing room:\n{found_room['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
   if new_id:
     new_dict["new_id"] = new_id
@@ -307,11 +311,13 @@ async def editroom(ctx, id: str,
   if destroy:
     new_dict["destroy"] = new_destroy
     embed.add_field(name="Destroy", value=f"Old:\n{old_destroy_string}\nNew:\n{new_destroy_string}", inline=False)
+  #returns error if no embed fields were added
   if not embed.fields:
     embed.description = "ERROR"
     embed.add_field(name="No changes", value="No changes were made. You need to select one of the options to edit the room. If you're unsure, try /help editroom")
     await ctx.reply(embed=embed, ephemeral=True)
     return
+  #adds warning to bottom of dict
   if warnings:
     embed.add_field(name="**WARNING**", value="\n".join(warnings), inline=False)
   edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
