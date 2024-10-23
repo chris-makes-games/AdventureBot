@@ -1,0 +1,9 @@
+
+Source.gv
+.env
+.breakpoints
+__pycache__/
+.vs/
+.vscode/
+.local/
+cmds/__pycache__/
