@@ -23,14 +23,17 @@ async def map(ctx, adventure_name: str):
   adventure = database.adventures.find_one({"name": adventure_name})
   if not adventure:
     await ctx.reply("Error: Adventure not found! Double check your Advenutre name!", ephemeral=True)
+    return
     # Check if the room belongs to the user
     # if not, then check for maintainer
   if ctx.author.id == adventure["author"] or permissions.is_maintainer(ctx):
     file = mapper.visualize_adventure(adventure)
     embed = discord.Embed(title=f"Map of {adventure['name'].title()}", color=0x00ff00)
     await ctx.reply(embed=embed, file=file, ephemeral=True)
+    return
   else:
     await ctx.reply("Error: You do not have permission to map this adventure!", ephemeral=True)
+    return
 
 
 @map.autocomplete('adventure_name')

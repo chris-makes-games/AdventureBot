@@ -1,0 +1,8 @@
+
+.env
+.breakpoints
+_pycache_/
+.vs/
+.vscode/
+.local/
+cmds/_pycache_/
