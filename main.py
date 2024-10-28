@@ -2,7 +2,6 @@ import os  #used to store secrets
 import pathlib  #to get commands from command folder
 
 import discord  #all bot functionality
-import requests  # for checking rate limit
 from discord.ext import commands  #commands for bot
 
 import database  #mongodb database
