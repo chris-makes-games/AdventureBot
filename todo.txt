@@ -6,6 +6,7 @@ TODO
   Rooms
 - ending/death handling
 - complex boolean testing with keys
+- remove ability to add duplicate room connections
 
   Inventory/Journal
 - need buttons which appear as player gets them

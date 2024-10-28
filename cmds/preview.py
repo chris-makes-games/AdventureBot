@@ -92,8 +92,9 @@ async def preview(ctx, type: app_commands.Choice[str], id : str):
           value = value.replace("\\n","\n")
         key_info.append(f"**{data}:** {key[data]}\n")
       await ctx.reply("**Key Preview**:\n" + "".join(key_info), ephemeral=True)
-  elif type.name == "Adventure ":
-    adventure = database.adventures.find_one({"name": id})
+  elif type.name == "Adventure":
+    print(f"fetching adventure {id}")
+    adventure = database.get_adventure(id)
     if not adventure:
       await ctx.reply(f"Adventure {id} not found!", ephemeral=True)
       return
@@ -101,6 +102,7 @@ async def preview(ctx, type: app_commands.Choice[str], id : str):
       await ctx.reply("You do not have permission to view that Adventure!", ephemeral=True)
       return
     else:
+      print(f"found adventure {adventure['name'].title()}")
       adventure_info = []
       for data in adventure:
         if data == "_id":
@@ -109,7 +111,9 @@ async def preview(ctx, type: app_commands.Choice[str], id : str):
         if value:
           value = value.replace("\\n","\n")
         adventure_info.append(f"**{data}:** {adventure[data]}\n")
-      await ctx.reply("**Key Preview**:\n" + "".join(adventure_info), ephemeral=True)
+      await ctx.reply("**Adventure Preview**:\n" + "".join(adventure_info), ephemeral=True)
+  else:
+    await ctx.reply(f"That isn't a valid preview type!")
 
 #autocompletes the IDs of available items by author
 @preview.autocomplete('id')
