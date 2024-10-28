@@ -15,6 +15,7 @@ import perms_ctx as permissions
     app_commands.Choice(name="Key", value="Key"),
     app_commands.Choice(name="Room", value="Room"),
     app_commands.Choice(name="Player", value="Player"),
+    app_commands.Choice(name="Adventure", value="Adventure")
     ])
 async def preview(ctx, type: app_commands.Choice[str], id : str):
   #checks if player is in database
@@ -91,6 +92,24 @@ async def preview(ctx, type: app_commands.Choice[str], id : str):
           value = value.replace("\\n","\n")
         key_info.append(f"**{data}:** {key[data]}\n")
       await ctx.reply("**Key Preview**:\n" + "".join(key_info), ephemeral=True)
+  elif type.name == "Adventure ":
+    adventure = database.adventures.find_one({"name": id})
+    if not adventure:
+      await ctx.reply(f"Adventure {id} not found!", ephemeral=True)
+      return
+    if ctx.author.id != adventure["author"] and not permissions.check_any_admin(ctx):
+      await ctx.reply("You do not have permission to view that Adventure!", ephemeral=True)
+      return
+    else:
+      adventure_info = []
+      for data in adventure:
+        if data == "_id":
+          continue
+        value = str(adventure[data])
+        if value:
+          value = value.replace("\\n","\n")
+        adventure_info.append(f"**{data}:** {adventure[data]}\n")
+      await ctx.reply("**Key Preview**:\n" + "".join(adventure_info), ephemeral=True)
 
 #autocompletes the IDs of available items by author
 @preview.autocomplete('id')

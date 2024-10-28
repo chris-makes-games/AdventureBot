@@ -608,7 +608,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     if room_dict["deathnote"]:
       embed.add_field(name="You Died!", value=f"You were {room_dict['deathnote']}", inline=False)
       adventure = get_adventure_by_room(room_dict["id"])
-      adventure_name = "Their adventure" if not adventure else adventure["name"]
+      adventure_name = "Their adventure" if not adventure else adventure["name"].title()
       guild_channel = botinfo.find_one({"guild": guild.id})
       channel = guild.get_channel(guild_channel["channel"])
       member = guild.get_member(player_dict["disc"])

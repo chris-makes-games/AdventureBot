@@ -288,7 +288,7 @@ async def autocomplete_newroom(interaction: discord.Interaction, current: str):
       },
     {"name": 1, "author": 1, "_id": 0}
     )
-  adventure_info = [(adventure["name"], adventure["author"]) for adventure in adventure_query]
+  adventure_info = [(adventure["name"].title(), adventure["author"]) for adventure in adventure_query]
   choices = [app_commands.Choice(name=f"{name.title()}", value=name.title()) for name, author in adventure_info[:25]]
   return choices
 

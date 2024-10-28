@@ -74,7 +74,7 @@ async def autocomplete_editadventure(interaction: discord.Interaction, current: 
   # Fetch up to 25 item IDs for the autocomplete suggestions
   adventure_names = await adventures_query.to_list(length=25)
   # Create choices for each suggestion
-  choices = [app_commands.Choice(name=adventure["name"], value=adventure["name"]) for adventure in adventure_names]
+  choices = [app_commands.Choice(name=adventure["name"].title(), value=adventure["name"].title()) for adventure in adventure_names]
   return choices
 
 async def setup(bot):
