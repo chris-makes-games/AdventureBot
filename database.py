@@ -198,7 +198,7 @@ class ConfirmButton(discord.ui.Button):
         rooms = connect_rooms(self.dict)
         print("Rooms connected!")
         if len(rooms) == 1:
-          await interaction.followup.send(f"Room {''.join(rooms)} connected to itself!")
+          await interaction.followup.send(f"Room {''.join(rooms)} connected to itself!", ephemeral=True)
         else:
           await interaction.followup.send(f"Rooms successfully connected:\n{', '.join(rooms)}", ephemeral=True)
         await interaction.delete_original_response()

@@ -48,7 +48,9 @@ async def connectrooms(ctx, room1: str, room2: str,
     found_room_2["exits"].append(found_room_1["id"])
     embed.add_field(name="Mutually Connecting...", value=f"( {found_room_1['displayname']} ) <----> ( {found_room_2['displayname']} )")
   else:
+    print("attempting to append room id...")
     found_room_1["exits"].append(found_room_2["id"])
+    print(found_room_1["exits"])
     embed.add_field(name="Connecting...", value=f"( {found_room_1['displayname']} ) -----> ( {found_room_2['displayname']} )")
   if found_room_3:
     if mutual:
@@ -78,11 +80,13 @@ async def connectrooms(ctx, room1: str, room2: str,
       embed.add_field(name="WARNING:", value="You are about to connect a room to itself! This will cause a circular loop in that room. Are you sure you want to do this?", inline=False)
 
   big_dict = {}
+  edited_rooms = []
   for room in [found_room_1, found_room_2, found_room_3, found_room_4, found_room_5]:
-    if room:
+    if room and room["id"] not in edited_rooms:
       print("adding room to dict:")
       database.pp(room)
       big_dict[room["id"]] = room
+      edited_rooms.append(room["id"])
   print("big dict:")
   for subdict in big_dict:
     database.pp(big_dict[subdict])
