@@ -191,12 +191,16 @@ class ConfirmButton(discord.ui.Button):
       except Exception as e:
         await interaction.followup.send(f"ERROR: Key update failed! There was an issue with the button press:\n{e}", ephemeral=True)
         await interaction.delete_original_response()
-    #connect rooms together using edit
+    #connect one or more rooms together
     elif self.action == "connect" and self.dict:
+      print("connecting rooms...")
       try:
-        for room_id, room_data in self.dict.items():
-          rooms.update_one({"id": room_id}, {"$set": room_data})
-        await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
+        rooms = connect_rooms(self.dict)
+        print("Rooms connected!")
+        if len(rooms) == 1:
+          await interaction.followup.send(f"Room {''.join(rooms)} connected to itself!")
+        else:
+          await interaction.followup.send(f"Rooms successfully connected:\n{', '.join(rooms)}", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Rooms connection failed! There was an issue with the button press:\n{e}", ephemeral=True)
@@ -834,6 +838,16 @@ def create_new_room(dict):
   if adventure:
     adventure["rooms"].append(dict["id"])
     adventures.update_one({"name": dict["adventure"]}, {"$set": adventure})
+
+#connects rooms using a dict of room dicts
+#returns list of displaynames of rooms that it connected
+def connect_rooms(dict):
+  strings = []
+  for subdict in dict:
+    new_room = dict[subdict]
+    rooms.update_one({"id": new_room["id"]}, {"$set": new_room})
+    strings.append(new_room["displayname"])
+  return strings
     
 #updates room in databse
 #optionally deletes a field in the room

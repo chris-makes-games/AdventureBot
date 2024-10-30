@@ -6,7 +6,10 @@ TODO
   Rooms
 - ending/death handling
 - complex boolean testing with keys
-- remove ability to add duplicate room connections
+- remove editroom ability to add duplicate room connections
+- connectrooms needs to prevent duplicate room connects
+- editroom must prevent locked rooms from removing their alt entrances
+
 
   Inventory/Journal
 - need buttons which appear as player gets them

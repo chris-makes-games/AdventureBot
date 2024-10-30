@@ -95,7 +95,7 @@ async def join(ctx, adventure_name : str):
 @join.autocomplete('adventure_name')
 async def autocomplete_join(interaction : discord.Interaction, current: str):
     adventures_query = database.get_adventures()
-    possible_adventures = [adv["name"] for adv in adventures_query if current.lower() in adv["name"].lower()]
+    possible_adventures = [adv["name"].title() for adv in adventures_query if current.lower() in adv["name"].lower()]
     return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_adventures[:10]]
 
 async def setup(bot):
