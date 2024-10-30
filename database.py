@@ -426,7 +426,7 @@ def process_player_keys(found_keys, current_keys, history, new_room):
     #succeeds if player has one or more keys and key is stackable/repeating
     if key["id"] in current_keys and key["stackable"]:
       #increments the keys if player can have more
-      new_amount = current_keys[key_id].value + key_amount
+      new_amount = current_keys[key_id] + key_amount
       new_keys.update({key_id : new_amount})
       new_found_keys.update({key_id : key_amount})
       if key["id"] not in history:
