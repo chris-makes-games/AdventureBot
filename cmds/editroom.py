@@ -27,7 +27,8 @@ destroy= "Keys that will be removed from the player if they enter this room. Sep
 lock= "Room becomes locked if player possesses these keys. Can use math expression",  
 unlock= "Room will unlock if locked, if player possesses these keys. Can use math expression",  
 hide= "Room will become hidden if player posesses these keys. Can use math expression",  
-reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression"
+reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression",
+epilogue= "Whether the player is allowed to explore this adventure once it's completed"
 )
 
 async def editroom(ctx, id: str,
@@ -49,7 +50,8 @@ async def editroom(ctx, id: str,
     lock : str | None = None,
     unlock : str | None = None,
     hide: str | None = None,
-    reveal : str | None = None
+    reveal : str | None = None,
+    epilogue : bool | None = None
                   ):
 
   #checks if player is in database
@@ -109,7 +111,7 @@ async def editroom(ctx, id: str,
   old_keys_string = ""
   if found_room['keys']:
     for key, value in found_room['keys'].items():
-      old_keys.append(f"{key} : {value}")
+      old_keys.append(f"{key} x{value}")
       old_keys_string = "\n".join(old_keys)
   else:
     old_keys_string = "None"
@@ -130,13 +132,13 @@ async def editroom(ctx, id: str,
     except ValueError:
       await ctx.reply("Invalid destroy key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the destroyed keys to one of somekey and three of otherkey)", ephemeral=True)
       return
-  new_destroy_string = "\n".join(new_destroy_list) if found_room["destroy"] else "None"
+  new_destroy_string = "\n".join(new_destroy_list)
   #parse old destroy to string
   old_destroy = []
   old_destroy_string = ""
   if found_room['destroy']:
     for key, value in found_room['destroy'].items():
-      old_keys.append(f"{key} : {value}")
+      old_keys.append(f"{key} x{value}")
       old_destroy_string = "\n".join(old_destroy)
   else:
     old_destroy_string = "None"
@@ -157,13 +159,13 @@ async def editroom(ctx, id: str,
     except ValueError:
       await ctx.reply("Invalid lock key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
       return
-  new_lock_string = "\n".join(new_lock_list) if found_room["lock"] else "None"
+  new_lock_string = "\n".join(new_lock_list)
   #parse old lock to string
   old_lock = []
   old_lock_string = ""
   if found_room['lock']:
     for key, value in found_room['lock'].items():
-      old_lock.append(f"{key} : {value}")
+      old_lock.append(f"{key} x{value}")
       old_lock_string = "\n".join(old_lock)
   else:
     old_lock_string = "None"
@@ -184,13 +186,13 @@ async def editroom(ctx, id: str,
     except ValueError:
       await ctx.reply("Invalid unlock key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the unlocked keys to one of somekey and three of otherkey)", ephemeral=True)
       return
-  new_unlock_string = "\n".join(new_unlock_list) if found_room["unlock"] else "None"
+  new_unlock_string = "\n".join(new_unlock_list)
   #parse old unlock to string
   old_unlock = []
   old_unlock_string = ""
   if found_room['unlock']:
     for key, value in found_room['unlock'].items():
-      old_unlock.append(f"{key} : {value}")
+      old_unlock.append(f"{key} x{value}")
       old_unlock_string = "\n".join(old_unlock)
   else:
     old_unlock_string = "None"
@@ -211,13 +213,13 @@ async def editroom(ctx, id: str,
     except ValueError:
       await ctx.reply("Invalid hide key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the hidden keys to one of somekey and three of otherkey)", ephemeral=True)
       return
-  new_hide_string = "\n".join(new_hide_list) if found_room["hide"] else "None"
+  new_hide_string = "\n".join(new_hide_list)
   #parse old hide to string
   old_hide = []
   old_hide_string = ""
   if found_room['hide']:
     for key, value in found_room['hide'].items():
-      old_hide.append(f"{key} : {value}")
+      old_hide.append(f"{key} x{value}")
       old_hide_string = "\n".join(old_hide)
   else:
     old_hide_string = "None"
@@ -238,13 +240,13 @@ async def editroom(ctx, id: str,
     except ValueError:
       await ctx.reply("Invalid reveal key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the revealed keys to one of somekey and three of otherkey)", ephemeral=True)
       return
-  new_reveal_string = "\n".join(new_reveal_list) if found_room["reveal"] else "None"
+  new_reveal_string = "\n".join(new_reveal_list)
   #parse old reveal to string
   old_reveal = []
   old_reveal_string = ""
   if found_room['reveal']:
     for key, value in found_room['reveal'].items():
-      old_reveal.append(f"{key} : {value}")
+      old_reveal.append(f"{key} x{value}")
       old_reveal_string = "\n".join(old_reveal)
   else:
     old_reveal_string = "None"
@@ -258,59 +260,59 @@ async def editroom(ctx, id: str,
   embed = discord.Embed(title=f"Editing room:\n{found_room['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
   if new_id:
     new_dict["new_id"] = new_id
-    embed.add_field(name="New ID", value=f"Old:\n{found_room['id']}\nNew:\n{new_id}\nChanging the ID of this room will update the ID across all rooms it is connected to", inline=True)
+    embed.add_field(name="New ID", value=f"Old:\n{found_room['id']}\n\nNew:\n{new_id}\nChanging the ID of this room will update the ID across all rooms it is connected to", inline=True)
   if description:
     new_dict["description"] = description
-    embed.add_field(name="Description", value=f"Old: {found_room['description']}\nNew: {description}", inline=False)
+    embed.add_field(name="Description", value=f"Old:\n{found_room['description']}\n\nNew:\n{description}", inline=False)
   if displayname:
     new_dict["new_displayname"] = displayname
     new_dict["displayname"] = displayname
-    embed.add_field(name="Displayname", value=f"Old: {found_room['displayname']}\nNew: {displayname}", inline=False)
+    embed.add_field(name="Displayname", value=f"Old:\n{found_room['displayname']}\n\nNew:\n{displayname}", inline=False)
   if entrance:
     new_dict["entrance"] = entrance
-    embed.add_field(name="Entrance", value=f"Old: {found_room['entrance']}\nNew: {entrance}", inline=False)
+    embed.add_field(name="Entrance", value=f"Old:\n{found_room['entrance']}\n\nNew:\n{entrance}", inline=False)
   if alt_entrance:
     new_dict["alt_entrance"] = alt_entrance
-    embed.add_field(name="Alt Entrance", value=f"Old: {found_room['alt_entrance']}\nNew: {alt_entrance}", inline=False)
+    embed.add_field(name="Alt Entrance", value=f"Old:\n{found_room['alt_entrance']}\n\nNew:\n{alt_entrance}", inline=False)
   if new_exits:
     new_dict["exits"] = new_exits
-    embed.add_field(name="Exits", value=f"Old: {found_room['exits']}\nNew: {new_exits}", inline=False)
+    embed.add_field(name="Exits", value=f"Old:\n{found_room['exits']}\n\nNew:\n{new_exits}", inline=False)
   if deathnote:
     new_dict["deathnote"] = deathnote
-    embed.add_field(name="Deathnote", value=f"Old: {found_room['deathnote']}\nNew: {deathnote}", inline=False)
+    embed.add_field(name="Deathnote", value=f"Old:\n{found_room['deathnote']}\n\nNew:\n{deathnote}", inline=False)
   if url:
     new_dict["url"] = url
-    embed.add_field(name="URL", value=f"Old: {found_room['url']}\nNew: {url}", inline=False)
+    embed.add_field(name="URL", value=f"Old:\n{found_room['url']}\n\nNew:\n{url}", inline=False)
   if keys:
     new_dict["keys"] = new_keys
     embed.add_field(name="Keys", value=f"Old:\n{old_keys_string}\n\nNew:\n{new_keys_string}", inline=False)
   if hidden:
     new_dict["hidden"] = hidden
-    embed.add_field(name="Hidden", value=f"Old: {found_room['hidden']}\nNew: {hidden}", inline=False)
+    embed.add_field(name="Hidden", value=f"Old:\n{found_room['hidden']}\n\nNew:\n{hidden}", inline=False)
   if locked:
     new_dict["locked"] = locked
-    embed.add_field(name="Locked", value=f"Old: {found_room['locked']}\nNew: {locked}", inline=False)
+    embed.add_field(name="Locked", value=f"Old:\n{found_room['locked']}\n\nNew:\n{locked}", inline=False)
   if end:
     new_dict["end"] = end
-    embed.add_field(name="End", value=f"Old: {found_room['end']}\nNew: {end}", inline=False)
+    embed.add_field(name="End", value=f"Old:\n{found_room['end']}\n\nNew:\n{end}", inline=False)
   if once:
     new_dict["once"] = once
-    embed.add_field(name="Once", value=f"Old: {found_room['once']}\nNew: {once}", inline=False)
+    embed.add_field(name="Once", value=f"Old: {found_room['once']}\n\nNew:\n{once}", inline=False)
   if lock:
-    new_dict["lock"] = lock
-    embed.add_field(name="Lock", value=f"Old: {old_lock_string}\nNew: {new_lock_string}", inline=False)
+    new_dict["lock"] = new_lock
+    embed.add_field(name="Lock", value=f"Old: {old_lock_string}\n\nNew:\n{new_lock_string}", inline=False)
   if unlock:
-    new_dict["unlock"] = unlock
-    embed.add_field(name="Unlock", value=f"Old: {old_unlock_string}\nNew: {new_unlock_string}", inline=False)
+    new_dict["unlock"] = new_unlock
+    embed.add_field(name="Unlock", value=f"Old:\n{old_unlock_string}\n\nNew:\n{new_unlock_string}", inline=False)
   if hide:
-    new_dict["hide"] = hide
-    embed.add_field(name="Hide", value=f"Old: {old_hide_string}\nNew: {new_hide_string}", inline=False)
+    new_dict["hide"] = new_hide
+    embed.add_field(name="Hide", value=f"Old:\n{old_hide_string}\n\nNew:\n{new_hide_string}", inline=False)
   if reveal:
-    new_dict["reveal"] = reveal
-    embed.add_field(name="Reveal", value=f"Old: {old_reveal_string}\nNew: {new_reveal_string}", inline=False)
+    new_dict["reveal"] = new_reveal
+    embed.add_field(name="Reveal", value=f"Old:\n{old_reveal_string}\n\nNew:\n{new_reveal_string}", inline=False)
   if destroy:
     new_dict["destroy"] = new_destroy
-    embed.add_field(name="Destroy", value=f"Old:\n{old_destroy_string}\nNew:\n{new_destroy_string}", inline=False)
+    embed.add_field(name="Destroy", value=f"Old:\n{old_destroy_string}\n\nNew:\n{new_destroy_string}", inline=False)
   #returns error if no embed fields were added
   if not embed.fields:
     embed.description = "ERROR"
