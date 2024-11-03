@@ -107,16 +107,25 @@ async def editkey(ctx, id : str,
       old_subkeys += f"{key} x{found_key['subkeys'][key]}\n"
     new_dict["subkeys"] = new_subkeys
     embed.add_field(name="Subkeys", value=f"**Old:**\n{old_subkeys}\n**New:**\n{subkeys_string}", inline=False)
-  if unique:
-    new_dict["unique"] = unique
-    embed.add_field(name="Unique", value=f"**Old:** {found_key['unique']}\n**New:** {unique}", inline=False)
-  if repeating:
-    new_dict["repeating"] = repeating
-    embed.add_field(name="Repeating", value=f"**Old:** {found_key['repeating']}\n**New:** {repeating}", inline=False)
-  if deconstruct:
+  if deconstruct != new_dict["deconstruct"]:
     new_dict["deconstruct"] = deconstruct
     embed.add_field(name="Deconstruct", value=f"**Old:** {found_key['deconstruct']}\n**New:** {deconstruct}", inline=False)
-  if stackable:
+  if combine != new_dict["combine"]:
+    new_dict["combine"] = combine
+    embed.add_field(name="Combine", value=f"**Old:** {found_key['combine']}\n**New:** {combine}", inline=False)
+  if inventory != new_dict["inventory"]:
+    new_dict["inventory"] = inventory
+    embed.add_field(name="Inventory", value=f"**Old:** {found_key['inventory']}\n**New:** {inventory}", inline=False)
+  if journal != new_dict["journal"]:
+    new_dict["journal"] = journal
+    embed.add_field(name="Journal", value=f"**Old:** {found_key['journal']}\n**New:** {journal}", inline=False)
+  if unique != new_dict["unique"]:
+    new_dict["unique"] = unique
+    embed.add_field(name="Unique", value=f"**Old:** {found_key['unique']}\n**New:** {unique}", inline=False)
+  if repeating != new_dict["repeating"]:
+    new_dict["repeating"] = repeating
+    embed.add_field(name="Repeating", value=f"**Old:** {found_key['repeating']}\n**New:** {repeating}", inline=False)
+  if stackable != new_dict["stackable"]:
     new_dict["stackable"] = stackable
     embed.add_field(name="Stackable", value=f"**Old:**{found_key['stackable']}\n**New:** {stackable}", inline=False)
   

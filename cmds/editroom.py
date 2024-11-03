@@ -286,18 +286,21 @@ async def editroom(ctx, id: str,
   if keys:
     new_dict["keys"] = new_keys
     embed.add_field(name="Keys", value=f"Old:\n{old_keys_string}\n\nNew:\n{new_keys_string}", inline=False)
-  if hidden:
+  if hidden != new_dict["hidden"]:
     new_dict["hidden"] = hidden
     embed.add_field(name="Hidden", value=f"Old:\n{found_room['hidden']}\n\nNew:\n{hidden}", inline=False)
-  if locked:
+  if locked != new_dict["locked"]:
     new_dict["locked"] = locked
     embed.add_field(name="Locked", value=f"Old:\n{found_room['locked']}\n\nNew:\n{locked}", inline=False)
-  if end:
+  if end != new_dict["end"]:
     new_dict["end"] = end
     embed.add_field(name="End", value=f"Old:\n{found_room['end']}\n\nNew:\n{end}", inline=False)
-  if once:
+  if once != new_dict["once"]:
     new_dict["once"] = once
     embed.add_field(name="Once", value=f"Old: {found_room['once']}\n\nNew:\n{once}", inline=False)
+  if epilogue != new_dict["epilogue"]:
+    new_dict["epilogue"] = epilogue
+    embed.add_field(name="Epilogue", value=f"Old: {found_room['epilogue']}\n\nNew:\n{epilogue}", inline=False)
   if lock:
     new_dict["lock"] = new_lock
     embed.add_field(name="Lock", value=f"Old: {old_lock_string}\n\nNew:\n{new_lock_string}", inline=False)
