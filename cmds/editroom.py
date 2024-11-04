@@ -27,8 +27,7 @@ destroy= "Keys that will be removed from the player if they enter this room. Sep
 lock= "Room becomes locked if player possesses these keys. Can use math expression",  
 unlock= "Room will unlock if locked, if player possesses these keys. Can use math expression",  
 hide= "Room will become hidden if player posesses these keys. Can use math expression",  
-reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression",
-epilogue= "Whether the player is allowed to explore this adventure once it's completed"
+reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression"
 )
 
 async def editroom(ctx, id: str,
@@ -51,7 +50,6 @@ async def editroom(ctx, id: str,
     unlock : str | None = None,
     hide: str | None = None,
     reveal : str | None = None,
-    epilogue : bool | None = None
                   ):
 
   #checks if player is in database
@@ -73,6 +71,9 @@ async def editroom(ctx, id: str,
 
   #warnings for exits not found
   warnings = []
+
+  #for errors in lock, unlock, reveal, hide conditions
+  condition_errors = []
 
   #checks if user input valid unique ID
   if new_id:
@@ -143,114 +144,94 @@ async def editroom(ctx, id: str,
   else:
     old_destroy_string = "None"
 
-  #parse lock into dict
-  new_lock = {}
-  new_lock_list = []
-  new_lock_string = ""
+    #regex pattern for parsing conditionals:
+  pattern = re.compile(r'^\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*([<>!=]=?)\s*(\d+|[\w]+)\s*$')
+
+  #parse lock conditionals to string, checks for correct conditionals
+  new_lock_string = []
   if lock:
-    try:
-      pairs = lock.split(',')
-      for pair in pairs:
-        item, quantity = pair.strip().split()
-        new_lock[item.strip()] = int(quantity)
-        new_lock_list.append(f"{item} x{quantity}")
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    except ValueError:
-      await ctx.reply("Invalid lock key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
-      return
-  new_lock_string = "\n".join(new_lock_list)
-  #parse old lock to string
-  old_lock = []
-  old_lock_string = ""
-  if found_room['lock']:
-    for key, value in found_room['lock'].items():
-      old_lock.append(f"{key} x{value}")
-      old_lock_string = "\n".join(old_lock)
-  else:
-    old_lock_string = "None"
+    conditions = lock.split(',')
+    for condition in conditions:
+      new_condition = condition.strip()
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
+      new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
+      match = pattern.match(new_condition)
+      if not match:
+        condition_errors.append(f"lock condition: `{new_condition.replace('==', '=')}`")
+        continue
+      else:
+        new_lock_string.append("- " + new_condition.replace("==", "="))
+      key_expression = match.group(1)
+      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      for key in keys_in_expression:
+        if not database.get_key(key):
+          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
-  #parse unlock into dict
-  new_unlock = {}
-  new_unlock_list = []
-  new_unlock_string = ""
+  #parse unlock conditionals to string, checks for correct conditionals
+  new_unlock_string = []
   if unlock:
-    try:
-      pairs = unlock.split(',')
-      for pair in pairs:
-        item, quantity = pair.strip().split()
-        new_unlock[item.strip()] = int(quantity)
-        new_unlock_list.append(f"{item} x{quantity}")
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    except ValueError:
-      await ctx.reply("Invalid unlock key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the unlocked keys to one of somekey and three of otherkey)", ephemeral=True)
-      return
-  new_unlock_string = "\n".join(new_unlock_list)
-  #parse old unlock to string
-  old_unlock = []
-  old_unlock_string = ""
-  if found_room['unlock']:
-    for key, value in found_room['unlock'].items():
-      old_unlock.append(f"{key} x{value}")
-      old_unlock_string = "\n".join(old_unlock)
-  else:
-    old_unlock_string = "None"
+    conditions = unlock.split(',')
+    for condition in conditions:
+      new_condition = condition.strip()
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
+      new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
+      match = pattern.match(new_condition)
+      if not match:
+        condition_errors.append(f"unlock condition: `{new_condition.replace('==', '=')}`")
+        continue
+      else:
+        new_unlock_string.append("- " + new_condition.replace("==", "="))
+      key_expression = match.group(1)
+      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      for key in keys_in_expression:
+        if not database.get_key(key):
+          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
-  #parse hide into dict
-  new_hide = {}
-  new_hide_list = []
-  new_hide_string = ""
+  #parse hide conditionals to string, checks for correct conditionals
+  new_hide_string = []
   if hide:
-    try:
-      pairs = hide.split(',')
-      for pair in pairs:
-        item, quantity = pair.strip().split()
-        new_hide[item.strip()] = int(quantity)
-        new_hide_list.append(f"{item} x{quantity}")
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    except ValueError:
-      await ctx.reply("Invalid hide key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the hidden keys to one of somekey and three of otherkey)", ephemeral=True)
-      return
-  new_hide_string = "\n".join(new_hide_list)
-  #parse old hide to string
-  old_hide = []
-  old_hide_string = ""
-  if found_room['hide']:
-    for key, value in found_room['hide'].items():
-      old_hide.append(f"{key} x{value}")
-      old_hide_string = "\n".join(old_hide)
-  else:
-    old_hide_string = "None"
+    conditions = hide.split(',')
+    for condition in conditions:
+      new_condition = condition.strip()
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
+      new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
+      match = pattern.match(new_condition)
+      if not match:
+        condition_errors.append(f"hide condition: `{new_condition.replace('==', '=')}`")
+        continue
+      else:
+        new_hide_string.append("- " + new_condition.replace("==", "="))
+      key_expression = match.group(1)
+      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      for key in keys_in_expression:
+        if not database.get_key(key):
+          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
-  #parse reveal into dict
-  new_reveal = {}
-  new_reveal_list = []
-  new_reveal_string = ""
+  #parse reveal conditionals to string, checks for correct conditionals
+  new_reveal_string = []
   if reveal:
-    try:
-      pairs = reveal.split(',')
-      for pair in pairs:
-        item, quantity = pair.strip().split()
-        new_reveal[item.strip()] = int(quantity)
-        new_reveal_list.append(f"{item} x{quantity}")
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    except ValueError:
-      await ctx.reply("Invalid reveal key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the revealed keys to one of somekey and three of otherkey)", ephemeral=True)
-      return
-  new_reveal_string = "\n".join(new_reveal_list)
-  #parse old reveal to string
-  old_reveal = []
-  old_reveal_string = ""
-  if found_room['reveal']:
-    for key, value in found_room['reveal'].items():
-      old_reveal.append(f"{key} x{value}")
-      old_reveal_string = "\n".join(old_reveal)
-  else:
-    old_reveal_string = "None"
+    conditions = reveal.split(',')
+    for condition in conditions:
+      new_condition = condition.strip()
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
+      new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
+      match = pattern.match(new_condition)
+      if not match:
+        condition_errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
+        continue
+      else:
+        new_reveal_string.append("- " + new_condition.replace("==", "="))
+      key_expression = match.group(1)
+      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      for key in keys_in_expression:
+        if not database.get_key(key):
+          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
+  #halts with error message if input in conditionals does not parse
+  if condition_errors:
+    error_message = "\n".join(condition_errors)
+    await ctx.reply(f"There was an error with one or more of your conditional statements:\n{error_message}\n\nIf you need help, try `/architecthelp operators`", ephemeral=True)
+    return
 
   #copies the dict to alter without changing the completed dict
   new_dict = found_room.copy()
@@ -298,21 +279,22 @@ async def editroom(ctx, id: str,
   if once != new_dict["once"]:
     new_dict["once"] = once
     embed.add_field(name="Once", value=f"Old: {found_room['once']}\n\nNew:\n{once}", inline=False)
-  if epilogue != new_dict["epilogue"]:
-    new_dict["epilogue"] = epilogue
-    embed.add_field(name="Epilogue", value=f"Old: {found_room['epilogue']}\n\nNew:\n{epilogue}", inline=False)
   if lock:
-    new_dict["lock"] = new_lock
-    embed.add_field(name="Lock", value=f"Old: {old_lock_string}\n\nNew:\n{new_lock_string}", inline=False)
+    new_dict["lock"] = new_lock_string
+    new_lock_string = "\n".join(new_lock_string)
+    embed.add_field(name="Lock", value=f"Old: {found_room['lock']}\n\nNew:\n{new_lock_string}", inline=False)
   if unlock:
-    new_dict["unlock"] = new_unlock
-    embed.add_field(name="Unlock", value=f"Old:\n{old_unlock_string}\n\nNew:\n{new_unlock_string}", inline=False)
+    new_dict["unlock"] = new_unlock_string
+    new_unlock_string = "\n".join(new_unlock_string)
+    embed.add_field(name="Unlock", value=f"Old:\n{found_room['unlock']}\n\nNew:\n{new_unlock_string}", inline=False)
   if hide:
-    new_dict["hide"] = new_hide
-    embed.add_field(name="Hide", value=f"Old:\n{old_hide_string}\n\nNew:\n{new_hide_string}", inline=False)
+    new_dict["hide"] = new_hide_string
+    new_hide_string = "\n".join(new_hide_string)
+    embed.add_field(name="Hide", value=f"Old:\n{found_room['hide']}\n\nNew:\n{new_hide_string}", inline=False)
   if reveal:
-    new_dict["reveal"] = new_reveal
-    embed.add_field(name="Reveal", value=f"Old:\n{old_reveal_string}\n\nNew:\n{new_reveal_string}", inline=False)
+    new_dict["reveal"] = new_reveal_string
+    new_reveal_string = "\n".join(new_reveal_string)
+    embed.add_field(name="Reveal", value=f"Old:\n{found_room['reveal']}\n\nNew:\n{new_reveal_string}", inline=False)
   if destroy:
     new_dict["destroy"] = new_destroy
     embed.add_field(name="Destroy", value=f"Old:\n{old_destroy_string}\n\nNew:\n{new_destroy_string}", inline=False)

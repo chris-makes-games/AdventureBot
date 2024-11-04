@@ -598,6 +598,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   elif "URL" in room_dict:
     embed.set_image(url=room_dict["URL"])
   view = discord.ui.View()
+  adventure = get_adventure_by_room(room_dict["id"])
   if new_keys:
     for key_id in new_keys:
       found_key = get_key(key_id)
@@ -611,7 +612,6 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   if room_dict["end"]:
     if room_dict["deathnote"]:
       embed.add_field(name="You Died!", value=f"You were {room_dict['deathnote']}", inline=False)
-      adventure = get_adventure_by_room(room_dict["id"])
       adventure_name = "Their adventure" if not adventure else adventure["name"].title()
       guild_channel = botinfo.find_one({"guild": guild.id})
       channel = guild.get_channel(guild_channel["channel"])
@@ -619,7 +619,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
       embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
       await channel.send(f"{member.mention} has died during {adventure_name}! They were ||{room_dict['deathnote']}||")
     embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
-    if room_dict["epilogue"]:
+    if adventure and adventure["epilogue"]:
       embed.add_field(name="Epilogue", value="While the adventure is concluded, you may freely explore the rooms to see what you might have missed", inline=False)
     update_player({"id" : player_dict["id"], "dead": True})
     return (embed, view)

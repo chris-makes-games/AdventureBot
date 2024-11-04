@@ -134,9 +134,8 @@ async def newroom(ctx,
     for key in new_destroy:
       destroy_string += f"{key} x{new_destroy[key]}\n"
 
-  #regex expression for parsing conditionals:
-  pattern = re.compile(r'^\s*([\w]+)\s*([<>!=]=?|[+\-*/])\s*(\d+|[\w]+)\s*$')
-
+  #regex pattern for parsing conditionals:
+  pattern = re.compile(r'^\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*([<>!=]=?)\s*(\d+|[\w]+)\s*$')
 
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
@@ -147,86 +146,81 @@ async def newroom(ctx,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       match = pattern.match(new_condition)
-      print(f"old condition: {condition}")
-      print(f"new condition: {new_condition}")
       if not match:
         condition_errors.append(f"lock condition: `{new_condition.replace('==', '=')}`")
         continue
       else:
-        new_lock_string.append(new_condition.replace("==", "="))
-      key = match.group(1)
-      if not database.get_key(key):
-        warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    if new_lock_string:
-      new_lock_string = "\n".join(new_lock_string)
+        new_lock_string.append("- " + new_condition.replace("==", "="))
+      key_expression = match.group(1)
+      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      for key in keys_in_expression:
+        if not database.get_key(key):
+          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse unlock conditionals to string, checks for correct conditionals
-  new_unlock_string = []
+  new_unlock_list = []
   if unlock:
     conditions = unlock.split(',')
     for condition in conditions:
       new_condition = condition.strip()
-      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', condition)
-      new_condition = " ".join(new_condition)
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       match = pattern.match(new_condition)
       if not match:
-        condition_errors.append(f"unlock condition: `{condition}`")
+        condition_errors.append(f"unlock condition: `{new_condition.replace('==', '=')}`")
         continue
       else:
-        new_unlock_string.append(condition)
-      key = match.group(1)
-      if not database.get_key(key):
-        warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    if new_unlock_string:
-      new_unlock_string = "\n".join(new_unlock_string)
+        new_unlock_list.append("- " + new_condition.replace("==", "="))
+      key_expression = match.group(1)
+      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      for key in keys_in_expression:
+        if not database.get_key(key):
+          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse hide conditionals to string, checks for correct conditionals
-  new_hide_string = []
+  new_hide_list = []
   if hide:
     conditions = hide.split(',')
     for condition in conditions:
       new_condition = condition.strip()
-      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', condition)
-      new_condition = " ".join(new_condition)
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       match = pattern.match(new_condition)
       if not match:
-        condition_errors.append(f"hide condition: `{condition}`")
+        condition_errors.append(f"hide condition: `{new_condition.replace('==', '=')}`")
         continue
       else:
-        new_hide_string.append(condition)
-      key = match.group(1)
-      if not database.get_key(key):
-        warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    if new_hide_string:
-      new_hide_string = "\n".join(new_hide_string)
+        new_hide_list.append("- " + new_condition.replace("==", "="))
+      key_expression = match.group(1)
+      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      for key in keys_in_expression:
+        if not database.get_key(key):
+          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse reveal conditionals to string, checks for correct conditionals
-  new_reveal_string = []
+  new_reveal_list = []
   if reveal:
     conditions = reveal.split(',')
     for condition in conditions:
       new_condition = condition.strip()
-      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', condition)
-      new_condition = " ".join(new_condition)
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       match = pattern.match(new_condition)
       if not match:
-        condition_errors.append(f"reveal condition: `{condition}`")
+        condition_errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
         continue
       else:
-        new_reveal_string.append(condition)
-      key = match.group(1)
-      if not database.get_key(key):
-        warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    if new_reveal_string:
-      new_reveal_string = "\n".join(new_reveal_string)
+        new_reveal_list.append("- " + new_condition.replace("==", "="))
+      key_expression = match.group(1)
+      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      for key in keys_in_expression:
+        if not database.get_key(key):
+          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #halts with error message if input in conditionals does not parse
   if condition_errors:
     error_message = "\n".join(condition_errors)
-    await ctx.reply(f"There was an error with one or more of your your conditional statements:\n{error_message}\n\nIf you need help, try `/architecthelp operators`", ephemeral=True)
+    await ctx.reply(f"There was an error with one or more of your conditional statements:\n{error_message}\n\nIf you need help, try `/architecthelp operators`", ephemeral=True)
     return
 
   #turns list of warnings to a string
@@ -246,11 +240,11 @@ async def newroom(ctx,
     url=url if url else "", 
     hidden=hidden, locked=locked, end=end, once=once, 
     keys=new_keys if keys else None,
-    lock=lock if lock else None, 
-    unlock=unlock if unlock else None, 
-    hide=hide if hide else None, 
-    reveal=reveal if reveal else None, 
     destroy=new_destroy if destroy else None, 
+    lock=new_lock_string if lock else None, 
+    unlock=new_lock_string if unlock else None, 
+    hide=new_hide_list if hide else None, 
+    reveal=new_reveal_list if reveal else None, 
     author=ctx.author.id, 
     adventure=adventure_of_room)
   except Exception as e:
@@ -285,13 +279,17 @@ async def newroom(ctx,
   if once:
     embed.add_field(name="Once", value=f"{once}", inline=False)
   if lock:
+    new_lock_string = "\n".join(new_lock_string)
     embed.add_field(name="Lock", value=f"{new_lock_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be locked and greyed out.)", inline=False)
   if unlock:
-    embed.add_field(name="Unlock", value=f"{new_unlock_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be unlocked and clickable if it was previously locked.)", inline=False)
+    new_unlock_list = "\n".join(new_unlock_list)
+    embed.add_field(name="Unlock", value=f"{new_unlock_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be unlocked and clickable if it was previously locked.)", inline=False)
   if hide:
-    embed.add_field(name="Hide", value=f"{new_hide_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be hidden if not already.)", inline=False)
+    new_hide_list = "\n".join(new_hide_list)
+    embed.add_field(name="Hide", value=f"{new_hide_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be hidden if not already.)", inline=False)
   if reveal:
-    embed.add_field(name="Reveal", value=f"{new_reveal_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be revealed if it was hidden.)", inline=False)
+    new_reveal_list = "\n".join(new_reveal_list)
+    embed.add_field(name="Reveal", value=f"{new_reveal_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be revealed if it was hidden.)", inline=False)
   if warnings:
     embed.add_field(name="**WARNING:**", value=warnings)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
