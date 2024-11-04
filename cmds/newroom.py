@@ -113,7 +113,7 @@ async def newroom(ctx,
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
         if not database.get_key(item.strip()):
-          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
         await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
         return
@@ -130,7 +130,7 @@ async def newroom(ctx,
         item, quantity = pair.strip().split()
         new_destroy[item.strip()] = int(quantity)
         if not database.get_key(item.strip()):
-          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
         await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
         return
@@ -142,6 +142,7 @@ async def newroom(ctx,
 
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
+  new_lock = []
   if lock:
     conditions = lock.split(',')
     for condition in conditions:
@@ -154,6 +155,7 @@ async def newroom(ctx,
         continue
       else:
         new_lock_string.append("- " + new_condition.replace("==", "="))
+        new_lock.append(condition)
       left_expression = match.group(1)
       right_expression = match.group(3)
       keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
@@ -161,10 +163,11 @@ async def newroom(ctx,
         if key.isdigit():
           continue
         if not database.get_key(key):
-          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse unlock conditionals to string, checks for correct conditionals
-  new_unlock_list = []
+  new_unlock_string = []
+  new_unlock = []
   if unlock:
     conditions = unlock.split(',')
     for condition in conditions:
@@ -176,7 +179,8 @@ async def newroom(ctx,
         condition_errors.append(f"unlock condition: `{new_condition.replace('==', '=')}`")
         continue
       else:
-        new_unlock_list.append("- " + new_condition.replace("==", "="))
+        new_unlock_string.append("- " + new_condition.replace("==", "="))
+        new_unlock.append(condition)
       left_expression = match.group(1)
       right_expression = match.group(3)
       keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
@@ -184,10 +188,11 @@ async def newroom(ctx,
         if key.isdigit():
           continue
         if not database.get_key(key):
-          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse hide conditionals to string, checks for correct conditionals
-  new_hide_list = []
+  new_hide_string = []
+  new_hide = []
   if hide:
     conditions = hide.split(',')
     for condition in conditions:
@@ -199,7 +204,8 @@ async def newroom(ctx,
         condition_errors.append(f"hide condition: `{new_condition.replace('==', '=')}`")
         continue
       else:
-        new_hide_list.append("- " + new_condition.replace("==", "="))
+        new_hide_string.append("- " + new_condition.replace("==", "="))
+        new_hide.append(condition)
       left_expression = match.group(1)
       right_expression = match.group(3)
       keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
@@ -207,10 +213,11 @@ async def newroom(ctx,
         if key.isdigit():
           continue
         if not database.get_key(key):
-          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse reveal conditionals to string, checks for correct conditionals
-  new_reveal_list = []
+  new_reveal_string = []
+  new_reveal = []
   if reveal:
     conditions = reveal.split(',')
     for condition in conditions:
@@ -222,7 +229,8 @@ async def newroom(ctx,
         condition_errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
         continue
       else:
-        new_reveal_list.append("- " + new_condition.replace("==", "="))
+        new_reveal_string.append("- " + new_condition.replace("==", "="))
+        new_reveal.append(condition)
       left_expression = match.group(1)
       right_expression = match.group(3)
       keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
@@ -230,7 +238,7 @@ async def newroom(ctx,
         if key.isdigit():
           continue
         if not database.get_key(key):
-          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #halts with error message if input in conditionals does not parse
   if condition_errors:
@@ -256,10 +264,10 @@ async def newroom(ctx,
     hidden=hidden, locked=locked, end=end, once=once, 
     keys=new_keys if keys else None,
     destroy=new_destroy if destroy else None, 
-    lock=new_lock_string if lock else None, 
-    unlock=new_lock_string if unlock else None, 
-    hide=new_hide_list if hide else None, 
-    reveal=new_reveal_list if reveal else None, 
+    lock=new_lock if lock else None, 
+    unlock=new_unlock if unlock else None, 
+    hide=new_hide if hide else None, 
+    reveal=new_reveal if reveal else None, 
     author=ctx.author.id, 
     adventure=adventure_of_room)
   except Exception as e:
@@ -297,13 +305,13 @@ async def newroom(ctx,
     new_lock_string = "\n".join(new_lock_string)
     embed.add_field(name="Lock", value=f"{new_lock_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be locked and greyed out.)", inline=False)
   if unlock:
-    new_unlock_list = "\n".join(new_unlock_list)
+    new_unlock_list = "\n".join(new_unlock_string)
     embed.add_field(name="Unlock", value=f"{new_unlock_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be unlocked and clickable if it was previously locked.)", inline=False)
   if hide:
-    new_hide_list = "\n".join(new_hide_list)
+    new_hide_list = "\n".join(new_hide_string)
     embed.add_field(name="Hide", value=f"{new_hide_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be hidden if not already.)", inline=False)
   if reveal:
-    new_reveal_list = "\n".join(new_reveal_list)
+    new_reveal_list = "\n".join(new_reveal_string)
     embed.add_field(name="Reveal", value=f"{new_reveal_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be revealed if it was hidden.)", inline=False)
   if warnings:
     embed.add_field(name="**WARNING:**", value=warnings)

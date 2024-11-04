@@ -152,6 +152,7 @@ async def editroom(ctx, id: str,
 
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
+  new_lock = []
   if lock:
     conditions = lock.split(',')
     for condition in conditions:
@@ -164,6 +165,7 @@ async def editroom(ctx, id: str,
         continue
       else:
         new_lock_string.append("- " + new_condition.replace("==", "="))
+        new_lock.append(condition)
       left_expression = match.group(1)
       right_expression = match.group(3)
       keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
@@ -171,10 +173,11 @@ async def editroom(ctx, id: str,
         if key.isdigit():
           continue
         if not database.get_key(key):
-          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse unlock conditionals to string, checks for correct conditionals
   new_unlock_string = []
+  new_unlock = []
   if unlock:
     conditions = unlock.split(',')
     for condition in conditions:
@@ -187,6 +190,7 @@ async def editroom(ctx, id: str,
         continue
       else:
         new_unlock_string.append("- " + new_condition.replace("==", "="))
+        new_unlock.append(condition)
       left_expression = match.group(1)
       right_expression = match.group(3)
       keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
@@ -194,10 +198,11 @@ async def editroom(ctx, id: str,
         if key.isdigit():
           continue
         if not database.get_key(key):
-          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse hide conditionals to string, checks for correct conditionals
   new_hide_string = []
+  new_hide = []
   if hide:
     conditions = hide.split(',')
     for condition in conditions:
@@ -210,6 +215,7 @@ async def editroom(ctx, id: str,
         continue
       else:
         new_hide_string.append("- " + new_condition.replace("==", "="))
+        new_hide.append(condition)
       left_expression = match.group(1)
       right_expression = match.group(3)
       keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
@@ -217,10 +223,11 @@ async def editroom(ctx, id: str,
         if key.isdigit():
           continue
         if not database.get_key(key):
-          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #parse reveal conditionals to string, checks for correct conditionals
   new_reveal_string = []
+  new_reveal = []
   if reveal:
     conditions = reveal.split(',')
     for condition in conditions:
@@ -233,6 +240,7 @@ async def editroom(ctx, id: str,
         continue
       else:
         new_reveal_string.append("- " + new_condition.replace("==", "="))
+        new_reveal.append(condition)
       left_expression = match.group(1)
       right_expression = match.group(3)
       keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
@@ -240,7 +248,7 @@ async def editroom(ctx, id: str,
         if key.isdigit():
           continue
         if not database.get_key(key):
-          warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #halts with error message if input in conditionals does not parse
   if condition_errors:
@@ -298,25 +306,25 @@ async def editroom(ctx, id: str,
     new_dict["once"] = once
     embed.add_field(name="Once", value=f"\nOld:\n{found_room['once']}\n\nNew:\n{once}", inline=False)
   if lock:
-    new_dict["lock"] = new_lock_string
+    new_dict["lock"] = new_lock
     new_lock_string = "\n".join(new_lock_string)
-    old_data = found_room["lock"] if found_room["lock"] else "None"
-    embed.add_field(name="Lock", value=f"\nOld:\n{old_data}\n\nNew:\n{new_lock_string}", inline=False)
+    old_data = "\n- ".join(found_room["lock"]) if found_room["lock"] else "None"
+    embed.add_field(name="Lock", value=f"\nOld:\n- {old_data}\n\nNew:\n{new_lock_string}", inline=False)
   if unlock:
-    new_dict["unlock"] = new_unlock_string
+    new_dict["unlock"] = new_unlock
     new_unlock_string = "\n".join(new_unlock_string)
-    old_data = found_room["unlock"] if found_room["unlock"] else "None"
-    embed.add_field(name="Unlock", value=f"\nOld:\n{old_data}\n\nNew:\n{new_unlock_string}", inline=False)
+    old_data = "\n- ".join(found_room["unlock"]) if found_room["unlock"] else "None"
+    embed.add_field(name="Unlock", value=f"\nOld:\n- {old_data}\n\nNew:\n{new_unlock_string}", inline=False)
   if hide:
-    new_dict["hide"] = new_hide_string
+    new_dict["hide"] = new_hide
     new_hide_string = "\n".join(new_hide_string)
-    old_data = found_room["hide"] if found_room["hide"] else "None"
-    embed.add_field(name="Hide", value=f"\nOld:\n{old_data}\n\nNew:\n{new_hide_string}", inline=False)
+    old_data = "\n- ".join(found_room["hide"]) if found_room["hide"] else "None"
+    embed.add_field(name="Hide", value=f"\nOld:\n- {old_data}\n\nNew:\n{new_hide_string}", inline=False)
   if reveal:
-    new_dict["reveal"] = new_reveal_string
+    new_dict["reveal"] = new_reveal
     new_reveal_string = "\n".join(new_reveal_string)
-    old_data = found_room["reveal"] if found_room["reveal"] else "None"
-    embed.add_field(name="Reveal", value=f"\nOld:\n{old_data}\n\nNew:\n{new_reveal_string}", inline=False)
+    old_data = "\n- ".join(found_room["reveal"]) if found_room["reveal"] else "None"
+    embed.add_field(name="Reveal", value=f"\nOld:\n- {old_data}\n\nNew:\n{new_reveal_string}", inline=False)
   if destroy:
     new_dict["destroy"] = new_destroy
     embed.add_field(name="Destroy", value=f"\nOld:\n{old_destroy_string}\n\nNew:\n{new_destroy_string}", inline=False)

@@ -64,7 +64,7 @@ async def updateplayer(ctx, id : str,
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
         if not database.get_key(item.strip()):
-          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
         await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
         return
