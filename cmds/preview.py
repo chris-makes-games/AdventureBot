@@ -69,8 +69,7 @@ async def preview(ctx, type: app_commands.Choice[str], id : str):
         value = str(room[data])
         if value:
           value = value.replace("\\n","\n")
-          data = "**" + data + "**"
-        room_info.append(f"{data}: {value}\n")
+        room_info.append(f"**{data}:** {value}\n")
       await ctx.reply("**Room Preview**:\n" + "".join(room_info), ephemeral=True)
       return
   #allows to look at key if its their own key or admin

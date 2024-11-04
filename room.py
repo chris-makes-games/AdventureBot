@@ -54,25 +54,42 @@ class Room:
     #Creates a Room instance from a dictionary, using default values for missing fields.
     @classmethod
     def from_dict(cls, room_dict):
-        return cls(
-        id=room_dict.get("id", ""),
-        displayname=room_dict.get("displayname", ""),
-        description=room_dict.get("description", ""),
-        entrance=room_dict.get("entrance", ""),
-        author=room_dict.get("author", ""),
-        url=room_dict.get("url", ""),
-        alt_entrance=room_dict.get("alt_entrance", ""),
-        deathnote=room_dict.get("deathnote", ""),
-        adventure=room_dict.get("adventure", ""),
-        end=room_dict.get("end", False),
-        once=room_dict.get("once", False),
-        hidden=room_dict.get("hidden", False),
-        locked=room_dict.get("locked", False),
-        keys=room_dict.get("keys", {}),
-        destroy=room_dict.get("destroy", {}),
-        exits=room_dict.get("exits", []),
-        lock=room_dict.get("lock", []),
-        unlock=room_dict.get("unlock", []),
-        hide=room_dict.get("hide", []),
-        reveal=room_dict.get("reveal", [])
-        )
+        #dictionary for expected/default variable types for attributes
+        expected_attributes = {
+            "id": (str, ""),
+            "displayname": (str, ""),
+            "description": (str, ""),
+            "entrance": (str, ""),
+            "alt_entrance": (str, ""),
+            "deathnote": (str, ""),
+            "author": (str, ""),
+            "url": (str, ""),
+            "adventure": (str, ""),
+            "end": (bool, False),
+            "once": (bool, False),
+            "hidden": (bool, False),
+            "locked": (bool, False),
+            "keys": (dict, {}),
+            "destroy": (dict, {}),
+            "exits": (list, []),
+            "lock": (list, []),
+            "unlock": (list, []),
+            "hide": (list, []),
+            "reveal": (list, [])
+        }
+        #dict for fixing any bad attributes
+        corrected_attributes = {}
+
+        #fix all attributes if necessary
+        for attr, (expected_type, default_value) in expected_attributes.items():
+            value = room_dict.get(attr, default_value)
+            if not isinstance(value, expected_type):
+                if expected_type == list:
+                    corrected_attributes[attr] = list(value) if isinstance(value, (set, tuple, dict)) else default_value
+                elif expected_type == dict:
+                    corrected_attributes[attr] = dict(value) if isinstance(value, (list, set, tuple)) else default_value
+                else:
+                    corrected_attributes[attr] = expected_type(value) if value else default_value
+            else:
+                corrected_attributes[attr] = value
+        return cls(**corrected_attributes)

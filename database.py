@@ -85,7 +85,7 @@ class ConfirmButton(discord.ui.Button):
     #player wants to leave an adventure
     elif self.action == "leave":
       try:
-        update_player({"disc" : interaction.user.id, "play_thread" : None, "room" : None})
+        update_player({"disc" : interaction.user.id, "play_thread" : None, "room" : None, "history" : [], "alive" : True, "keys" : {}})
         guild = interaction.guild
         if not guild:
           await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
@@ -858,22 +858,22 @@ def update_room(dict, delete=""):
   if "new_id" in dict:
     update_room_id(dict)
     print(f"updating room id {dict['id']} to {dict['new_id']}:")
-    pp(str(dict))
+    pp(dict)
     old_id = dict["id"]  
     new_id = dict["new_id"]
     dict["id"] = new_id
     del dict["new_id"]
-    pp(str(dict))
+    pp(dict)
     rooms.update_one({"id": old_id}, {"$set": dict})
     return
   elif delete == "":
     print("updating room:")
-    pp(str(dict))
+    pp(dict)
     rooms.update_one({"id": dict["id"]}, {"$set": dict})
     return
   else:
     print("updating room:")
-    pp(str(dict))
+    pp(dict)
     print("deleting field from room:" + delete)
     rooms.update_one({"id": dict["id"]}, {"$set": dict}, {"$unset": {delete: ""}})
 

@@ -7,6 +7,7 @@ import perms_ctx as permissions
 import perms_interactions as perms
 
 from room import Room
+from adventure import Adventure
 
 import re
 
@@ -24,13 +25,20 @@ async def fixall(ctx, adventure):
     return
   found_adventure = database.adventures.find_one({"name": adventure.lower()})
   if found_adventure:
-    print(f"fixing rooms in {adventure}")
+    print("fixing adventure...")
+    new_adventure = Adventure.from_dict(found_adventure)
+    database.update_adventure(new_adventure.__dict__)
+    print("adventure fixed!")
+    print(f"now fixing rooms in {adventure}...")
     for room_id in found_adventure["rooms"]:
+      print(f"fixing room {room_id}...")
       found_room = database.get_room(room_id)
       new_room = Room.from_dict(found_room)
       database.update_room(new_room.__dict__)
       print(f"updated room {room_id}!")
-    await ctx.reply(f"All rooms updated for adventure {adventure}", ephemeral=True)
+    await ctx.reply(f"All rooms updated for adventure `{adventure}`", ephemeral=True)
+  else:
+    await ctx.reply(F"Error: no such adventure named `{adventure}`", ephemeral=True)
 
 @fixall.autocomplete('adventure')
 async def autocomplete_fixall(interaction: discord.Interaction, current: str):
