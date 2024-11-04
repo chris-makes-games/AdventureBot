@@ -135,21 +135,25 @@ async def newroom(ctx,
       destroy_string += f"{key} x{new_destroy[key]}\n"
 
   #regex expression for parsing conditionals:
-  pattern = re.compile(r'^\s*([\w]+)\s*([<>!=]=?|[+\-*/])\s*([\w]+|\d+)\s*$')
+  pattern = re.compile(r'^\s*([\w]+)\s*([<>!=]=?|[+\-*/])\s*(\d+|[\w]+)\s*$')
+
 
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
   if lock:
     conditions = lock.split(',')
     for condition in conditions:
-      condition = condition.strip()
-      condition = re.sub(r'(?<![!<>])=(?!=)', '==', condition)
-      match = pattern.match(condition)
+      new_condition = condition.strip()
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
+      new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
+      match = pattern.match(new_condition)
+      print(f"old condition: {condition}")
+      print(f"new condition: {new_condition}")
       if not match:
-        condition_errors.append(f"lock condition: `{condition}`")
+        condition_errors.append(f"lock condition: `{new_condition.replace('==', '=')}`")
         continue
       else:
-        new_lock_string.append(condition)
+        new_lock_string.append(new_condition.replace("==", "="))
       key = match.group(1)
       if not database.get_key(key):
         warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -161,9 +165,11 @@ async def newroom(ctx,
   if unlock:
     conditions = unlock.split(',')
     for condition in conditions:
-      condition = condition.strip()
-      condition = re.sub(r'(?<![!<>])=(?!=)', '==', condition)
-      match = pattern.match(condition)
+      new_condition = condition.strip()
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', condition)
+      new_condition = " ".join(new_condition)
+      new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
+      match = pattern.match(new_condition)
       if not match:
         condition_errors.append(f"unlock condition: `{condition}`")
         continue
@@ -180,9 +186,11 @@ async def newroom(ctx,
   if hide:
     conditions = hide.split(',')
     for condition in conditions:
-      condition = condition.strip()
-      condition = re.sub(r'(?<![!<>])=(?!=)', '==', condition)
-      match = pattern.match(condition)
+      new_condition = condition.strip()
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', condition)
+      new_condition = " ".join(new_condition)
+      new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
+      match = pattern.match(new_condition)
       if not match:
         condition_errors.append(f"hide condition: `{condition}`")
         continue
@@ -199,9 +207,11 @@ async def newroom(ctx,
   if reveal:
     conditions = reveal.split(',')
     for condition in conditions:
-      condition = condition.strip()
-      condition = re.sub(r'(?<![!<>])=(?!=)', '==', condition)
-      match = pattern.match(condition)
+      new_condition = condition.strip()
+      new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', condition)
+      new_condition = " ".join(new_condition)
+      new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
+      match = pattern.match(new_condition)
       if not match:
         condition_errors.append(f"reveal condition: `{condition}`")
         continue
@@ -217,6 +227,7 @@ async def newroom(ctx,
   if condition_errors:
     error_message = "\n".join(condition_errors)
     await ctx.reply(f"There was an error with one or more of your your conditional statements:\n{error_message}\n\nIf you need help, try `/architecthelp operators`", ephemeral=True)
+    return
 
   #turns list of warnings to a string
   if warnings:
@@ -224,8 +235,7 @@ async def newroom(ctx,
 
   #creates room object
   try:
-    print("Keys being crteated:")
-    print(new_keys)
+    print("Room being created...")
     new_room = Room(
     id=new_id, 
     description=description,
@@ -247,6 +257,7 @@ async def newroom(ctx,
     await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.\nError:\n{e}", ephemeral=True)
     return
   dict = new_room.__dict__
+  database.pp(dict)
   embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: **{new_id}**\nAny room attributes not specified have been left at their default values.", description="Review the new room and select a button below:")
   embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
   if description:
@@ -274,13 +285,13 @@ async def newroom(ctx,
   if once:
     embed.add_field(name="Once", value=f"{once}", inline=False)
   if lock:
-    embed.add_field(name="Lock", value=f"{new_lock_string}\n(If all of these are true when the player is in an adjescant room, the room will be locked)", inline=False)
+    embed.add_field(name="Lock", value=f"{new_lock_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be locked and greyed out.)", inline=False)
   if unlock:
-    embed.add_field(name="Unlock", value=f"{new_unlock_string}\n(If all of these are true when the player is in an adjescant room, the room will be unlocked)", inline=False)
+    embed.add_field(name="Unlock", value=f"{new_unlock_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be unlocked and clickable if it was previously locked.)", inline=False)
   if hide:
-    embed.add_field(name="Hide", value=f"{new_hide_string}\n(If all of these are true when the player is in an adjescant room, the room will be hidden)", inline=False)
+    embed.add_field(name="Hide", value=f"{new_hide_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be hidden if not already.)", inline=False)
   if reveal:
-    embed.add_field(name="Reveal", value=f"{new_reveal_string}\n(If all of these are true when the player is in an adjescant room, the room will be revealed/unhidden)", inline=False)
+    embed.add_field(name="Reveal", value=f"{new_reveal_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be revealed if it was hidden.)", inline=False)
   if warnings:
     embed.add_field(name="**WARNING:**", value=warnings)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
