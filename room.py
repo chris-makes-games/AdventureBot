@@ -4,7 +4,7 @@ import database
 class Room:
     def __init__(
         self, id="", displayname="", description="", entrance="",
-        author="", url="", alt_entrance="", deathnote="", adventure="",
+        author=0, url="", alt_entrance="", deathnote="", adventure="",
         end=False, once=False, hidden=False, locked=False, 
         keys=None, destroy=None, 
         exits=None, lock=None, unlock=None, hide=None, reveal=None):
@@ -62,7 +62,7 @@ class Room:
             "entrance": (str, ""),
             "alt_entrance": (str, ""),
             "deathnote": (str, ""),
-            "author": (str, ""),
+            "author": (int, 0),
             "url": (str, ""),
             "adventure": (str, ""),
             "end": (bool, False),

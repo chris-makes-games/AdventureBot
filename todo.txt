@@ -9,7 +9,6 @@ TODO
 - remove editroom ability to add duplicate room connections
 - connectrooms needs to prevent duplicate room connects
 - editroom must prevent locked rooms from removing their alt entrances
-- decide how/if to handle expressions
 
 
   Inventory/Journal

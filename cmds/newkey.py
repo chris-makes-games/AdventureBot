@@ -56,8 +56,9 @@ async def newkey(ctx,
     if found_id:
       await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\n**Author:** {found_id['author']}", ephemeral=True)
       return
-  else:
-    new_id = database.generate_unique_id()
+    elif id.isdigit():
+      await ctx.reply(f"ERROR: ID cannot be only numbers. Please choose and ID that is easily identifiable.", ephemeral=True)
+      return
 
   #if no ID, generates a random one
   new_id = id if id else database.generate_unique_id()

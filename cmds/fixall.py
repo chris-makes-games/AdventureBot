@@ -6,16 +6,18 @@ import database
 import perms_ctx as permissions
 import perms_interactions as perms
 
-from room import Room
+
 from adventure import Adventure
+from room import Room
+from key import Key
 
 import re
 
 #creates room object for each room in adventure to fix all rooms with bad attributes
-@commands.hybrid_command(name="fixall", description="Fix all rooms for adventure")
+@commands.hybrid_command(name="fixall", description="entries in the database")
 @app_commands.describe(
-adventure="Select an adventure")
-async def fixall(ctx, adventure):
+type="Select an type")
+async def fixall(ctx, type):
   #user must be maintainer
   if not permissions.is_maintainer(ctx):
     await ctx.reply("You do not have permission to use this command.", ephemeral=True)
@@ -23,34 +25,38 @@ async def fixall(ctx, adventure):
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
     await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
     return
-  found_adventure = database.adventures.find_one({"name": adventure.lower()})
-  if found_adventure:
-    print("fixing adventure...")
-    new_adventure = Adventure.from_dict(found_adventure)
-    database.update_adventure(new_adventure.__dict__)
-    print("adventure fixed!")
-    print(f"now fixing rooms in {adventure}...")
-    for room_id in found_adventure["rooms"]:
-      print(f"fixing room {room_id}...")
-      found_room = database.get_room(room_id)
-      new_room = Room.from_dict(found_room)
+  if type == "Adventures":
+    all_adventures = database.get_adventures()
+    for adventure in all_adventures:
+      print(f"fixing adventure... {adventure['name']}")
+      new_adventure = Adventure.from_dict(adventure)
+      database.update_adventure(new_adventure.__dict__)
+      print("adventure fixed!")
+    await ctx.reply(f"All adventures fixed!", ephemeral=True)
+  elif type == "Rooms":
+    all_rooms = database.get_all_rooms()
+    for room in all_rooms:
+      print(f"fixing room {room['id']}...")
+      new_room = Room.from_dict(room)
       database.update_room(new_room.__dict__)
-      print(f"updated room {room_id}!")
-    await ctx.reply(f"All rooms updated for adventure `{adventure}`", ephemeral=True)
-  else:
-    await ctx.reply(F"Error: no such adventure named `{adventure}`", ephemeral=True)
+      print(f"updated room {room['id']}!")
+    await ctx.reply("All rooms fixed!", ephemeral=True)
+  elif type == "Keys":
+    all_keys = database.get_all_keys()
+    for key in all_keys:
+      print(f"fixing key {key['id']}...")
+      new_key = Key.from_dict(key)
+      database.update_room(new_key.__dict__)
+      print(f"updated key {key['id']}!")
+    await ctx.reply("All keys fixed!", ephemeral=True)
 
-@fixall.autocomplete('adventure')
+@fixall.autocomplete("type")
 async def autocomplete_fixall(interaction: discord.Interaction, current: str):
-  if perms.is_assistant_or_maintainer(interaction):
-    adventure_query = database.adventures.find(
-      {"name": {"$regex": re.escape(current), "$options": "i"}},
-      {"name": 1, "author": 1, "_id": 0}
-      )
-  else:
-    adventure_query = []
-  adventure_info = [(adventure["name"].title(), adventure["author"]) for adventure in adventure_query]
-  choices = [app_commands.Choice(name=f"{name.title()}", value=name.title()) for name, author in adventure_info[:25]]
+  all_commands = ["Adventures", "Rooms", "Keys"]
+  choices = []
+  for cmd in all_commands:
+    if current.lower() in cmd.lower():
+      choices.append(app_commands.Choice(name=cmd, value=cmd))
   return choices
 
 async def setup(bot):

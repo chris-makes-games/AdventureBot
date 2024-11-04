@@ -61,9 +61,12 @@ async def editkey(ctx, id : str,
 
   #checks if user input valid unique ID
   if new_id:
-    found_id = database.get_id(id)
+    found_id = database.get_id(new_id)
     if found_id:
       await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\nID **Author:** {found_id['author']}", ephemeral=True)
+      return
+    elif new_id.isdigit():
+      await ctx.reply(f"ERROR: ID cannot be only numbers. Please choose and ID that is easily identifiable.", ephemeral=True)
       return
 
   #parses subkeys into dict

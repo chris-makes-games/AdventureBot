@@ -88,6 +88,9 @@ async def newroom(ctx,
     if found_id:
       await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\n**Author:** {found_id['author']}", ephemeral=True)
       return
+    elif id.isdigit():
+      await ctx.reply(f"ERROR: ID cannot be only numbers. Please choose and ID that is easily identifiable.", ephemeral=True)
+      return
 
   #if no ID, generates a random one
   new_id = id if id else database.generate_unique_id()
@@ -135,7 +138,7 @@ async def newroom(ctx,
       destroy_string += f"{key} x{new_destroy[key]}\n"
 
   #regex pattern for parsing conditionals:
-  pattern = re.compile(r'^\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*([<>!=]=?)\s*(\d+|[\w]+)\s*$')
+  pattern = re.compile(r'^\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*([<>!=]=?)\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*$')
 
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
@@ -151,9 +154,12 @@ async def newroom(ctx,
         continue
       else:
         new_lock_string.append("- " + new_condition.replace("==", "="))
-      key_expression = match.group(1)
-      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      left_expression = match.group(1)
+      right_expression = match.group(3)
+      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
       for key in keys_in_expression:
+        if key.isdigit():
+          continue
         if not database.get_key(key):
           warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
@@ -171,9 +177,12 @@ async def newroom(ctx,
         continue
       else:
         new_unlock_list.append("- " + new_condition.replace("==", "="))
-      key_expression = match.group(1)
-      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      left_expression = match.group(1)
+      right_expression = match.group(3)
+      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
       for key in keys_in_expression:
+        if key.isdigit():
+          continue
         if not database.get_key(key):
           warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
@@ -191,9 +200,12 @@ async def newroom(ctx,
         continue
       else:
         new_hide_list.append("- " + new_condition.replace("==", "="))
-      key_expression = match.group(1)
-      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      left_expression = match.group(1)
+      right_expression = match.group(3)
+      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
       for key in keys_in_expression:
+        if key.isdigit():
+          continue
         if not database.get_key(key):
           warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
@@ -211,9 +223,12 @@ async def newroom(ctx,
         continue
       else:
         new_reveal_list.append("- " + new_condition.replace("==", "="))
-      key_expression = match.group(1)
-      keys_in_expression = re.findall(r'\b\w+\b', key_expression)
+      left_expression = match.group(1)
+      right_expression = match.group(3)
+      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
       for key in keys_in_expression:
+        if key.isdigit():
+          continue
         if not database.get_key(key):
           warnings.append(f"Key {key} does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
