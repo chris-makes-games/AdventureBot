@@ -28,6 +28,7 @@ async def reload(ctx, command: str):
     #await ctx.bot.tree.sync()
   except Exception as e:
     await ctx.reply(f"failed to reload {command}:\n{e}", ephemeral=True)
+    print(e)
 
 @reload.autocomplete("command")
 async def autocomplete_reload(interaction : discord.Interaction, current: str):

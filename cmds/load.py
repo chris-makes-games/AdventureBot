@@ -28,6 +28,7 @@ async def load(ctx, command: str):
     #await ctx.bot.tree.sync()
   except Exception as e:
     await ctx.reply(f"failed to load {command}:\n{e}", ephemeral=True)
+    print(e)
 
 @load.autocomplete("command")
 async def load_autocomplete(interaction : discord.Interaction, current: str):

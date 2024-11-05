@@ -272,6 +272,7 @@ async def newroom(ctx,
     adventure=adventure_of_room)
   except Exception as e:
     await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.\nError:\n{e}", ephemeral=True)
+    print(e)
     return
   dict = new_room.__dict__
   database.pp(dict)

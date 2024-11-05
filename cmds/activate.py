@@ -30,6 +30,7 @@ async def activate(ctx, command: str):
     #await ctx.bot.tree.sync()
   except Exception as e:
     await ctx.reply(f"failed to activate {command}:\n{e}", ephemeral=True)
+    print(e)
 
 @activate.autocomplete("command")
 async def autocomplete_activate(interaction: discord.Interaction, current: str):

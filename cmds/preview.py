@@ -41,6 +41,7 @@ async def preview(ctx, type: app_commands.Choice[str], id : str):
       except Exception as e:
         print(f"ERROR! {e}")
         await ctx.reply(f"ERROR - {e}", ephemeral=True)
+        print(e)
         return
       player_info = []
       for data in player:

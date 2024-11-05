@@ -108,6 +108,7 @@ stackable=stackable if stackable else False,
 author = ctx.author.id)
   except Exception as e:
     await ctx.reply(f"There was a problem generating your key object. Did you enter in the data correctly? Error:\n{e}", ephemeral=True)
+    print(e)
     return
   dict = new_key.__dict__
   embed = discord.Embed(title=f"New key: {dict['displayname']}", description=f"**ID: `{dict['id']}`** \nReview the new key and select a button below. Any attribute not listed have been left at their default blank/False values.")

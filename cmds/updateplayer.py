@@ -102,6 +102,7 @@ async def updateplayer(ctx, id : str,
       new_guild = int(guild)
     except Exception as e:
       await ctx.reply(f"Error: You must use a number for the guild ID.\n{e}", ephemeral=True)
+      print(e)
 
   #casts play_thread to int
   new_play_thread = None
@@ -110,6 +111,7 @@ async def updateplayer(ctx, id : str,
       new_play_thread = int(play_thread)
     except Exception as e:
       await ctx.reply(f"Error: You must use a number for the play thread.\n{e}", ephemeral=True)
+      print(e)
 
 
   new_dict = found_player.copy()

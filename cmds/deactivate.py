@@ -30,6 +30,7 @@ async def deactivate(ctx, command: str):
     #await ctx.bot.tree.sync()
   except Exception as e:
     await ctx.reply(f"failed to unload {command}:\n{e}", ephemeral=True)
+    print(e)
 
 @deactivate.autocomplete("command")
 async def autocomplete_reload(interaction: discord.Interaction, current: str):

@@ -102,6 +102,7 @@ class ConfirmButton(discord.ui.Button):
           return
       except Exception as e:
         await interaction.followup.send(f"ERROR: Failed to leave adventure! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
     #new room is created
     elif self.action == "new_room" and self.dict:
       try:
@@ -118,6 +119,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Failed to create room! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #new key is created
     elif self.action == "new_key" and self.dict:
@@ -127,6 +129,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Failed to create key! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #key deleted
     elif self.action == "delete_key":
@@ -136,6 +139,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Key was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #room deleted
     elif self.action == "delete_room":
@@ -145,6 +149,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Room was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #adventure edited
     elif self.action == "edit_adventure":
@@ -154,26 +159,33 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Adventure was not edited! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #adventure deleted
     elif self.action == "delete_adventure":
       try:
         delete_adventure(self.id)
         all_players = get_players_in_adventure(self.id)
+        all_keys = keys.findall({"adventure" : self.id})
         guild = interaction.guild
         if all_players:
           for player in all_players:
             if guild:
               thread = guild.get_thread(player["thread"])
               if thread:
-                print(f"deleting game thread for player {player}")
+                print(f"deleting game thread for player {player}...")
                 await thread.delete()
-            print(f"moving player {player} out of adventure...")
+            print(f"moving player {player} out of adventure {self.id}...")
             update_player({"disc" : player, "play_thread" : None, "room" : None, "history" : [], "alive" : True, "keys" : {}})
+        if all_keys:
+          print("deleting all keys in adventure...")
+          for key in all_keys:
+            delete_key(key["id"])
         await interaction.followup.send(f"Adventure {self.id} deleted!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Adventure was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #player deleted
     elif self.action == "delete_player":
@@ -183,6 +195,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Player was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #edit room
     elif self.action == "edit_room":
@@ -192,6 +205,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Room update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #edit key
     elif self.action == "edit_key":
@@ -201,6 +215,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Key update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #connect one or more rooms together
     elif self.action == "connect" and self.dict:
@@ -215,6 +230,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Rooms connection failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #overwrite player data
     elif self.action == "overwrite_player" and self.dict:
@@ -224,6 +240,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Player update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #catch-all for any other action
     else:
@@ -839,16 +856,9 @@ def delete_adventure(name):
   found_adventure = adventures.find_one({"name": name})
   if found_adventure:
     for room_id in found_adventure["rooms"]:
-      found_room = rooms.find_one({"id": room_id})
-      if found_room["keys"]:
-        print("deleting room keys...")
-        for key in found_room["keys"]:
-          print(f"deleting key {key}")
-          keys.delete_one({"id" : key})
-      print(f"deleting room {room_id}")
-      rooms.delete_one({"id": room_id})
-      ids.delete_one({"id": room_id})
+      delete_room(room_id)
   adventures.delete_one({"name": name})
+  print("Adventure deleted!")
 
 #creates a room from a dict
 def create_new_room(dict):
@@ -1072,18 +1082,16 @@ def delete_extra_ids(id):
       #removes the deleted key from any room's keys where it appears
       if id in room["keys"]:
         print(f"removing key {id} from room {room['displayname']}")
-        room["keys"].remove(id)
+        room["keys"].pop(id, None)
         rooms.update_one({"id": room["id"]}, {"$set": room})
     for key in all_keys:
       #removes mention of deleted key from any subkeys where it appears
       if id in key["subkeys"]:
         print(f"removing key {id} from subkey {key['displayname']}")
-        key["subkeys"].remove(id)
+        key["subkeys"].pop(id, None)
         keys.update_one({"id": key["id"]}, {"$set": key})
   print(f"extra ids deleted for {found_id['displayname...']}")
     
-  
-
 #deletes every specified field from every room
 #be careful!
 def delete_room_fields(field):
