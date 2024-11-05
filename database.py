@@ -1090,7 +1090,18 @@ def delete_extra_ids(id):
         print(f"removing key {id} from subkey {key['displayname']}")
         key["subkeys"].pop(id, None)
         keys.update_one({"id": key["id"]}, {"$set": key})
-  print(f"extra ids deleted for {found_id['displayname...']}")
+    #remove key from player inventories and histories
+    for player in all_players:
+      if id in player["history"]:
+        player["history"].remove(id)
+        changed = True
+      if id in player["keys"]:
+        player["keys"].pop(id, None)
+        changed = True
+      if changed:
+        users.update_one({"disc" : player["disc"]}, {"$set": player})
+        changed = False
+  print(f"extra ids deleted for {found_id['displayname']}!")
     
 #deletes every specified field from every room
 #be careful!
