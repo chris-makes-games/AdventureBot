@@ -19,6 +19,7 @@ TODO
 - Help Commands
 - ConfirmButton options
 - Mapper reconfig (deprecated)
+- remove errors that break the commands, replace with warnings
 
   Error Handling
 - Only 5 exits

@@ -137,9 +137,6 @@ async def newroom(ctx,
     for key in new_destroy:
       destroy_string += f"{key} x{new_destroy[key]}\n"
 
-  #regex pattern for parsing conditionals:
-  pattern = re.compile(r'^\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*([<>!=]=?)\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*$')
-
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
   new_lock = []
@@ -149,18 +146,16 @@ async def newroom(ctx,
       new_condition = condition.strip()
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
-      match = pattern.match(new_condition)
-      if not match:
+      if not database.safe_parse(new_condition):
         condition_errors.append(f"lock condition: `{new_condition.replace('==', '=')}`")
         continue
-      else:
-        new_lock_string.append("- " + new_condition.replace("==", "="))
-        new_lock.append(condition)
-      left_expression = match.group(1)
-      right_expression = match.group(3)
-      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
+      new_lock.append(new_condition)
+      new_string = "`" + new_condition.replace('==', '=') + "`"
+      new_lock_string.append(new_string)
+      keys_in_expression = re.findall(r'\b\w+\b', new_condition)
       for key in keys_in_expression:
-        if key.isdigit():
+        #skips words if they aren't supposed to be keys
+        if key.isdigit() or key.lower() == "and" or key.lower() == "or":
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -174,18 +169,16 @@ async def newroom(ctx,
       new_condition = condition.strip()
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
-      match = pattern.match(new_condition)
-      if not match:
+      if not database.safe_parse(new_condition):
         condition_errors.append(f"unlock condition: `{new_condition.replace('==', '=')}`")
         continue
-      else:
-        new_unlock_string.append("- " + new_condition.replace("==", "="))
-        new_unlock.append(condition)
-      left_expression = match.group(1)
-      right_expression = match.group(3)
-      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
+      new_unlock.append(new_condition)
+      new_string = "`" + new_condition.replace('==', '=') + "`"
+      new_unlock_string.append(new_string)
+      keys_in_expression = re.findall(r'\b\w+\b', new_condition)
       for key in keys_in_expression:
-        if key.isdigit():
+        #skips words if they aren't supposed to be keys
+        if key.isdigit() or key.lower() == "and" or key.lower() == "or":
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -199,18 +192,16 @@ async def newroom(ctx,
       new_condition = condition.strip()
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
-      match = pattern.match(new_condition)
-      if not match:
+      if not database.safe_parse(new_condition):
         condition_errors.append(f"hide condition: `{new_condition.replace('==', '=')}`")
         continue
-      else:
-        new_hide_string.append("- " + new_condition.replace("==", "="))
-        new_hide.append(condition)
-      left_expression = match.group(1)
-      right_expression = match.group(3)
-      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
+      new_hide.append(new_condition)
+      new_string = "`" + new_condition.replace('==', '=') + "`"
+      new_hide_string.append(new_string)
+      keys_in_expression = re.findall(r'\b\w+\b', new_condition)
       for key in keys_in_expression:
-        if key.isdigit():
+        #skips words if they aren't supposed to be keys
+        if key.isdigit() or key.lower() == "and" or key.lower() == "or":
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -224,27 +215,23 @@ async def newroom(ctx,
       new_condition = condition.strip()
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
-      match = pattern.match(new_condition)
-      if not match:
+      if not database.safe_parse(new_condition):
         condition_errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
         continue
-      else:
-        new_reveal_string.append("- " + new_condition.replace("==", "="))
-        new_reveal.append(condition)
-      left_expression = match.group(1)
-      right_expression = match.group(3)
-      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
+      new_reveal.append(new_condition)
+      new_string = "`" + new_condition.replace('==', '=') + "`"
+      new_reveal_string.append(new_string)
+      keys_in_expression = re.findall(r'\b\w+\b', new_condition)
       for key in keys_in_expression:
-        if key.isdigit():
+        #skips words if they aren't supposed to be keys
+        if key.isdigit() or key.lower() == "and" or key.lower() == "or":
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
-  #halts with error message if input in conditionals does not parse
+  #turns errors with conditionals into string
   if condition_errors:
-    error_message = "\n".join(condition_errors)
-    await ctx.reply(f"There was an error with one or more of your conditional statements:\n{error_message}\n\nIf you need help, try `/architecthelp operators`", ephemeral=True)
-    return
+    condition_errors = "\n".join(condition_errors)
 
   #turns list of warnings to a string
   if warnings:
@@ -303,19 +290,21 @@ async def newroom(ctx,
   if once:
     embed.add_field(name="Once", value=f"{once}", inline=False)
   if lock:
-    new_lock_string = "\n".join(new_lock_string)
-    embed.add_field(name="Lock", value=f"{new_lock_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be locked and greyed out.)", inline=False)
+    new_lock_string = "\n- ".join(new_lock_string)
+    embed.add_field(name="Lock", value=f"- {new_lock_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be locked and greyed out.)", inline=False)
   if unlock:
-    new_unlock_list = "\n".join(new_unlock_string)
-    embed.add_field(name="Unlock", value=f"{new_unlock_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be unlocked and clickable if it was previously locked.)", inline=False)
+    new_unlock_string = "\n- ".join(new_unlock_string)
+    embed.add_field(name="Unlock", value=f"- {new_unlock_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be unlocked and clickable if it was previously locked.)", inline=False)
   if hide:
-    new_hide_list = "\n".join(new_hide_string)
-    embed.add_field(name="Hide", value=f"{new_hide_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be hidden if not already.)", inline=False)
+    new_hide_string = "\n- ".join(new_hide_string)
+    embed.add_field(name="Hide", value=f"- {new_hide_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be hidden if not already.)", inline=False)
   if reveal:
-    new_reveal_list = "\n".join(new_reveal_string)
-    embed.add_field(name="Reveal", value=f"{new_reveal_list}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be revealed if it was hidden.)", inline=False)
+    new_reveal_string = "\n- ".join(new_reveal_string)
+    embed.add_field(name="Reveal", value=f"- {new_reveal_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be revealed if it was hidden.)", inline=False)
   if warnings:
     embed.add_field(name="**WARNING:**", value=warnings)
+  if condition_errors:
+    embed.add_field(name="ERROR", value=f"There was an error with one or more of your conditional expressions:\n{condition_errors}\n\nIf you need help, try `/architecthelp Expressions`\n\nThe above expressions have not been added to your room!")
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
   edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", dict=dict)
   cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel")

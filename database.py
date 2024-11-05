@@ -14,6 +14,8 @@ from adventure import Adventure  #adventure class
 from key import Key  #new key class, previously item
 from room import Room  #room class
 
+import ast #for safely parsing string literals
+
 #sets the parent directory of the bot
 BASE_DIR = pathlib.Path(__file__).parent
 #this is the command folder directory
@@ -21,6 +23,13 @@ CMDS_DIR = BASE_DIR / "cmds"
 
 #for .env file
 load_dotenv()
+
+#for safely parsing string literals
+allowed_nodes = {
+    ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.Load,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow, ast.Lt, ast.Gt,
+    ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.Compare, ast.BoolOp, ast.And, ast.Or
+}
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -666,7 +675,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     if not found_room:
       print(f"ERROR - room {room_id} not found!")
       continue
-    #if room can only be seen once, do not show option
+    #if room can only be seen once, do not show option if player has been there
     if found_room["once"] and found_room["id"] in player_dict["history"]:
       continue
     #if player has items that hide the room, do not show option
@@ -675,32 +684,55 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     #if hidden, doesn't show unless they have reveal keys
     if found_room["hidden"] and not valid_exit(keys, found_room["reveal"]):
       continue
-    #if player has items to lock room, show only alt text
+    #if player has items to lock room, show alt text on locked button
     if found_room["lock"] and valid_exit(keys, found_room["lock"]):
       button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
       view.add_item(button)
       continue
-    #if locked, shows alt text unless they have unlock keys
+    #if locked, unlocks is player has the keys
     if found_room["locked"]:
       if valid_exit(keys, found_room["unlock"]):
         button = RoomButton(label=found_room["entrance"], destination=room_id)
         view.add_item(button)
         continue
-      #if locked, shows only alt text
+      #if still locked, shows alt text on locked button
       else:
         button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
         view.add_item(button)
         continue
-    #regular room entrance if not locked or hidden
+    #regular room entrance if not locked or hidden or anything else
     button = RoomButton(label=found_room["entrance"], destination=room_id)
     view.add_item(button)
   return (embed, view)
 
-#returns true if the keys fit into the lock
-def valid_exit(keys, lock):
-  key_counter = Counter(keys)
-  lock_counter = Counter(lock)
-  return all(key_counter[element] >= count for element, count in lock_counter.items())
+#safely parse string literals
+def safe_parse(expression):
+  try:
+    node = ast.parse(expression, mode='eval')
+    return all(isinstance(n, tuple(allowed_nodes)) for n in ast.walk(node))
+  except Exception as e:
+    print(e)
+    return False
+
+#returns true if the keys in dict fit into the lock list of expressions
+def valid_exit(keys_dict, lock_list):
+  for expression in lock_list:
+    if not safe_parse(expression):
+      print(f"ERROR! Unsafe expression detected:\n{expression}")
+      return False
+    expr_with_vars = expression
+    print(f"Original expression: {expression}")
+    keys_in_expr = set(re.findall(r'\b\w+\b', expression))
+    for key in keys_in_expr:
+      #skips the key if it's a comparator or a number
+      if key == "or" or key == "and" or key.isdigit():
+        continue
+      #changes the key to its value, or zero if there is no key in dict
+      expr_with_vars = re.sub(rf'\b{key}\b', str(keys_dict.get(key, 0)), expr_with_vars)
+      print(f"Replaced expression for eval: {expr_with_vars}")
+    if not eval(expr_with_vars, {"__builtins__": {}}):
+      return False
+  return True
 
 #generic confirmation embed for yes/no
 #adds a ConfirmButton to itself at the bottom

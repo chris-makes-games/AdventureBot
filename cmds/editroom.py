@@ -147,9 +147,6 @@ async def editroom(ctx, id: str,
   else:
     old_destroy_string = "None"
 
-  #regex pattern for parsing conditionals:
-  pattern = re.compile(r'^\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*([<>!=]=?)\s*([\w]+(?:\s*[+\-*/]\s*[\w]+)*)\s*$')
-
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
   new_lock = []
@@ -159,18 +156,16 @@ async def editroom(ctx, id: str,
       new_condition = condition.strip()
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
-      match = pattern.match(new_condition)
-      if not match:
+      if not database.safe_parse(new_condition):
         condition_errors.append(f"lock condition: `{new_condition.replace('==', '=')}`")
         continue
-      else:
-        new_lock_string.append("- " + new_condition.replace("==", "="))
-        new_lock.append(condition)
-      left_expression = match.group(1)
-      right_expression = match.group(3)
-      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
+      new_lock.append(new_condition)
+      new_string = "`" + new_condition.replace('==', '=') + "`"
+      new_lock_string.append(new_string)
+      keys_in_expression = re.findall(r'\b\w+\b', new_condition)
       for key in keys_in_expression:
-        if key.isdigit():
+        #skips words if they aren't supposed to be keys
+        if key.isdigit() or key.lower() == "and" or key.lower() == "or":
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -184,18 +179,16 @@ async def editroom(ctx, id: str,
       new_condition = condition.strip()
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
-      match = pattern.match(new_condition)
-      if not match:
+      if not database.safe_parse(new_condition):
         condition_errors.append(f"unlock condition: `{new_condition.replace('==', '=')}`")
         continue
-      else:
-        new_unlock_string.append("- " + new_condition.replace("==", "="))
-        new_unlock.append(condition)
-      left_expression = match.group(1)
-      right_expression = match.group(3)
-      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
+      new_unlock.append(new_condition)
+      new_string = "`" + new_condition.replace('==', '=') + "`"
+      new_unlock_string.append(new_string)
+      keys_in_expression = re.findall(r'\b\w+\b', new_condition)
       for key in keys_in_expression:
-        if key.isdigit():
+        #skips words if they aren't supposed to be keys
+        if key.isdigit() or key.lower() == "and" or key.lower() == "or":
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -209,18 +202,16 @@ async def editroom(ctx, id: str,
       new_condition = condition.strip()
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
-      match = pattern.match(new_condition)
-      if not match:
+      if not database.safe_parse(new_condition):
         condition_errors.append(f"hide condition: `{new_condition.replace('==', '=')}`")
         continue
-      else:
-        new_hide_string.append("- " + new_condition.replace("==", "="))
-        new_hide.append(condition)
-      left_expression = match.group(1)
-      right_expression = match.group(3)
-      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
+      new_hide.append(new_condition)
+      new_string = "`" + new_condition.replace('==', '=') + "`"
+      new_hide_string.append(new_string)
+      keys_in_expression = re.findall(r'\b\w+\b', new_condition)
       for key in keys_in_expression:
-        if key.isdigit():
+        #skips words if they aren't supposed to be keys
+        if key.isdigit() or key.lower() == "and" or key.lower() == "or":
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -234,27 +225,23 @@ async def editroom(ctx, id: str,
       new_condition = condition.strip()
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
-      match = pattern.match(new_condition)
-      if not match:
+      if not database.safe_parse(new_condition):
         condition_errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
         continue
-      else:
-        new_reveal_string.append("- " + new_condition.replace("==", "="))
-        new_reveal.append(condition)
-      left_expression = match.group(1)
-      right_expression = match.group(3)
-      keys_in_expression = re.findall(r'\b\w+\b', left_expression) + re.findall(r'\b\w+\b', right_expression)
+      new_reveal.append(new_condition)
+      new_string = "`" + new_condition.replace('==', '=') + "`"
+      new_reveal_string.append(new_string)
+      keys_in_expression = re.findall(r'\b\w+\b', new_condition)
       for key in keys_in_expression:
-        if key.isdigit():
+        #skips words if they aren't supposed to be keys
+        if key.isdigit() or key.lower() == "and" or key.lower() == "or":
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
   #halts with error message if input in conditionals does not parse
   if condition_errors:
-    error_message = "\n".join(condition_errors)
-    await ctx.reply(f"There was an error with one or more of your conditional statements:\n{error_message}\n\nIf you need help, try `/architecthelp operators`", ephemeral=True)
-    return
+    condition_errors = "\n".join(condition_errors)
 
   #copies the dict to alter without changing the completed dict
   new_dict = found_room.copy()
@@ -337,6 +324,8 @@ async def editroom(ctx, id: str,
   #adds warning to bottom of dict
   if warnings:
     embed.add_field(name="**WARNING**", value="\n".join(warnings), inline=False)
+  if condition_errors:
+    embed.add_field(name="Error", value=f"There was an error with one or more of your conditional expressions:\n{condition_errors}\n\nIf you need help, try `/architecthelp Expressions`\n\nThe above expressions have not been added to your room!")
   edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
   cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
   view = discord.ui.View()
