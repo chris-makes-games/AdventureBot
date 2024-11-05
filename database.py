@@ -28,7 +28,7 @@ load_dotenv()
 allowed_nodes = {
     ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.Load,
     ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow, ast.Lt, ast.Gt,
-    ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.Compare, ast.BoolOp, ast.And, ast.Or
+    ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.Compare, ast.BoolOp, ast.And, ast.Or, ast.Not
 }
 
 #button class for allowing the player to traverse rooms
