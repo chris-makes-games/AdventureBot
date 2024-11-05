@@ -518,8 +518,9 @@ async def move_player(interaction, destination):
     print("destroying keys...")
     for key in destroy:
       if key in new_keys:
-        new_keys.remove(key)
-        print(f"key {key} destroyed")
+        destroy_amount = destroy[key]
+        new_keys[key] = new_keys[key] - destroy_amount
+        print(f"{destroy_amount} of {key} destroyed")
   pp(f"new keys: {new_keys}")
   pp(f"new history: {new_history}")
   #adds room to history if not in history
