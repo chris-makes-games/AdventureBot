@@ -5,10 +5,15 @@ from discord.ext import commands
 import database
 from key import Key
 
+import perms_interactions as perms
+
+import re
+
 
 #edits a key with whatever the user selects
 @commands.hybrid_command(name="newkey", description="Edit key attributes. Leave options blank to keep the default value.")
 @app_commands.describe(
+adventure = "The adventure this key will belong to",
 id = "Optionally input your own unique ID, must be unique across ALL player IDs!",
 displayname="The name of the key, for inventory/journal purposes",
 description="The description of an item, for inventory purposes only",
@@ -24,6 +29,7 @@ repeating="Every time the player enters the room, the room will try to give them
 stackable="Whether The player may have more than one.")
 async def newkey(ctx,
     #giant block of arguments!
+    adventure,
     id : str | None = None,
     displayname : str="Default Key Name",
     description : str="Default Description",
@@ -129,6 +135,28 @@ author = ctx.author.id)
   view.add_item(edit_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
+
+  #returns adventures either owned or coauthored with matching name
+@newkey.autocomplete('adventure')
+async def autocomplete_newkey(interaction: discord.Interaction, current: str):
+  if perms.is_assistant_or_maintainer(interaction):
+    adventure_query = database.adventures.find(
+      {"name": {"$regex": re.escape(current), "$options": "i"}},
+      {"name": 1, "author": 1, "_id": 0}
+      )
+  else:
+    adventure_query = database.adventures.find({
+    "$or": [
+      {"author": interaction.user.id},  # Owned by the user
+      {"coauthors": interaction.user.id}  # Coauthored by the user
+      ],
+    "name": {"$regex": re.escape(current), "$options": "i"}
+      },
+    {"name": 1, "author": 1, "_id": 0}
+    )
+  adventure_info = [(adventure["name"].title(), adventure["author"]) for adventure in adventure_query]
+  choices = [app_commands.Choice(name=f"{name.title()}", value=name.title()) for name, author in adventure_info[:25]]
+  return choices
   
 
 async def setup(bot):

@@ -159,6 +159,17 @@ class ConfirmButton(discord.ui.Button):
     elif self.action == "delete_adventure":
       try:
         delete_adventure(self.id)
+        all_players = get_players_in_adventure(self.id)
+        guild = interaction.guild
+        if all_players:
+          for player in all_players:
+            if guild:
+              thread = guild.get_thread(player["thread"])
+              if thread:
+                print(f"deleting game thread for player {player}")
+                await thread.delete()
+            print(f"moving player {player} out of adventure...")
+            update_player({"disc" : player, "play_thread" : None, "room" : None, "history" : [], "alive" : True, "keys" : {}})
         await interaction.followup.send(f"Adventure {self.id} deleted!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
@@ -824,7 +835,19 @@ def update_adventure(dict):
 
 #deletes an adventure by name
 def delete_adventure(name):
-  print("deleting adventure:")
+  print(f"deleting adventure: {name}")
+  found_adventure = adventures.find_one({"name": name})
+  if found_adventure:
+    for room_id in found_adventure["rooms"]:
+      found_room = rooms.find_one({"id": room_id})
+      if found_room["keys"]:
+        print("deleting room keys...")
+        for key in found_room["keys"]:
+          print(f"deleting key {key}")
+          keys.delete_one({"id" : key})
+      print(f"deleting room {room_id}")
+      rooms.delete_one({"id": room_id})
+      ids.delete_one({"id": room_id})
   adventures.delete_one({"name": name})
 
 #creates a room from a dict
