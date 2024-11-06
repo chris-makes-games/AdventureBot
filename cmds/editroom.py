@@ -22,12 +22,12 @@ locked= "The choice for this room will be alt_text and be unselectable unless pl
 once= "If the player selects the option to go into this room, the option to do so will not appear again",
 end= "Room that ends the adventure. Include a deathnote if the ending is a death",
 deathnote="For endings that kill the player, describe how they died. Ex; 'Killed by X during Y'",
-keys= "Keys that will be given when they enter the room, separate by commas. <keyid> 1, <keyid> 4",
-destroy= "Keys that will be removed from the player if they enter this room. Separate by commas",
-lock= "Room becomes locked if player possesses these keys. Can use math expression",  
-unlock= "Room will unlock if locked, if player possesses these keys. Can use math expression",  
-hide= "Room will become hidden if player posesses these keys. Can use math expression",  
-reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression"
+keys= "<key_id amount> that will be given upon entering the room, separate by commas",
+destroy= "<key_id amount> that will be removed upon entering this room. Separate by commas",
+lock= "Room becomes locked if player possesses these keys. Use logical expression",  
+unlock= "Room will unlock if locked, if player possesses these keys. Use logical expression",  
+hide= "Room will become hidden if player posesses these keys. Use logical expression",  
+reveal= "Room will be revealed if hidden, if player posesses these keys. Use logical expression"
 )
 
 async def editroom(ctx, id: str,
@@ -111,12 +111,12 @@ async def editroom(ctx, id: str,
       try:
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
-        new_keys_list.append(f"{item} x{quantity}")
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
-        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
-        return
+        errors.append("Invalid key format: `{pair}`")
+        continue
+      if not database.get_key(item.strip()):
+          warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
+      new_keys_list.append(f"{item} x{quantity}")
   new_keys_string = "- " + "\n- ".join(new_keys_list)
   #parse old keys to string
   old_keys = []
@@ -133,17 +133,17 @@ async def editroom(ctx, id: str,
   new_destroy_list = []
   new_destroy_string = ""
   if destroy:
-    try:
-      pairs = destroy.split(',')
-      for pair in pairs:
+    pairs = destroy.split(',')
+    for pair in pairs:
+      try:
         item, quantity = pair.strip().split()
         new_destroy[item.strip()] = int(quantity)
-        new_destroy_list.append(f"{item} : {quantity}")
-        if not database.get_key(item.strip()):
+      except ValueError:
+        errors.append("Invalid destroy key format: `{pair}`")
+        continue
+      if not database.get_key(item.strip()):
           warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
-    except ValueError:
-      await ctx.reply("Invalid destroy key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the destroyed keys to one of somekey and three of otherkey)", ephemeral=True)
-      return
+      new_destroy_list.append(f"{item} : {quantity}")
   new_destroy_string = "\n".join(new_destroy_list)
   #parse old destroy to string
   old_destroy = []
