@@ -73,30 +73,38 @@ async def editroom(ctx, id: str,
   warnings = []
 
   #for errors in lock, unlock, reveal, hide conditions
-  condition_errors = []
+  errors = []
 
   #checks if user input valid unique ID
   if new_id:
     found_id = database.get_id(new_id)
     if found_id:
-      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\nID **Author:** {found_id['author']}", ephemeral=True)
-      return
-    elif new_id.isdigit():
-      await ctx.reply(f"ERROR: ID cannot be only numbers. Please choose and ID that is easily identifiable.", ephemeral=True)
-      return
+      warnings.append(f"ERROR: ID `{found_id['id']}` already exists from author {found_id['author']}. Please use a different ID. Room ID will remain {id}")
+      new_id = None
+    elif new_id == "none" or new_id == "None":
+      warnings.append(f"You cannot change the ID of a room to None! Room must have an ID. Room ID will remain {id}")
+      new_id = None
+    elif new_id and new_id.isdigit():
+      errors.append(f"Room ID cannot be only numbers. Please choose an ID that is easily identifiable. Room ID will remain `{id}`")
+      new_id = None
 
   #parses exits into usable list and validates the ID
   new_exits = []
+  new_exits_string = []
   if exits:
     new_exits = exits.replace(' ', '').split(',')
+    if len(new_exits) > 4:
+      new_exits = new_exits[4:]
+      warnings.append("Error! You can only have a maximum of four exits in a room! Only the first four exits were saved.")
     for exit in new_exits:
+      new_exits_string.append("`" + exit + "`")
       if not database.get_room(exit):
-        warnings.append(f"Room '{exit}' does not exist. Hopefully you plan on creating it!")
-  
+        warnings.append(f"Room '{exit}' does not exist. Hopefully you plan on creating it! Until you do, this exit will not appear!")
+    new_exits_string = "- " + "\n- ".join(new_exits_string)
+
   #parse keys into dict
   new_keys = {}
   new_keys_list = []
-  new_keys_string = ""
   if keys:
     pairs = keys.split(',')
     for pair in pairs:
@@ -109,16 +117,16 @@ async def editroom(ctx, id: str,
       except ValueError:
         await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
         return
-  new_keys_string = "\n".join(new_keys_list)
+  new_keys_string = "- " + "\n- ".join(new_keys_list)
   #parse old keys to string
   old_keys = []
   old_keys_string = ""
   if found_room['keys']:
     for key, value in found_room['keys'].items():
       old_keys.append(f"{key} x{value}")
-      old_keys_string = "\n".join(old_keys)
+      old_keys_string = "- " + "\n- ".join(old_keys)
   else:
-    old_keys_string = "None"
+    old_keys_string = "`None`"
 
   #parse destroy into dict
   new_destroy = {}
@@ -145,7 +153,7 @@ async def editroom(ctx, id: str,
       old_keys.append(f"{key} x{value}")
       old_destroy_string = "\n".join(old_destroy)
   else:
-    old_destroy_string = "None"
+    old_destroy_string = "`None`"
 
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
@@ -157,7 +165,7 @@ async def editroom(ctx, id: str,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        condition_errors.append(f"lock condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid lock expression syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_lock.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -180,7 +188,7 @@ async def editroom(ctx, id: str,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        condition_errors.append(f"unlock condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid unlock expression syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_unlock.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -203,7 +211,7 @@ async def editroom(ctx, id: str,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        condition_errors.append(f"hide condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid hide expression syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_hide.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -226,7 +234,7 @@ async def editroom(ctx, id: str,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        condition_errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
         continue
       new_reveal.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -239,98 +247,123 @@ async def editroom(ctx, id: str,
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
-  #halts with error message if input in conditionals does not parse
-  if condition_errors:
-    condition_errors = "\n".join(condition_errors)
-
   #copies the dict to alter without changing the completed dict
   new_dict = found_room.copy()
 
+  #bool for testing if every value in dict is None
+  dict_bool = all(new_dict.values())
+  if dict_bool:
+    embed_text = "The changes you submitted were all invalid. Review the errors below. If you need help, try `/help editroom`. If something is wrong, contact Ironically-Tall."
+  else:
+    embed_text = "Review the changes and select a button below. Room data not mentioned is not being changed."
+    if errors:
+      embed_text = embed_text + "\nSome of your changes were invalid. Review the error section below, those changes have been discarded."
+    if warnings:
+      embed_text = embed_text + "\nSome of your inputs were valid but had issues. Those changes will still be updated in the room despite potential issues. Review the warnings before clicking a button."
+
   #creates the embed to be displayed to the architect
   #only shows fields which have been altered
-  embed = discord.Embed(title=f"Editing room:\n{found_room['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
+  embed = discord.Embed(title=f"Editing room:\n{found_room['displayname']}\n**ID:** `{id}`", description=embed_text)
   if new_id:
     new_dict["new_id"] = new_id
-    embed.add_field(name="New ID", value=f"\nOld:\n{found_room['id']}\n\nNew:\n{new_id}\nChanging the ID of this room will update the ID across all rooms it is connected to", inline=True)
+    embed.add_field(name="----New ID----", value=f"\nOld:\n{found_room['id']}\nNew:\n{new_id}\nChanging the ID of this room will update the ID across all rooms it is connected to", inline=True)
   if description:
     new_dict["description"] = description
-    embed.add_field(name="Description", value=f"\nOld:\n{found_room['description']}\n\nNew:\n{description}", inline=False)
+    embed.add_field(name="----Description----", value=f"\nOld:\n{found_room['description']}\nNew:\n{description}", inline=False)
   if displayname:
     new_dict["new_displayname"] = displayname
     new_dict["displayname"] = displayname
-    embed.add_field(name="Displayname", value=f"\nOld:\n{found_room['displayname']}\n\nNew:\n{displayname}", inline=False)
+    embed.add_field(name="----Displayname----", value=f"\nOld:\n{found_room['displayname']}\nNew:\n{displayname}", inline=False)
   if entrance:
     new_dict["entrance"] = entrance
-    embed.add_field(name="Entrance", value=f"\nOld:\n{found_room['entrance']}\n\nNew:\n{entrance}", inline=False)
+    embed.add_field(name="----Entrance----", value=f"\nOld:\n{found_room['entrance']}\nNew:\n{entrance}", inline=False)
   if alt_entrance:
     new_dict["alt_entrance"] = alt_entrance
-    embed.add_field(name="Alt Entrance", value=f"\nOld:\n{found_room['alt_entrance']}\n\nNew:\n{alt_entrance}", inline=False)
+    embed.add_field(name="----Alt Entrance----", value=f"\nOld:\n{found_room['alt_entrance']}\nNew:\n{alt_entrance}", inline=False)
   if new_exits:
     new_dict["exits"] = new_exits
-    old_data = found_room["exits"] if found_room["exits"] else None
-    embed.add_field(name="Exits", value=f"\nOld:\n{old_data}\n\nNew:\n{new_exits}", inline=False)
+    old_data = found_room["exits"] if found_room["exits"] else "'None'"
+    if old_data != "`None`":
+      old_data = "- " + "\n- ".join(["`{0}`".format(data) for data in old_data])
+    embed.add_field(name="----Exits----", value=f"\nOld:\n{old_data}\nNew:\n{new_exits_string}", inline=False)
   if deathnote:
     new_dict["deathnote"] = deathnote
-    old_data = found_room["deathnote"] if found_room["deathnote"] else "None"
-    embed.add_field(name="Deathnote", value=f"\nOld:\n{old_data}\n\nNew:\n{deathnote}", inline=False)
+    old_data = found_room["deathnote"] if found_room["deathnote"] else "`None`"
+    embed.add_field(name="----Deathnote----", value=f"\nOld:\n{old_data}\nNew:\n{deathnote}", inline=False)
   if url:
     new_dict["url"] = url
-    old_data = found_room["url"] if found_room["url"] else "None"
-    embed.add_field(name="URL", value=f"\nOld:\n{old_data}\n\nNew:\n{url}", inline=False)
+    old_data = found_room["url"] if found_room["url"] else "`None`"
+    embed.add_field(name="----URL----", value=f"\nOld:\n{old_data}\nNew:\n{url}", inline=False)
   if keys:
     new_dict["keys"] = new_keys
-    embed.add_field(name="Keys", value=f"\nOld:\n{old_keys_string}\n\nNew:\n{new_keys_string}", inline=False)
+    embed.add_field(name="Keys", value=f"\nOld:\n{old_keys_string}\nNew:\n{new_keys_string}", inline=False)
   if hidden is not None and hidden != new_dict["hidden"]:
     new_dict["hidden"] = hidden
-    embed.add_field(name="Hidden", value=f"\nOld:\n{found_room['hidden']}\n\nNew:\n{hidden}", inline=False)
+    embed.add_field(name="----Hidden----", value=f"\nOld:\n{found_room['hidden']}\nNew:\n{hidden}", inline=False)
   if locked is not None and locked != new_dict["locked"]:
     new_dict["locked"] = locked
-    embed.add_field(name="Locked", value=f"\nOld:\n{found_room['locked']}\n\nNew:\n{locked}", inline=False)
+    embed.add_field(name="----Locked----", value=f"\nOld:\n{found_room['locked']}\nNew:\n{locked}", inline=False)
   if end is not None and end != new_dict["end"]:
     new_dict["end"] = end
-    embed.add_field(name="End", value=f"\nOld:\n{found_room['end']}\n\nNew:\n{end}", inline=False)
+    embed.add_field(name="----End----", value=f"\nOld:\n{found_room['end']}\nNew:\n{end}", inline=False)
   if once is not None and once != new_dict["once"]:
     new_dict["once"] = once
-    embed.add_field(name="Once", value=f"\nOld:\n{found_room['once']}\n\nNew:\n{once}", inline=False)
-  if lock:
+    embed.add_field(name="----Once----", value=f"\nOld:\n{found_room['once']}\nNew:\n{once}", inline=False)
+  if lock and new_lock_string:
     new_dict["lock"] = new_lock
-    new_lock_string = "\n".join(new_lock_string)
-    old_data = "\n- ".join(found_room["lock"]) if found_room["lock"] else "None"
-    embed.add_field(name="Lock", value=f"\nOld:\n- {old_data}\n\nNew:\n{new_lock_string}", inline=False)
-  if unlock:
+    new_lock_string = "- " + "\n- ".join(new_lock_string)
+    old_data = found_room["lock"] if found_room["lock"] else "`None`"
+    if old_data != "`None`":
+      old_data = "- " + "\n- ".join(["`{0}`".format(data) for data in old_data]).replace('==', '=')
+    embed.add_field(name="----Lock----", value=f"\nOld:\n{old_data}\nNew:\n{new_lock_string}", inline=False)
+  if unlock and new_unlock_string:
+    print(f"found: {found_room['unlock']}")
     new_dict["unlock"] = new_unlock
-    new_unlock_string = "\n".join(new_unlock_string)
-    old_data = "\n- ".join(found_room["unlock"]) if found_room["unlock"] else "None"
-    embed.add_field(name="Unlock", value=f"\nOld:\n- {old_data}\n\nNew:\n{new_unlock_string}", inline=False)
-  if hide:
+    new_unlock_string = "- " + "\n- ".join(new_unlock_string)
+    old_data = found_room["unlock"] if found_room["unlock"] else "`None`"
+    if old_data != "`None`":
+      old_data = "- " + "\n- ".join(["`{0}`".format(data) for data in old_data]).replace('==', '=')
+    embed.add_field(name="----Unlock----", value=f"\nOld:\n{old_data}\nNew:\n{new_unlock_string}", inline=False)
+  if hide and new_hide_string:
     new_dict["hide"] = new_hide
-    new_hide_string = "\n".join(new_hide_string)
-    old_data = "\n- ".join(found_room["hide"]) if found_room["hide"] else "None"
-    embed.add_field(name="Hide", value=f"\nOld:\n- {old_data}\n\nNew:\n{new_hide_string}", inline=False)
-  if reveal:
+    new_hide_string = "- " + "\n- ".join(new_hide_string)
+    old_data = found_room["hide"] if found_room["hide"] else "`None`"
+    if old_data != "`None`":
+      old_data = "- " + "\n- ".join(["`{0}`".format(data) for data in old_data]).replace('==', '=')
+    embed.add_field(name="----Hide----", value=f"\nOld:\n{old_data}\nNew:\n{new_hide_string}", inline=False)
+  if reveal and new_reveal_string:
     new_dict["reveal"] = new_reveal
-    new_reveal_string = "\n".join(new_reveal_string)
-    old_data = "\n- ".join(found_room["reveal"]) if found_room["reveal"] else "None"
-    embed.add_field(name="Reveal", value=f"\nOld:\n- {old_data}\n\nNew:\n{new_reveal_string}", inline=False)
+    new_reveal_string = "- " + "\n- ".join(new_reveal_string)
+    old_data = found_room["reveal"] if found_room["reveal"] else "`None`"
+    if old_data != "`None`":
+      old_data = "- " + "\n- ".join(["`{0}`".format(data) for data in old_data]).replace('==', '=')
+    embed.add_field(name="----Reveal----", value=f"\nOld:\n{old_data}\nNew:\n{new_reveal_string}", inline=False)
   if destroy:
     new_dict["destroy"] = new_destroy
-    embed.add_field(name="Destroy", value=f"\nOld:\n{old_destroy_string}\n\nNew:\n{new_destroy_string}", inline=False)
+    embed.add_field(name="----Destroy----", value=f"\nOld:\n{old_destroy_string}\nNew:\n{new_destroy_string}", inline=False)
+  #adds warning to bottom of dict, removes duplicates
+  if warnings:
+    warnings = list(set(warnings))
+    warnings.reverse()
+    embed.add_field(name="**WARNING**", value="- " + "\n- ".join(warnings), inline=False)
+  if errors:
+    if len(errors) > 1:
+      error_title = "**ERRORS**"
+    else:
+      error_title = "**ERROR**"
+    embed.add_field(name=error_title, value="- " + "\n- ".join(errors) + "\nIf you need help, try `/help editroom`")
   #returns error if no embed fields were added
   if not embed.fields:
     embed.description = "ERROR"
     embed.add_field(name="No changes", value="No changes were made. You need to select one of the options to edit the room. If you're unsure, try /help editroom")
     await ctx.reply(embed=embed, ephemeral=True)
     return
-  #adds warning to bottom of dict
-  if warnings:
-    embed.add_field(name="**WARNING**", value="\n".join(warnings), inline=False)
-  if condition_errors:
-    embed.add_field(name="Error", value=f"There was an error with one or more of your conditional expressions:\n{condition_errors}\n\nIf you need help, try `/architecthelp Expressions`\n\nThe above expressions have not been added to your room!")
-  edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
-  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
   view = discord.ui.View()
-  view.add_item(edit_button)
-  view.add_item(cancel_button)
+  if not dict_bool:
+    edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
+    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    view.add_item(edit_button)
+    view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
 
 #returns rooms with matching id OR matching displayname
