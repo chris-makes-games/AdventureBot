@@ -635,6 +635,8 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   keys = player_dict["keys"]
   descr = room_dict['description'].replace("\\n","\n")
   descr = descr.replace("[LIKETHIS]", "\\n")
+  if len(descr) > 4000:
+    descr, leftover_list = room_extender(descr)
   embed = discord.Embed(title=title, description=descr, color=color)
   embed.set_footer(text="This room was created by " + author)
   if "url" in room_dict:
@@ -716,6 +718,25 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     view.add_item(button)
   return (embed, view)
 
+#if room description is too long, split it into smaller pieces
+def room_extender(long_string):
+  new_long_string = long_string[:40]
+  leftovers = []
+  paragraph_number = 0
+  while len(long_string) > 0:
+    if len(long_string) > 40:
+      #Find the last space within the first 40 characters
+      split_index = long_string.rfind(" ", 0, 40)
+      if split_index == -1:  # No space found, split at 40
+        split_index = 40
+      leftovers.append(long_string[:split_index])
+      long_string = long_string[split_index:].lstrip() 
+    else:
+      leftovers.append(long_string)
+      break
+    paragraph_number += 1
+  return new_long_string, leftovers
+    
 #safely parse string literals
 def safe_parse(expression):
   try:
@@ -1019,7 +1040,7 @@ def update_key(dict, delete=""):
   if "new_displayname" in dict:
     ids.update_one({"id": dict["id"]}, {"$set": {"displayname": dict["new_displayname"]}})
   #updates new ids if ID is changed
-  if "new id" in dict:
+  if "new_id" in dict:
     update_key_id(dict["id"], dict["new_id"])
     old_id = dict["id"]
     dict["id"] = dict["new_id"]
@@ -1041,7 +1062,7 @@ def update_key_id(id, new_id):
   id_check = ids.find_one({"id": new_id})
   if id_check:
     print("FATAL ERROR - ID already exists!!!")
-    return
+    raise Exception ("ERROR! Old key ID not found in database to update!")
   #updates ID in IDs collection
   ids.update_one({"id": id}, {"$set": {"id": new_id}})
   all_keys = keys.find()
@@ -1049,21 +1070,21 @@ def update_key_id(id, new_id):
   #updates every subkey mention
   for key in all_keys:
     if id in key["subkeys"]:
-      old_id = key["subkeys"].pop(id)
+      old_amount = key["subkeys"].pop(id)
       #sets subkey dict to same value as old, changing the key only
-      key["subkeys"][new_id] = old_id.value
+      key["subkeys"][new_id] = old_amount
       keys.update_one({"id": key["id"]}, {"$set": key})
   #updates every room mention
   for room in all_rooms:
     need_update = False
     if room["keys"] and id in room["keys"]:
       need_update = True
-      old_id = room["keys"].pop(id)
-      room["keys"][new_id] = old_id.value
+      old_amount = room["keys"].pop(id)
+      room["keys"][new_id] = old_amount
     if room["destroy"] and id in room["destroy"]:
       need_update = True
-      old_id = room["destroy"].pop(id)
-      room["destroy"][new_id] = old_id.value
+      old_amount = room["destroy"].pop(id)
+      room["destroy"][new_id] = old_amount
     #only updates the rooms that have the key
     if need_update:
       rooms.update_one({"id": room["id"]}, {"$set": room})

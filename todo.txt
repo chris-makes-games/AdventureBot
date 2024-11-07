@@ -14,6 +14,7 @@ TODO
 - recheck inventory management
 
   Misc
+- force alphanumeric IDs for rooms, keys
 - bug report command
 - coauthor command
 - Help Commands

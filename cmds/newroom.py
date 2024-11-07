@@ -126,6 +126,13 @@ async def newroom(ctx,
     new_id = database.generate_unique_id()
     warnings.append(f"Random ID generated for room: `{new_id}`")
 
+  if description:
+    if len(description) > 6000:
+      errors.append("The description of your room cannot exceed 6000 characters! That's only around 1,200 words.")
+    elif len(description) > 1024:
+      description_string = description[:1000]
+      description_string += "(...)"
+
   #parses exits into usable list and validates the ID
   #ensures a room can have only four exits
   new_exits = []

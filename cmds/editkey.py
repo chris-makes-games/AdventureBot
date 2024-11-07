@@ -29,7 +29,7 @@ async def editkey(ctx, id : str,
   displayname : str | None = None,
   description : str | None = None,
   note : str | None = None,
-  alt_note : str | None=None,
+  alt_note : str | None = None,
   subkeys : str | None = None,
   deconstruct : bool | None = None,
   combine : bool | None = None,
@@ -39,7 +39,7 @@ async def editkey(ctx, id : str,
   repeating : bool | None = None,
   stackable : bool | None = None,
                 ):
-  
+
   #checks if player is in database
   player = database.get_player(ctx.author.id)
   if not player:
@@ -55,7 +55,7 @@ async def editkey(ctx, id : str,
     else:
       await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
       return
-    
+ 
   #errors for big issues
   errors = []
 
@@ -149,7 +149,7 @@ async def editkey(ctx, id : str,
 
   all_values = [new_id,displayname,description,note,alt_note,subkeys,deconstruct,combine,inventory,journal,unique,repeating,stackable]
   #bool is true if every value in the given dict is None
-  empty_dict = all(all_values)
+  empty_dict = all(value is None for value in all_values)
   if empty_dict:
     embed_text = "The changes you submitted were invalid. Review the errors below. If you need help, try `/help editkey`. If something is wrong, contact Ironically-Tall."
   else:
@@ -159,7 +159,7 @@ async def editkey(ctx, id : str,
     if warnings:
       embed_text = embed_text + "\nSome of your inputs were valid but had issues. Those changes will still be updated for the key despite potential issues. Review the warnings before clicking a button."
 
-  embed = discord.Embed(title=f"Editing key: {found_key['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
+  embed = discord.Embed(title=f"Editing key: {found_key['displayname']}\nID: **{id}**", description=embed_text)
   if new_id:
     new_dict["new_id"] = new_id
     embed.add_field(name="ID CHANGE", value=f"**Old:**: {found_key['id']}\n**New:** {new_id}\nThis will change the ID of this key, updating across all rooms and subkeys where it appears.", inline=False)
@@ -182,37 +182,36 @@ async def editkey(ctx, id : str,
       old_subkeys += f"{key} x{found_key['subkeys'][key]}\n"
     new_dict["subkeys"] = new_subkeys
     embed.add_field(name="Subkeys", value=f"**Old:**\n{old_subkeys}\n**New:**\n{subkeys_string}", inline=False)
-  if deconstruct != new_dict["deconstruct"]:
+  if deconstruct is not None and deconstruct != new_dict["deconstruct"]:
     new_dict["deconstruct"] = deconstruct
     embed.add_field(name="Deconstruct", value=f"**Old:** {found_key['deconstruct']}\n**New:** {deconstruct}", inline=False)
-  if combine != new_dict["combine"]:
+  if combine is not None and combine != new_dict["combine"]:
     new_dict["combine"] = combine
     embed.add_field(name="Combine", value=f"**Old:** {found_key['combine']}\n**New:** {combine}", inline=False)
-  if inventory != new_dict["inventory"]:
+  if inventory is not None and inventory != new_dict["inventory"]:
     new_dict["inventory"] = inventory
     embed.add_field(name="Inventory", value=f"**Old:** {found_key['inventory']}\n**New:** {inventory}", inline=False)
-  if journal != new_dict["journal"]:
+  if journal is not None and journal != new_dict["journal"]:
     new_dict["journal"] = journal
     embed.add_field(name="Journal", value=f"**Old:** {found_key['journal']}\n**New:** {journal}", inline=False)
-  if unique != new_dict["unique"]:
+  if unique is not None and unique != new_dict["unique"]:
     new_dict["unique"] = unique
     embed.add_field(name="Unique", value=f"**Old:** {found_key['unique']}\n**New:** {unique}", inline=False)
-  if repeating != new_dict["repeating"]:
+  if repeating is not None and repeating != new_dict["repeating"]:
     new_dict["repeating"] = repeating
     embed.add_field(name="Repeating", value=f"**Old:** {found_key['repeating']}\n**New:** {repeating}", inline=False)
-  if stackable != new_dict["stackable"]:
+  if stackable is not None and stackable != new_dict["stackable"]:
     new_dict["stackable"] = stackable
     embed.add_field(name="Stackable", value=f"**Old:**{found_key['stackable']}\n**New:** {stackable}", inline=False)
-  
+  if warnings:
+    embed.add_field(name=warn_title, value=warnings, inline=False)
+  if errors:
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editkey`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
   if not embed.fields:
     embed.description = "ERROR"
     embed.add_field(name="No changes", value="No changes were made. You need to select one of the options to edit the key. If you're unsure, try /help editkey")
     await ctx.reply(embed=embed, ephemeral=True)
     return
-  if warnings:
-    embed.add_field(name=warn_title, value=warnings, inline=False)
-  if errors:
-    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editkey`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
   view = discord.ui.View()
   if not empty_dict:
     edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_key", id=id, dict=new_dict)

@@ -330,7 +330,7 @@ async def editroom(ctx, id: str,
   
   all_values = [new_id,description,displayname,entrance,alt_entrance,exits,url,hidden,locked,once,end,deathnote,keys,destroy,lock,unlock,hide,reveal]
   #bool is true if every value in the given dict is None
-  empty_dict = all(all_values)
+  empty_dict = all(value is None for value in all_values)
   if empty_dict:
     embed_text = "The changes you submitted were invalid. Review the errors below. If you need help, try `/help editroom`. If something is wrong, contact Ironically-Tall."
   else:
