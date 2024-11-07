@@ -75,14 +75,35 @@ async def editroom(ctx, id: str,
   #for errors in any attribute that cannot be sent to room
   errors = []
 
+  #check for None assignment attempts in mandatory fields
+  if new_id:
+    if new_id.lower() == "none" or new_id.strip() == "":
+      errors.append(f"You cannot change the ID of a room to blank! Room must have an ID. Room ID will remain `{id}`")
+      new_id = None
+    elif len(new_id) < 6:
+      errors.append(f"Your ID must be at least six characters! Room ID will remain {id}")
+  if entrance:
+    if entrance.lower() == "none" or entrance.strip() == "":
+      errors.append(f"Room entrance cannot be blank! Room entrance remains unchanged.")
+      entrance = None
+  if alt_entrance:
+    if alt_entrance.lower() == "none" or alt_entrance.strip() == "":
+      errors.append(f"Alt entrance cannot be blank, all rooms must have one! Alt entrance remains unchanged.")
+      alt_entrance = None
+  if description:
+    if description.lower() == "none" or description.strip() == "":
+      errors.append(f"Description cannot be blank! Room description remains unchanged.")
+      description = None
+  if displayname:
+    if displayname.lower() == "none" or displayname.strip() == "":
+      errors.append(f"Display name cannot be blank! Room will keep display name of {found_room['displayname']}")
+      displayname = None
+
   #checks if user input valid unique ID
   if new_id:
     found_id = database.get_id(new_id)
     if found_id:
       errors.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. Please use a different ID. Room ID will remain `{id}`")
-      new_id = None
-    elif new_id == "none" or new_id == "None":
-      errors.append(f"You cannot change the ID of a room to None! Room must have an ID. Room ID will remain `{id}`")
       new_id = None
     elif new_id and new_id.isdigit():
       errors.append(f"Room ID cannot be only numbers. Please choose an ID that is easily identifiable. Room ID will remain `{id}`")
@@ -96,8 +117,10 @@ async def editroom(ctx, id: str,
     new_exits = exits.replace(' ', '').split(',')
     if len(new_exits) > 4:
       new_exits = new_exits[:4]
-      warnings.append("Error! You can only have a maximum of four exits in a room! Only the first four exits were saved.")
+      warnings.append("You can only have a maximum of four exits in a room! Only the first four exits were saved.")
     for exit in new_exits:
+      if exit == "":
+        continue
       new_exits_string.append("`" + exit + "`")
       if not database.get_room(exit):
         warnings.append(f"Room '{exit}' does not exist. Hopefully you plan on creating it! Until you do, this exit will not appear!")
@@ -106,6 +129,7 @@ async def editroom(ctx, id: str,
   #parse keys into dict
   new_keys = {}
   new_keys_list = []
+  new_keys_string = ""
   if keys:
     pairs = keys.split(',')
     for pair in pairs:
@@ -113,12 +137,15 @@ async def editroom(ctx, id: str,
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
       except ValueError:
-        errors.append("Invalid key format: `{pair}`")
+        errors.append(f"Invalid key format: `{pair}`\n(must be in the format `key_id <number>`)")
         continue
       if not database.get_key(item.strip()):
           warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
       new_keys_list.append(f"`{item}` x{quantity}")
-  new_keys_string = "- " + "\n- ".join(new_keys_list)
+  if new_keys_list:
+    new_keys_string = "- " + "\n- ".join(new_keys_list)
+  else:
+    keys = None
 
   #parse old keys to string
   old_keys = []
@@ -141,12 +168,16 @@ async def editroom(ctx, id: str,
         item, quantity = pair.strip().split()
         new_destroy[item.strip()] = int(quantity)
       except ValueError:
-        errors.append("Invalid destroy key format: `{pair}`")
+        errors.append(f"Invalid destroy key format: `{pair}`\n(must be in the format `key_id <number>`)")
         continue
       if not database.get_key(item.strip()):
           warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
       new_destroy_list.append(f"{item} : {quantity}")
-  new_destroy_string = "\n".join(new_destroy_list)
+  if new_destroy_list:
+    new_destroy_string = "\n".join(new_destroy_list)
+  else:
+    destroy = None
+
   #parse old destroy to string
   old_destroy = []
   old_destroy_string = ""
@@ -179,6 +210,8 @@ async def editroom(ctx, id: str,
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    if not new_lock_string:
+      lock = None
 
   #parse unlock conditionals to string, checks for correct conditionals
   new_unlock_string = []
@@ -202,6 +235,8 @@ async def editroom(ctx, id: str,
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    if not new_unlock_string:
+      unlock = None
 
   #parse hide conditionals to string, checks for correct conditionals
   new_hide_string = []
@@ -225,6 +260,8 @@ async def editroom(ctx, id: str,
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    if not new_hide_string:
+      hide = None
 
   #parse reveal conditionals to string, checks for correct conditionals
   new_reveal_string = []
@@ -248,6 +285,8 @@ async def editroom(ctx, id: str,
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    if not new_reveal_string:
+      reveal = None
 
   #copies the dict to alter without changing the completed dict
   new_dict = found_room.copy()

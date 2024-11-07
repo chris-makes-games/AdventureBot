@@ -35,7 +35,7 @@ async def newroom(ctx,
     #giant block of arguments!
     adventure,
     id : str | None = None,
-    displayname : str= "Room Name",
+    displayname : str= "Default Room Name",
     description : str="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.",
     entrance : str="Go into the new room",
     alt_entrance : str="This path is blocked",
@@ -82,6 +82,31 @@ async def newroom(ctx,
   #for errors in any attribute that cannot be sent to room
   errors = []
 
+  #check for None assignment attempts in mandatory fields
+  if id:
+    if id.lower() == "none" or id.strip() == "":
+      id = database.generate_unique_id()
+      errors.append(f"You cannot have a blank room ID! Room must have an ID. Random ID generated instead: `{id}`")
+    elif len(id) < 6:
+      id = database.generate_unique_id()
+      errors.append(f"Your ID must be at least six characters! Random ID generated instead: {id}")
+  if entrance:
+    if entrance.lower() == "none" or entrance.strip() == "":
+      errors.append(f"Room entrance cannot be blank! Room entrance set to generic default.")
+      entrance = "Go into the new room"
+  if alt_entrance:
+    if alt_entrance.lower() == "none" or alt_entrance.strip() == "":
+      errors.append(f"Alt entrance cannot be blank, all rooms must have one! Room alt entrance set to generic default.")
+      alt_entrance = "This path is blocked"
+  if description:
+    if description.lower() == "none" or description.strip() == "":
+      errors.append(f"Description cannot be blank! Room description set to default generic.")
+      description = "You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue."
+  if displayname:
+    if displayname.lower() == "none" or displayname.strip() == "":
+      errors.append(f"Display name cannot be blank! Room display name set to default generic.")
+      displayname = "Default Room Name"
+
   #checks if user input valid unique ID
   if id:
     new_id = id
@@ -98,7 +123,8 @@ async def newroom(ctx,
   else:
     #if no ID, generates a random one
     new_id = database.generate_unique_id()
-    warnings.append(f"Room must have an ID. Random ID generated: `{new_id}`")
+    warnings.append(f"Random ID generated for room: `{new_id}`")
+  print(warnings)
 
   #parses exits into usable list and validates the ID
   #ensures a room can have only four exits
@@ -110,10 +136,13 @@ async def newroom(ctx,
       new_exits = new_exits[:4]
       warnings.append("You can only have a maximum of four exits in a room! Only the first four exits were saved.")
     for exit in new_exits:
+      if exit == "":
+        continue
       new_exits_string.append("`" + exit + "`")
       if not database.get_room(exit):
         warnings.append(f"Room '{exit}' does not exist. Hopefully you plan on creating it! Until you do, this exit will not appear!")
     new_exits_string = "- " + "\n- ".join(new_exits_string)
+  print(warnings)
   
   #parse keys into one dict
   keys_string = ""
@@ -125,12 +154,15 @@ async def newroom(ctx,
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
       except ValueError:
-        errors.append("Invalid key format: `{pair}`")
+        errors.append(f"Invalid key format: `{pair}`\n(must be in the format `key_id <number>`)")
         continue
       if not database.get_key(item.strip()):
           warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+  if new_keys:
     for key in new_keys:
       keys_string += f"`{key}` x{new_keys[key]}\n"
+  else:
+    keys = None
 
   #parse destroys into one dict
   destroy_string = ""
@@ -142,12 +174,15 @@ async def newroom(ctx,
         item, quantity = pair.strip().split()
         new_destroy[item.strip()] = int(quantity)
       except ValueError:
-        errors.append("Invalid key format: `{pair}`")
+        errors.append(f"Invalid destroy key format: `{pair}`\n(must be in the format `key_id <number>`)")
         continue
       if not database.get_key(item.strip()):
           warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+  if new_destroy:
     for key in new_destroy:
       destroy_string += f"`{key}` x{new_destroy[key]}\n"
+  else:
+    destroy = None
 
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
@@ -171,6 +206,8 @@ async def newroom(ctx,
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    if not new_lock_string:
+      lock = None
 
   #parse unlock conditionals to string, checks for correct conditionals
   new_unlock_string = []
@@ -194,6 +231,8 @@ async def newroom(ctx,
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    if not new_unlock_string:
+      unlock = None
 
   #parse hide conditionals to string, checks for correct conditionals
   new_hide_string = []
@@ -217,6 +256,8 @@ async def newroom(ctx,
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    if not new_hide_string:
+      hide = None
 
   #parse reveal conditionals to string, checks for correct conditionals
   new_reveal_string = []
@@ -240,14 +281,16 @@ async def newroom(ctx,
           continue
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    if not new_reveal_string:
+      reveal = None
 
   #turns errors with conditionals into string, reversed order
   if errors:
-    errors = "\n- ".join(list(set(reversed(errors))))
+    errors = "\n- ".join(list(set(errors)))
 
   #turns list of warnings to a string, reversed order
   if warnings:
-    warnings = "\n- ".join(list(set(reversed(warnings))))
+    warnings = "\n- ".join(list(set(warnings)))
 
   #creates room object
   try:
@@ -274,7 +317,7 @@ async def newroom(ctx,
     print(e)
     return
   
-
+  #dict from the created room to be sent to database
   dict = new_room.__dict__
   database.pp(dict)
 
