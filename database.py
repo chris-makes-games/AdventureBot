@@ -322,28 +322,34 @@ all_lower_letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l",
 #creates an ID that does not exist in the master ID document
 #optionally allows you to generate more IDs at once
 def generate_unique_id():
-  all_characters = all_numbers + all_upper_letters + all_lower_letters
-  id = []
-  found_id = None
   banned = ids.find_one({"id": "BANNED"})
-  finished_id = ""
-  while len(id) < 4:
-    r = rand.choice(all_characters)
-    id.append(r)
-    if len(id) < 4:
-      continue
-    if len(id) == 4:
-      finished_id = "".join(id)
-      found_id = ids.find_one({"id": finished_id})
-    if found_id:
-      print("wow, one in ~14 million chance of a duplicate id!")
-      print(id)
-      id = []
-    elif finished_id in banned["words"]:
-      print("wow, one in ~14 million chance of a swear word being generated as an ID")
-      print(id)
-      id = []
+  finished_id = random_six()
+  found_id = ids.find_one({"id": finished_id})
+  while found_id:
+    print("wow, one in ~14 million chance of a duplicate id!")
+    print(finished_id)
+    finished_id = random_six()
+    found_id = ids.find_one({"id": finished_id})
+  while finished_id in banned["words"]:
+    print("wow, one in ~14 million chance of a swear word being generated as an ID")
+    print(id)
+    finished_id = random_six()
   return finished_id
+
+def random_six():
+  r1 = rand.choice(all_numbers)
+  r2 = rand.choice(all_upper_letters)
+  r3 = rand.choice(all_lower_letters)
+  l1 = list(r1 + r2 + r3)
+  rand.shuffle(l1)
+  l1 = "".join(l1)
+  r1 = rand.choice(all_numbers)
+  r2 = rand.choice(all_upper_letters)
+  r3 = rand.choice(all_lower_letters)
+  l2 = list(r1 + r2 + r3)
+  rand.shuffle(l2)
+  l2 = "".join(l2)
+  return l1 + l2
 
 #registers the channel to restrict commands to that location
 def register_channel(channel_id, guild_id):

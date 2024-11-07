@@ -69,32 +69,33 @@ async def editroom(ctx, id: str,
     await ctx.reply(f"Error: No room found with id `{id}`! Double check the ID, you should just select a room from the list. If you're sure it should be correct, contact Ironically-Tall", ephemeral=True)
     return
 
-  #warnings for exits not found
+  #for issues which can still safely be sent to room
   warnings = []
 
-  #for errors in lock, unlock, reveal, hide conditions
+  #for errors in any attribute that cannot be sent to room
   errors = []
 
   #checks if user input valid unique ID
   if new_id:
     found_id = database.get_id(new_id)
     if found_id:
-      warnings.append(f"ERROR: ID `{found_id['id']}` already exists from author {found_id['author']}. Please use a different ID. Room ID will remain {id}")
+      errors.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. Please use a different ID. Room ID will remain `{id}`")
       new_id = None
     elif new_id == "none" or new_id == "None":
-      warnings.append(f"You cannot change the ID of a room to None! Room must have an ID. Room ID will remain {id}")
+      errors.append(f"You cannot change the ID of a room to None! Room must have an ID. Room ID will remain `{id}`")
       new_id = None
     elif new_id and new_id.isdigit():
       errors.append(f"Room ID cannot be only numbers. Please choose an ID that is easily identifiable. Room ID will remain `{id}`")
       new_id = None
 
   #parses exits into usable list and validates the ID
+  #ensures a room can have only four exits
   new_exits = []
   new_exits_string = []
   if exits:
     new_exits = exits.replace(' ', '').split(',')
     if len(new_exits) > 4:
-      new_exits = new_exits[4:]
+      new_exits = new_exits[:4]
       warnings.append("Error! You can only have a maximum of four exits in a room! Only the first four exits were saved.")
     for exit in new_exits:
       new_exits_string.append("`" + exit + "`")
@@ -116,14 +117,15 @@ async def editroom(ctx, id: str,
         continue
       if not database.get_key(item.strip()):
           warnings.append(f"Key '{item.strip()}' does not exist. Did you enter the ID wrong or are you planning to create one later?")
-      new_keys_list.append(f"{item} x{quantity}")
+      new_keys_list.append(f"`{item}` x{quantity}")
   new_keys_string = "- " + "\n- ".join(new_keys_list)
+
   #parse old keys to string
   old_keys = []
   old_keys_string = ""
   if found_room['keys']:
     for key, value in found_room['keys'].items():
-      old_keys.append(f"{key} x{value}")
+      old_keys.append(f"`{key}` x{value}")
       old_keys_string = "- " + "\n- ".join(old_keys)
   else:
     old_keys_string = "`None`"
@@ -250,10 +252,18 @@ async def editroom(ctx, id: str,
   #copies the dict to alter without changing the completed dict
   new_dict = found_room.copy()
 
-  #bool for testing if every value in dict is None
+  #turns errors with conditionals into string, reversed order
+  if errors:
+    errors = "\n- ".join(list(set(reversed(errors))))
+
+  #turns list of warnings to a string, reversed order
+  if warnings:
+    warnings = "\n- ".join(list(set(reversed(warnings))))
+
+  #bool is true if every value in the given dict is None
   dict_bool = all(new_dict.values())
   if dict_bool:
-    embed_text = "The changes you submitted were all invalid. Review the errors below. If you need help, try `/help editroom`. If something is wrong, contact Ironically-Tall."
+    embed_text = "The changes you submitted were invalid. Review the errors below. If you need help, try `/help editroom`. If something is wrong, contact Ironically-Tall."
   else:
     embed_text = "Review the changes and select a button below. Room data not mentioned is not being changed."
     if errors:
@@ -343,15 +353,17 @@ async def editroom(ctx, id: str,
     embed.add_field(name="----Destroy----", value=f"\nOld:\n{old_destroy_string}\nNew:\n{new_destroy_string}", inline=False)
   #adds warning to bottom of dict, removes duplicates
   if warnings:
-    warnings = list(set(warnings))
-    warnings.reverse()
-    embed.add_field(name="**WARNING**", value="- " + "\n- ".join(warnings), inline=False)
+    if len(warnings) > 1:
+      warn_title = "**WARNINGS**"
+    else:
+      warn_title = "**WARNING**"
+    embed.add_field(name=warn_title, value=f"- {warnings}", inline=False)
   if errors:
     if len(errors) > 1:
       error_title = "**ERRORS**"
     else:
       error_title = "**ERROR**"
-    embed.add_field(name=error_title, value="- " + "\n- ".join(errors) + "\nIf you need help, try `/help editroom`")
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editroom`")
   #returns error if no embed fields were added
   if not embed.fields:
     embed.description = "ERROR"

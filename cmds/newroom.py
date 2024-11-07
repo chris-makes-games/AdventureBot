@@ -76,33 +76,45 @@ async def newroom(ctx,
     else:
       adventure_of_room = found_adventure["name"].title()
 
-  #for any potential issues with the room generation
+  #for issues which can still safely be sent to room
   warnings = []
 
-  #for errors in lock, unlock, reveal, hide conditions
-  condition_errors = []
+  #for errors in any attribute that cannot be sent to room
+  errors = []
 
   #checks if user input valid unique ID
   if id:
+    new_id = id
     found_id = database.get_id(id)
     if found_id:
-      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\n**Author:** {found_id['author']}", ephemeral=True)
-      return
-    elif id.isdigit():
-      await ctx.reply(f"ERROR: ID cannot be only numbers. Please choose and ID that is easily identifiable.", ephemeral=True)
-      return
+      new_id = database.generate_unique_id()
+      warnings.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. A random ID was generated instead: `{new_id}`")
+    elif id == "none" or id == "None":
+      new_id = database.generate_unique_id()
+      warnings.append(f"Room must have an ID. Random ID generated: `{new_id}`")
+    elif id and id.isdigit():
+      new_id = database.generate_unique_id()
+      warnings.append(f"Room ID cannot be only numbers. Random ID generated instead: `{new_id}`")
+  else:
+    #if no ID, generates a random one
+    new_id = database.generate_unique_id()
+    warnings.append(f"Room must have an ID. Random ID generated: `{new_id}`")
 
-  #if no ID, generates a random one
-  new_id = id if id else database.generate_unique_id()
-
-  #turns string of exits to list of IDs
+  #parses exits into usable list and validates the ID
+  #ensures a room can have only four exits
   new_exits = []
+  new_exits_string = []
   if exits:
     new_exits = exits.replace(' ', '').split(',')
+    if len(new_exits) > 4:
+      new_exits = new_exits[:4]
+      warnings.append("You can only have a maximum of four exits in a room! Only the first four exits were saved.")
     for exit in new_exits:
+      new_exits_string.append("`" + exit + "`")
       if not database.get_room(exit):
-        warnings.append(f"Room {exit} does not exist. Hopefully you plan on creating it!")
-
+        warnings.append(f"Room '{exit}' does not exist. Hopefully you plan on creating it! Until you do, this exit will not appear!")
+    new_exits_string = "- " + "\n- ".join(new_exits_string)
+  
   #parse keys into one dict
   keys_string = ""
   new_keys = {}
@@ -112,13 +124,13 @@ async def newroom(ctx,
       try:
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
-        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
-        return
+        errors.append("Invalid key format: `{pair}`")
+        continue
+      if not database.get_key(item.strip()):
+          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
     for key in new_keys:
-      keys_string += f"{key} x{new_keys[key]}\n"
+      keys_string += f"`{key}` x{new_keys[key]}\n"
 
   #parse destroys into one dict
   destroy_string = ""
@@ -129,13 +141,13 @@ async def newroom(ctx,
       try:
         item, quantity = pair.strip().split()
         new_destroy[item.strip()] = int(quantity)
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
-        await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
-        return
+        errors.append("Invalid key format: `{pair}`")
+        continue
+      if not database.get_key(item.strip()):
+          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
     for key in new_destroy:
-      destroy_string += f"{key} x{new_destroy[key]}\n"
+      destroy_string += f"`{key}` x{new_destroy[key]}\n"
 
   #parse lock conditionals to string, checks for correct conditionals
   new_lock_string = []
@@ -147,7 +159,7 @@ async def newroom(ctx,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        condition_errors.append(f"lock condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid lock expression syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_lock.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -170,7 +182,7 @@ async def newroom(ctx,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        condition_errors.append(f"unlock condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid unlock expression syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_unlock.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -193,7 +205,7 @@ async def newroom(ctx,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        condition_errors.append(f"hide condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid hide expression syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_hide.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -216,7 +228,7 @@ async def newroom(ctx,
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        condition_errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
         continue
       new_reveal.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -229,13 +241,13 @@ async def newroom(ctx,
         if not database.get_key(key):
           warnings.append(f"Key `{key}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
 
-  #turns errors with conditionals into string
-  if condition_errors:
-    condition_errors = "\n".join(condition_errors)
+  #turns errors with conditionals into string, reversed order
+  if errors:
+    errors = "\n- ".join(list(set(reversed(errors))))
 
-  #turns list of warnings to a string
+  #turns list of warnings to a string, reversed order
   if warnings:
-    warnings = "\n".join(warnings)
+    warnings = "\n- ".join(list(set(reversed(warnings))))
 
   #creates room object
   try:
@@ -261,9 +273,18 @@ async def newroom(ctx,
     await ctx.reply(f"Error: There was a problem generating your room. Did you enter the data incorrectly? Ask Ironically-Tall for help if you're unsure.\nError:\n{e}", ephemeral=True)
     print(e)
     return
+  
+
   dict = new_room.__dict__
   database.pp(dict)
-  embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: **{new_id}**\nAny room attributes not specified have been left at their default values.", description="Review the new room and select a button below:")
+
+  embed_text = "Review the new room and select a button below"
+  if errors:
+    embed_text = embed_text + "\nSome of your inputs were invalid. Review the error section below, those invalid changes have been discarded."
+  if warnings:
+    embed_text = embed_text + "\nSome of your inputs were valid but had issues. Those changes will still be created in the room despite potential issues. Review the warnings before clicking a button."
+
+  embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: `{new_id}`\nAny room attributes not specified have been left at their default values.", description=embed_text)
   embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
   if description:
     embed.add_field(name="Description", value=f"{description}", inline=False)
@@ -272,7 +293,7 @@ async def newroom(ctx,
   if alt_entrance:
     embed.add_field(name="Alt Entrance", value=f"{alt_entrance}", inline=False)
   if exits:
-    embed.add_field(name="Exits", value=f"{exits.replace(' ', '').split(',')}", inline=False)
+    embed.add_field(name="Exits", value=f"{new_exits_string}", inline=False)
   if deathnote:
     embed.add_field(name="Deathnote", value=f"{deathnote}", inline=False)
   if url:
@@ -302,9 +323,17 @@ async def newroom(ctx,
     new_reveal_string = "\n- ".join(new_reveal_string)
     embed.add_field(name="Reveal", value=f"- {new_reveal_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be revealed if it was hidden.)", inline=False)
   if warnings:
-    embed.add_field(name="**WARNING:**", value=warnings)
-  if condition_errors:
-    embed.add_field(name="ERROR", value=f"There was an error with one or more of your conditional expressions:\n{condition_errors}\n\nIf you need help, try `/architecthelp Expressions`\n\nThe above expressions have not been added to your room!")
+    if len(warnings) > 1:
+      warn_title = "**WARNINGS**"
+    else:
+      warn_title = "**WARNING**"
+    embed.add_field(name=warn_title, value=f"- {warnings}", inline=False)
+  if errors:
+    if len(errors) > 1:
+      error_title = "**ERRORS**"
+    else:
+      error_title = "**ERROR**"
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editroom`", inline=False)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
   edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", dict=dict)
   cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel")
