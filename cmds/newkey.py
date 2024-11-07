@@ -162,7 +162,22 @@ author = ctx.author.id)
     await ctx.reply(f"There was a problem generating your key object. Did you enter in the data correctly? Error:\n{e}", ephemeral=True)
     print(e)
     return
+  
+  #key object to dict
   dict = new_key.__dict__
+
+  all_values = [new_id,displayname,description,note,alt_note,subkeys,deconstruct,combine,inventory,journal,unique,repeating,stackable]
+  #bool is true if every value in the given dict is None
+  empty_dict = all(all_values)
+  if empty_dict:
+    embed_text = "The keuy information you submitted was invalid. Review the errors below. If you need help, try `/help editkey`. If something is wrong, contact Ironically-Tall."
+  else:
+    embed_text = "Review the new key and select a button below"
+  if errors:
+    embed_text = embed_text + "\nSome of your inputs were invalid. Review the error section below, those invalid changes have been discarded."
+  if warnings:
+    embed_text = embed_text + "\nSome of your inputs were valid but had issues. Those changes will still be created for the key despite potential issues. Review the warnings before clicking a button."
+
   embed = discord.Embed(title=f"New key: {dict['displayname']}", description=f"**ID: `{dict['id']}`** \nReview the new key and select a button below. Any attribute not listed have been left at their default blank/False values.")
   embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
   if dict['description']:
@@ -180,15 +195,15 @@ author = ctx.author.id)
   if dict['stackable']:
     embed.add_field(name="Stackable", value=f"{stackable}", inline=False)
   if warnings:
-    embed.add_field(name=warn_title, value=warnings)
+    embed.add_field(name=warn_title, value=f"- {warnings}")
   if errors:
-    embed.add_field(name=error_title, value=warnings)
-  
-  edit_button = database.ConfirmButton(label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
-  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newkey`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
   view = discord.ui.View()
-  view.add_item(edit_button)
-  view.add_item(cancel_button)
+  if not empty_dict:
+    edit_button = database.ConfirmButton(label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
+    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    view.add_item(edit_button)
+    view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
 
 #returns adventures either owned or coauthored with matching name

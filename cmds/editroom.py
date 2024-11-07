@@ -6,6 +6,8 @@ from discord.ext import commands
 
 import database
 
+from room import Room
+
 
 #edits a room with whatever the user selects
 @commands.hybrid_command(name="editroom", description="Edit room attributes. Leave options blank to keep the current value")
@@ -325,9 +327,11 @@ async def editroom(ctx, id: str,
     parsed_warnings = "\n- ".join(parsed_warnings)
     warnings = parsed_warnings
 
+  
+  all_values = [new_id,description,displayname,entrance,alt_entrance,exits,url,hidden,locked,once,end,deathnote,keys,destroy,lock,unlock,hide,reveal]
   #bool is true if every value in the given dict is None
-  dict_bool = all(new_dict.values())
-  if dict_bool:
+  empty_dict = all(all_values)
+  if empty_dict:
     embed_text = "The changes you submitted were invalid. Review the errors below. If you need help, try `/help editroom`. If something is wrong, contact Ironically-Tall."
   else:
     embed_text = "Review the changes and select a button below. Room data not mentioned is not being changed."
@@ -420,7 +424,7 @@ async def editroom(ctx, id: str,
   if warnings:
     embed.add_field(name=warn_title, value=f"- {warnings}", inline=False)
   if errors:
-    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editroom`")
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editroom`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data")
   #returns error if no embed fields were added
   if not embed.fields:
     embed.description = "ERROR"
@@ -428,7 +432,7 @@ async def editroom(ctx, id: str,
     await ctx.reply(embed=embed, ephemeral=True)
     return
   view = discord.ui.View()
-  if not dict_bool:
+  if not empty_dict:
     edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
     cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
     view.add_item(edit_button)

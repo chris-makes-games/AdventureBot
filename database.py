@@ -676,6 +676,11 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   else:
     embed.add_field(name="Make a Choice", value="Click a button below to continue", inline=False)
   for room_id in room_dict["exits"]:
+    #puts a button on each of 4 available rows
+    current_row = 0
+    #prevents more than 4 buttons
+    if current_row > 3:
+      break
     found_room = get_room(room_id)
     #no room found in database
     if not found_room:
@@ -692,22 +697,22 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
       continue
     #if player has items to lock room, show alt text on locked button
     if found_room["lock"] and valid_exit(keys, found_room["lock"]):
-      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
+      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True, row=current_row)
       view.add_item(button)
       continue
     #if locked, unlocks is player has the keys
     if found_room["locked"]:
       if valid_exit(keys, found_room["unlock"]):
-        button = RoomButton(label=found_room["entrance"], destination=room_id)
+        button = RoomButton(label=found_room["entrance"], destination=room_id, row=current_row)
         view.add_item(button)
         continue
       #if still locked, shows alt text on locked button
       else:
-        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
+        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True, row=current_row)
         view.add_item(button)
         continue
     #regular room entrance if not locked or hidden or anything else
-    button = RoomButton(label=found_room["entrance"], destination=room_id)
+    button = RoomButton(label=found_room["entrance"], destination=room_id, row=current_row)
     view.add_item(button)
   return (embed, view)
 

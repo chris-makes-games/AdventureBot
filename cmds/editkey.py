@@ -147,9 +147,10 @@ async def editkey(ctx, id : str,
   #dict from key object
   new_dict = found_key.copy()
 
+  all_values = [new_id,displayname,description,note,alt_note,subkeys,deconstruct,combine,inventory,journal,unique,repeating,stackable]
   #bool is true if every value in the given dict is None
-  dict_bool = all(new_dict.values())
-  if dict_bool:
+  empty_dict = all(all_values)
+  if empty_dict:
     embed_text = "The changes you submitted were invalid. Review the errors below. If you need help, try `/help editkey`. If something is wrong, contact Ironically-Tall."
   else:
     embed_text = "Review the changes and select a button below. Key data not mentioned is not being changed."
@@ -211,9 +212,9 @@ async def editkey(ctx, id : str,
   if warnings:
     embed.add_field(name=warn_title, value=warnings, inline=False)
   if errors:
-    embed.add_field(name=error_title, value=errors, inline=False)
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editkey`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
   view = discord.ui.View()
-  if not dict_bool:
+  if not empty_dict:
     edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_key", id=id, dict=new_dict)
     cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
     view.add_item(edit_button)

@@ -340,7 +340,13 @@ async def newroom(ctx,
   dict = new_room.__dict__
   database.pp(dict)
 
-  embed_text = "Review the new room and select a button below"
+  all_values = [new_id,description,displayname,entrance,alt_entrance,exits,url,hidden,locked,once,end,deathnote,keys,destroy,lock,unlock,hide,reveal]
+  #bool is true if every value in the given dict is None
+  empty_dict = all(all_values)
+  if empty_dict:
+    embed_text = "The room information you submitted was invalid. Review the errors below. If you need help, try `/help editroom`. If something is wrong, contact Ironically-Tall."
+  else:
+    embed_text = "Review the new room and select a button below"
   if errors:
     embed_text = embed_text + "\nSome of your inputs were invalid. Review the error section below, those invalid changes have been discarded."
   if warnings:
@@ -387,13 +393,14 @@ async def newroom(ctx,
   if warnings:
     embed.add_field(name=warn_title, value=f"- {warnings}", inline=False)
   if errors:
-    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editroom`", inline=False)
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newroom`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
-  edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", dict=dict)
-  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel")
   view = discord.ui.View()
-  view.add_item(edit_button)
-  view.add_item(cancel_button)
+  if not empty_dict:
+    edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", dict=dict)
+    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel")
+    view.add_item(edit_button)
+    view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
 
 #returns adventures either owned or coauthored with matching name

@@ -14,6 +14,7 @@ TODO
 - recheck inventory management
 
   Misc
+- bug report command
 - coauthor command
 - Help Commands
 - Mapper reconfig (deprecated)
