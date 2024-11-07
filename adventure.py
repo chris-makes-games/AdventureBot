@@ -38,6 +38,8 @@ class Adventure:
 
         #fixes all attribues, or assignes default values
         for attr, (expected_type, default_value) in expected_attributes.items():
+            if attr not in expected_attributes:
+                continue
             value = adventure_dict.get(attr, default_value)
             if not isinstance(value, expected_type):
                 if expected_type == list:

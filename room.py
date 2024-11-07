@@ -82,6 +82,8 @@ class Room:
 
         #fix all attributes if necessary
         for attr, (expected_type, default_value) in expected_attributes.items():
+            if attr not in expected_attributes:
+                continue
             value = room_dict.get(attr, default_value)
             if not isinstance(value, expected_type):
                 if expected_type == list:

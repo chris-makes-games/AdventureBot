@@ -61,20 +61,21 @@ async def newroom(ctx,
 
   #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
-    return
-
-  #adds the adventure name to the room
-  if not adventure:
-    await ctx.reply("ERROR: You must specify an adventure for this room.", ephemeral=True)
-    return
-  else:
-    found_adventure = database.get_adventure(adventure.lower())
-    if not found_adventure:
-      await ctx.reply(f"ERROR: The adventure {adventure} does not exist.", ephemeral=True)
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
       return
     else:
-      adventure_of_room = found_adventure["name"].title()
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
+
+  #adds the adventure name to the room
+  found_adventure = database.get_adventure(adventure.lower())
+  if not found_adventure:
+    await ctx.reply(f"ERROR: The adventure {adventure} does not exist. You should choose your adventure from the drop-down menu!", ephemeral=True)
+    return
+  else:
+    adventure_of_room = found_adventure["name"].title()
 
   #for issues which can still safely be sent to room
   warnings = []
@@ -124,7 +125,6 @@ async def newroom(ctx,
     #if no ID, generates a random one
     new_id = database.generate_unique_id()
     warnings.append(f"Random ID generated for room: `{new_id}`")
-  print(warnings)
 
   #parses exits into usable list and validates the ID
   #ensures a room can have only four exits
@@ -142,7 +142,6 @@ async def newroom(ctx,
       if not database.get_room(exit):
         warnings.append(f"Room '{exit}' does not exist. Hopefully you plan on creating it! Until you do, this exit will not appear!")
     new_exits_string = "- " + "\n- ".join(new_exits_string)
-  print(warnings)
   
   #parse keys into one dict
   keys_string = ""

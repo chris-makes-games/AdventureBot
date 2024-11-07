@@ -50,24 +50,45 @@ async def newkey(ctx,
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer before trying to make a new room.", ephemeral=True)
     return
 
+  #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      return
+    else:
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
+  
+  #adds the adventure name to the room
+  found_adventure = database.get_adventure(adventure.lower())
+  if not found_adventure:
+    await ctx.reply(f"ERROR: The adventure {adventure} does not exist. You should choose your adventure from the drop-down menu!", ephemeral=True)
     return
+  else:
+    adventure_of_key = found_adventure["name"].title()
+
+  errors = []
 
   warnings = []
   
   #checks if user input valid unique ID
   if id:
+    new_id = id
     found_id = database.get_id(id)
     if found_id:
-      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\n**Author:** {found_id['author']}", ephemeral=True)
-      return
-    elif id.isdigit():
-      await ctx.reply(f"ERROR: ID cannot be only numbers. Please choose and ID that is easily identifiable.", ephemeral=True)
-      return
-
-  #if no ID, generates a random one
-  new_id = id if id else database.generate_unique_id()
+      new_id = database.generate_unique_id()
+      warnings.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. A random ID was generated instead: `{new_id}`")
+    elif id == "none" or id == "None":
+      new_id = database.generate_unique_id()
+      warnings.append(f"Key must have an ID. Random ID generated: `{new_id}`")
+    elif id and id.isdigit():
+      new_id = database.generate_unique_id()
+      warnings.append(f"Key ID cannot be only numbers. Random ID generated instead: `{new_id}`")
+  else:
+    #if no ID, generates a random one
+    new_id = database.generate_unique_id()
+    warnings.append(f"Random ID generated for key: `{new_id}`")
 
   #parses subkeys into dict
   subkeys_string = ""
@@ -78,23 +99,51 @@ async def newkey(ctx,
       try:
         item, quantity = pair.strip().split()
         new_subkeys[item.strip()] = int(quantity)
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
-        await ctx.reply("Invalid subkey format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the subkeys to one of somekey and three of otherkey)", ephemeral=True)
-        return
+        errors.append(f"Invalid subkey format: {pair}`\n(must be in the format `key_id <number>`)")
+        continue
+      if not database.get_key(item.strip()):
+        warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
     #parses subkeys into neat string
+  if new_subkeys:
     for key in new_subkeys:
       subkeys_string += f"{key} x{new_subkeys[key]}\n"
+  else:
+    subkeys = None
 
-  #turns list of warnings to a string
+  #turns errors into string, removes duplicates
+  error_title = ""
+  if errors:
+    parsed_errors = []
+    for error in errors:
+      if error not in parsed_errors:
+        parsed_errors.append(error)
+    if len(parsed_errors) > 1:
+      error_title = "**ERRORS**"
+    else:
+      error_title = "**ERROR**"
+    parsed_errors = "\n- ".join(parsed_errors)
+    errors = parsed_errors
+
+  #turns warnings into string, removes duplicates
+  warn_title = ""
   if warnings:
-    warnings = "\n".join(warnings)
+    parsed_warnings = []
+    for warning in warnings:
+      if warning not in parsed_warnings:
+        parsed_warnings.append(warning)
+    if len(parsed_warnings) > 1:
+      warn_title = "**WARNINGS**"
+    else:
+      warn_title = "**WARNING**"
+    parsed_warnings = "\n- ".join(parsed_warnings)
+    warnings = parsed_warnings
 
 #tries to create a key object from all the data
 #if it fails for any reason, sends the error
   try:
     new_key = Key(
+adventure=adventure_of_key,
 id = new_id,
 displayname=displayname, 
 description=description,
@@ -128,7 +177,9 @@ author = ctx.author.id)
   if dict['stackable']:
     embed.add_field(name="Stackable", value=f"{stackable}", inline=False)
   if warnings:
-    embed.add_field(name="**WARNING:**", value=warnings)
+    embed.add_field(name=warn_title, value=warnings)
+  if errors:
+    embed.add_field(name=error_title, value=warnings)
   
   edit_button = database.ConfirmButton(label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
   cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)

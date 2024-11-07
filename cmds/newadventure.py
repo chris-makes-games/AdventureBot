@@ -23,9 +23,15 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool=False):
     embed = formatter.blank_embed(displayname, "Error", "You are not a player. Please use /newplayer to begin. You can create an adventure once you've been added to the database", "red")
     await ctx.reply(embed=embed, ephemeral=True)
     return
+  #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
-    return
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      return
+    else:
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
   #if the player already made an adventure
   if player["owned_adventures"]:
     embed = formatter.blank_embed(displayname, "Error", "You already have an adventure! You can only have one. Please use /editadventure to edit your adventure.", "red")

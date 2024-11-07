@@ -12,12 +12,15 @@ async def newmaintainer(ctx, user: discord.User):
   if not permissions.is_maintainer(ctx):
     await ctx.reply("You must be a maintainer to add a maintainer.")
     return
+  #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
-    return
-  if user is None:
-    await ctx.send("User not found! Must be in this guild to add")
-    return
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      return
+    else:
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
   if database.botinfo.find_one({"maintainers": id}):
     await ctx.reply(f"User {user} is already a maintainer")
     return
