@@ -87,6 +87,7 @@ async def editroom(ctx, id: str,
       new_id = None
     elif len(new_id) < 6:
       errors.append(f"Your ID must be at least six characters! Room ID will remain {id}")
+      new_id =None
   if entrance:
     if entrance.lower() == "none" or entrance.strip() == "":
       errors.append(f"Room entrance cannot be blank! Room entrance remains unchanged.")

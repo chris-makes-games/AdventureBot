@@ -20,8 +20,8 @@ description="The description of an item, for inventory purposes only",
 note="The text as it appears in the journal to players",
 alt_note="For follow-up journal entry created after this key is removed from the player",
 subkeys="Keys that can be crafted together make this key. Can be multiple. Separate by commas",
-deconstruct="Whether this key can be turned into its subkeys by deconstructing",
 combine="Whether this key can be combined with other keys",
+deconstruct="Whether this key can be turned into its subkeys by deconstructing",
 inventory="Whether this key will appear in the player's inventory",
 journal="Whether this key will appear in the player's journal",
 unique="If they player adds this to their inventory, they may not do so again",
@@ -36,8 +36,8 @@ async def newkey(ctx,
     note : str | None=None,
     alt_note : str | None=None,
     subkeys : str | None = None,
-    deconstruct : bool | None = None,
     combine : bool | None = None,
+    deconstruct : bool | None = None,
     inventory : bool | None = None,
     journal : bool | None = None,
     unique : bool | None = None,
@@ -150,7 +150,10 @@ description=description,
 note=note if note else None,
 alt_note=alt_note if alt_note else None,  
 subkeys=new_subkeys, 
+combine=combine if combine else False,
 deconstruct=deconstruct if deconstruct else False,
+inventory=inventory if inventory else False,
+journal=journal if journal else False,
 unique=unique if unique else False, 
 repeating=repeating if repeating else False, 
 stackable=stackable if stackable else False,
@@ -188,7 +191,7 @@ author = ctx.author.id)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
 
-  #returns adventures either owned or coauthored with matching name
+#returns adventures either owned or coauthored with matching name
 @newkey.autocomplete('adventure')
 async def autocomplete_newkey(interaction: discord.Interaction, current: str):
   if perms.is_assistant_or_maintainer(interaction):

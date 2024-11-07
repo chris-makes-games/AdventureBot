@@ -55,8 +55,11 @@ async def editkey(ctx, id : str,
     else:
       await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
       return
+    
+  #errors for big issues
+  errors = []
 
-  #warnings for subkeys not found
+  #warnings for minor issues
   warnings = []
 
   #error for no key found
@@ -65,15 +68,32 @@ async def editkey(ctx, id : str,
     await ctx.reply(f"Error: No key found with id **{id}**! Double check you've selected a valid key. If you need to make a new key, try /newkey", ephemeral=True)
     return
 
+  #check for None assignment attempts in mandatory fields
+  if new_id:
+    if new_id.lower() == "none" or new_id.strip() == "":
+      errors.append(f"You cannot change the ID of a key to blank! Key must have an ID. Key ID will remain `{id}`")
+      new_id = None
+    elif len(new_id) < 6:
+      errors.append(f"Your ID must be at least six characters! Key ID will remain {id}")
+      new_id = None
+  if displayname:
+    if displayname.lower() == "none" or displayname.strip() == "":
+      errors.append(f"Display name cannot be blank! Key will keep display name of {found_key['displayname']}")
+      displayname = None
+  if description:
+    if description.lower() == "none" or description.strip() == "":
+      errors.append(f"Description cannot be blank! Key description remains unchanged.")
+      description = None
+
   #checks if user input valid unique ID
   if new_id:
     found_id = database.get_id(new_id)
     if found_id:
-      await ctx.reply(f"ERROR: ID already exists. Please use a different ID.\n**ID:** {found_id['id']}\nID **Author:** {found_id['author']}", ephemeral=True)
-      return
-    elif new_id.isdigit():
-      await ctx.reply(f"ERROR: ID cannot be only numbers. Please choose and ID that is easily identifiable.", ephemeral=True)
-      return
+      errors.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. Please use a different ID. Key ID will remain `{id}`")
+      new_id = None
+    elif new_id and new_id.isdigit():
+      errors.append(f"Key ID cannot be only numbers. Please choose an ID that is easily identifiable. Key ID will remain `{id}`")
+      new_id = None
 
   #parses subkeys into dict
   subkeys_string = ""
@@ -84,15 +104,60 @@ async def editkey(ctx, id : str,
       try:
         item, quantity = pair.strip().split()
         new_subkeys[item.strip()] = int(quantity)
-        if not database.get_key(item.strip()):
-          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
-        await ctx.reply("Invalid subkey format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the subkeys to one of somekey and three of otherkey)", ephemeral=True)
-        return
+        errors.append(f"Invalid subkey format: {pair}`\n(must be in the format `key_id <number>`)")
+        continue
+      if not database.get_key(item.strip()):
+        warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
+    #parses subkeys into neat string
+  if new_subkeys:
     for key in new_subkeys:
       subkeys_string += f"{key} x{new_subkeys[key]}\n"
-  
+  else:
+    subkeys = None
+
+  #turns errors into string, removes duplicates
+  error_title = ""
+  if errors:
+    parsed_errors = []
+    for error in errors:
+      if error not in parsed_errors:
+        parsed_errors.append(error)
+    if len(parsed_errors) > 1:
+      error_title = "**ERRORS**"
+    else:
+      error_title = "**ERROR**"
+    parsed_errors = "\n- ".join(parsed_errors)
+    errors = parsed_errors
+
+  #turns warnings into string, removes duplicates
+  warn_title = ""
+  if warnings:
+    parsed_warnings = []
+    for warning in warnings:
+      if warning not in parsed_warnings:
+        parsed_warnings.append(warning)
+    if len(parsed_warnings) > 1:
+      warn_title = "**WARNINGS**"
+    else:
+      warn_title = "**WARNING**"
+    parsed_warnings = "\n- ".join(parsed_warnings)
+    warnings = parsed_warnings
+
+  #dict from key object
   new_dict = found_key.copy()
+
+  #bool is true if every value in the given dict is None
+  dict_bool = all(new_dict.values())
+  if dict_bool:
+    embed_text = "The changes you submitted were invalid. Review the errors below. If you need help, try `/help editkey`. If something is wrong, contact Ironically-Tall."
+  else:
+    embed_text = "Review the changes and select a button below. Key data not mentioned is not being changed."
+    if errors:
+      embed_text = embed_text + "\nSome of your changes were invalid. Review the error section below, those changes have been discarded."
+    if warnings:
+      embed_text = embed_text + "\nSome of your inputs were valid but had issues. Those changes will still be updated for the key despite potential issues. Review the warnings before clicking a button."
+
   embed = discord.Embed(title=f"Editing key: {found_key['displayname']}\nID: **{id}**", description="Review the changes and select a button below:")
   if new_id:
     new_dict["new_id"] = new_id
@@ -144,12 +209,15 @@ async def editkey(ctx, id : str,
     await ctx.reply(embed=embed, ephemeral=True)
     return
   if warnings:
-    embed.add_field(name="**WARNING**", value="\n".join(warnings), inline=False)
-  edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_key", id=id, dict=new_dict)
-  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    embed.add_field(name=warn_title, value=warnings, inline=False)
+  if errors:
+    embed.add_field(name=error_title, value=errors, inline=False)
   view = discord.ui.View()
-  view.add_item(edit_button)
-  view.add_item(cancel_button)
+  if not dict_bool:
+    edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_key", id=id, dict=new_dict)
+    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    view.add_item(edit_button)
+    view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
 
 #returns keys with matching id OR matching displayname
