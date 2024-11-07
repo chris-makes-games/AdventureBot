@@ -284,13 +284,33 @@ async def newroom(ctx,
     if not new_reveal_string:
       reveal = None
 
-  #turns errors with conditionals into string, reversed order
+  #turns errors into string, removes duplicates
+  error_title = ""
   if errors:
-    errors = "\n- ".join(list(set(errors)))
+    parsed_errors = []
+    for error in errors:
+      if error not in parsed_errors:
+        parsed_errors.append(error)
+    if len(parsed_errors) > 1:
+      error_title = "**ERRORS**"
+    else:
+      error_title = "**ERROR**"
+    parsed_errors = "\n- ".join(parsed_errors)
+    errors = parsed_errors
 
-  #turns list of warnings to a string, reversed order
+  #turns warnings into string, removes duplicates
+  warn_title = ""
   if warnings:
-    warnings = "\n- ".join(list(set(warnings)))
+    parsed_warnings = []
+    for warning in warnings:
+      if warning not in parsed_warnings:
+        parsed_warnings.append(warning)
+    if len(parsed_warnings) > 1:
+      warn_title = "**WARNINGS**"
+    else:
+      warn_title = "**WARNING**"
+    parsed_warnings = "\n- ".join(parsed_warnings)
+    warnings = parsed_warnings
 
   #creates room object
   try:
@@ -366,16 +386,8 @@ async def newroom(ctx,
     new_reveal_string = "\n- ".join(new_reveal_string)
     embed.add_field(name="Reveal", value=f"- {new_reveal_string}\n(If all of these are true when the player is in an adjescant room, then the button for this room will be revealed if it was hidden.)", inline=False)
   if warnings:
-    if len(warnings) > 1:
-      warn_title = "**WARNINGS**"
-    else:
-      warn_title = "**WARNING**"
     embed.add_field(name=warn_title, value=f"- {warnings}", inline=False)
   if errors:
-    if len(errors) > 1:
-      error_title = "**ERRORS**"
-    else:
-      error_title = "**ERROR**"
     embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editroom`", inline=False)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
   edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", dict=dict)

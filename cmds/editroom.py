@@ -291,13 +291,33 @@ async def editroom(ctx, id: str,
   #copies the dict to alter without changing the completed dict
   new_dict = found_room.copy()
 
-  #turns errors with conditionals into string, reversed order
+  #turns errors into string, removes duplicates
+  error_title = ""
   if errors:
-    errors = "\n- ".join(list(set(reversed(errors))))
+    parsed_errors = []
+    for error in errors:
+      if error not in parsed_errors:
+        parsed_errors.append(error)
+    if len(parsed_errors) > 1:
+      error_title = "**ERRORS**"
+    else:
+      error_title = "**ERROR**"
+    parsed_errors = "\n- ".join(parsed_errors)
+    errors = parsed_errors
 
-  #turns list of warnings to a string, reversed order
+  #turns warnings into string, removes duplicates
+  warn_title = ""
   if warnings:
-    warnings = "\n- ".join(list(set(reversed(warnings))))
+    parsed_warnings = []
+    for warning in warnings:
+      if warning not in parsed_warnings:
+        parsed_warnings.append(warning)
+    if len(parsed_warnings) > 1:
+      warn_title = "**WARNINGS**"
+    else:
+      warn_title = "**WARNING**"
+    parsed_warnings = "\n- ".join(parsed_warnings)
+    warnings = parsed_warnings
 
   #bool is true if every value in the given dict is None
   dict_bool = all(new_dict.values())
@@ -392,16 +412,8 @@ async def editroom(ctx, id: str,
     embed.add_field(name="----Destroy----", value=f"\nOld:\n{old_destroy_string}\nNew:\n{new_destroy_string}", inline=False)
   #adds warning to bottom of dict, removes duplicates
   if warnings:
-    if len(warnings) > 1:
-      warn_title = "**WARNINGS**"
-    else:
-      warn_title = "**WARNING**"
     embed.add_field(name=warn_title, value=f"- {warnings}", inline=False)
   if errors:
-    if len(errors) > 1:
-      error_title = "**ERRORS**"
-    else:
-      error_title = "**ERROR**"
     embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help editroom`")
   #returns error if no embed fields were added
   if not embed.fields:

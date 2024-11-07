@@ -5,28 +5,23 @@ TODO
 
   Rooms
 - ending/death handling
-- complex boolean testing with keys
 - remove editroom ability to add duplicate room connections
 - connectrooms needs to prevent duplicate room connects
-- editroom must prevent locked rooms from removing their alt entrances
-
+- preview room command to send embed
 
   Inventory/Journal
 - need buttons which appear as player gets them
 - recheck inventory management
 
   Misc
+- coauthor command
 - Help Commands
-- ConfirmButton options
 - Mapper reconfig (deprecated)
-- remove errors that break the commands, replace with warnings
 
   Error Handling
-- Only 5 exits
 - Character limit for exits
 - Can't have the same key twice in a room
 - Reject giving player more than one stackable key?
-- Make sure keys exist as they are added to unlock/reveal/etc
 
 ------------------------------
 
@@ -35,6 +30,5 @@ TODO
 - Update Formatter 
 - Dialogue Trees/quicktime events
 - player HP
-- Coauthor options
 
 ------------------------------
