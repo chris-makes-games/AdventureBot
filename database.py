@@ -547,7 +547,20 @@ async def move_player(interaction, destination):
   tuple = await embed_room(player, found_keys, newroomname, new_room, author, guild)
   embed = tuple[0]
   view = tuple[1]
-  await interaction.response.edit_message(embed=embed, view=view)
+  leftovers = tuple[2]
+  if leftovers:
+    length = 0
+    for leftover in leftovers:
+      embed = discord.Embed(title="", description=leftover)
+      if length == 0:
+        await interaction.response.edit_message(embed=embed)
+      if length == len(leftovers):
+        await interaction.followup.send(embed=embed, view=view)
+      else:
+        await interaction.followup.send(embed=embed, view=view)
+      length += 1
+  else:
+    await interaction.response.edit_message(embed=embed, view=view)
   if errors:
     error_message = "ERRORS FOUND IN ROOM:\n"
     for error in errors:
@@ -635,6 +648,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   keys = player_dict["keys"]
   descr = room_dict['description'].replace("\\n","\n")
   descr = descr.replace("[LIKETHIS]", "\\n")
+  leftover_list = []
   if len(descr) > 4000:
     descr, leftover_list = room_extender(descr)
   embed = discord.Embed(title=title, description=descr, color=color)
@@ -668,7 +682,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     if adventure and adventure["epilogue"]:
       embed.add_field(name="Epilogue", value="While the adventure is concluded, you may freely explore the rooms to see what you might have missed", inline=False)
     update_player({"id" : player_dict["id"], "dead": True})
-    return (embed, view)
+    return (embed, view, leftover_list)
   #error for when a room has no exits but is also not an end
   if len(room_dict["exits"]) == 0 and not room_dict["end"]:
     embed.add_field(name="Exits", value="There are no exits from this room. This is the end of the line. Unless this room is broken? You might have to /leave this adventure to get out.", inline=False)
@@ -716,19 +730,19 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     #regular room entrance if not locked or hidden or anything else
     button = RoomButton(label=found_room["entrance"], destination=room_id, row=current_row)
     view.add_item(button)
-  return (embed, view)
+  return (embed, view, leftover_list)
 
 #if room description is too long, split it into smaller pieces
 def room_extender(long_string):
-  new_long_string = long_string[:40]
+  new_long_string = long_string[:4000]
   leftovers = []
   paragraph_number = 0
   while len(long_string) > 0:
-    if len(long_string) > 40:
+    if len(long_string) > 4000:
       #Find the last space within the first 40 characters
-      split_index = long_string.rfind(" ", 0, 40)
-      if split_index == -1:  # No space found, split at 40
-        split_index = 40
+      split_index = long_string.rfind(" ", 0, 4000)
+      if split_index == -1:
+        split_index = 4000
       leftovers.append(long_string[:split_index])
       long_string = long_string[split_index:].lstrip() 
     else:
