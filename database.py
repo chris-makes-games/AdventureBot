@@ -251,6 +251,13 @@ class ConfirmButton(discord.ui.Button):
         await interaction.followup.send(f"ERROR: Player update failed! There was an issue with the button press:\n{e}", ephemeral=True)
         print(e)
         await interaction.delete_original_response()
+    elif self.action == "remove_gifts":
+      try:
+        await remove_gift(self.id, interaction)
+        await interaction.followup.send("You have been successfully removed from the event!", ephemeral=True)
+      except Exception as e:
+        await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
+      await interaction.delete_original_response()
     #catch-all for any other action
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction: {self.action}", ephemeral=True)
@@ -271,7 +278,41 @@ class CupidModal(discord.ui.Modal):
     dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.willing.value}
     new_cupid(dict)
     await give_role(interaction, "Valentine")
-    await interaction.followup.send(f"{interaction.user.mention} Your have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine and begin writing.", ephemeral=True)
+    await interaction.followup.send(f"{interaction.user.mention} You have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine and begin writing.", ephemeral=True)
+
+#new gifts modal for winter event
+class GiftModal(discord.ui.Modal):
+  def __init__(self, title="Gift Exchange Event Sign-up"):
+    super().__init__(title=title)
+    self.likes = discord.ui.TextInput(label="What sizey things do you enjoy?", placeholder="Please include a brief description of scenarios, genders, and sizes", style=discord.TextStyle.long, required=True)
+    self.limits = discord.ui.TextInput(label="What do you NOT want to see in your gift?", placeholder="These topics will not be included in the gift you recieve. Everything else is fair game", style=discord.TextStyle.long, required=True)
+    self.willing = discord.ui.TextInput(label="What are you willing to create?", placeholder="Which topics/themes are you comfortable/uncomfortable working with? Ironically-tall will do his best", style=discord.TextStyle.long, required=True)
+    self.add_item(self.likes)
+    self.add_item(self.limits)
+    self.add_item(self.willing)
+  async def on_submit(self, interaction: discord.Interaction):
+    await interaction.response.defer()
+    dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.willing.value}
+    edit_mode = False
+    if gifts.find_one({"disc" : interaction.user.id}):
+      edit_mode = True
+    new_gift(dict)
+    if edit_mode:
+      await interaction.followup.send(f"{interaction.user.mention} Your preferences have been updated!", ephemeral=True)
+    else:
+      await give_role(interaction, "Giver of Gifts")
+      await interaction.followup.send(f"{interaction.user.mention} You have signed up for the gifts exchange event! Please wait until Dec 22nd to recieve your secret gifts recipient. If you have questions, please DM Ironically-Tall. You may change your info by typing `/gift` again. Thank you for participating!!", ephemeral=True)
+    await interaction.delete_original_response()
+
+#new gifts button
+class GiftButton(discord.ui.Button):
+  def __init__(self, label, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.primary)
+    self.disabled = disabled
+    self.row = row
+    self.emoji = "🎁"
+  async def callback(self, interaction: discord.Interaction):
+    await interaction.response.send_modal(GiftModal())
 
 #deactivated valentines function
 class CupidButton(discord.ui.Button):
@@ -313,6 +354,7 @@ adventures = db.adventures
 ids = db.ids
 botinfo = db.botinfo
 cupid = db.cupid
+gifts = db.gift
 
 #lists for generating a random ID
 all_numbers = ["0️", "1️", "2️", "3️", "4️", "5" ,"6️", "7️", "8️", "9️"]
@@ -794,7 +836,27 @@ async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id
     embed.set_image(url="https://i.kym-cdn.com/entries/icons/mobile/000/028/033/Screenshot_7.jpg")
   return (embed, view)
 
-#deactivated valentines function
+#new gifts embed for winter event
+async def gifts_embed(user):
+  embed = discord.Embed(title="gifts Exchange Event Sign-Up")
+  view = discord.ui.View()
+  if gifts.find_one({"disc": user}):
+    embed.description = "You have already signed up for the gifts Exchange Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
+    gifts_button = GiftButton(label="I understand, I want to resubmit")
+    remove_button = ConfirmButton(label="Remove me from the event", action="remove_gifts", confirm=False, id=user)
+    cancel_button = ConfirmButton(label="Keep my already submitted info", confirm=True, action="cancel")
+    view.add_item(gifts_button)
+    view.add_item(cancel_button)
+    view.add_item(remove_button)
+  else:
+    embed.description = "Please only sign up for this event if you plan to make a gifts for someone else. It is a few hours of work over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before DEC 22nd, each time you submit the form it will re-write your preferences."
+    gifts_button = GiftButton(label="I understand, I want to sign up")
+    cancel_button = ConfirmButton(label="Never Mind", action="cancel", confirm=False)
+    view.add_item(gifts_button)
+    view.add_item(cancel_button)
+  return (embed, view)
+
+#old cupid embed
 async def cupid_embed(user):
   embed = discord.Embed(title="Valentines Event Sign-Up")
   view = discord.ui.View()
@@ -816,11 +878,38 @@ async def give_role(interaction, role):
   print(f"id: {member.id}")
   print(f"member: {member}")
   new_role = discord.utils.get(guild.roles, name=role)
-  if not role:
+  if not new_role:
     print(f"ERROR - Role {role} not found")
     return
   await member.add_roles(new_role)
-  print(f"role {role.name} added to {member.name}")
+  print(f"role {new_role.name} added to {member.name}")
+
+#new gifts function
+def new_gift(dict):
+  if gifts.find_one({"disc": dict["disc"]}):
+    print(f"gifts found: {dict['disc']}")
+    gifts.update_one({"disc": dict["disc"]}, {"$set": dict})
+    print("gifts updated")
+  else:
+    gifts.insert_one(dict)
+    print("new gifts created")
+
+#remove gifts function
+async def remove_gift(id, interaction):
+  guild = interaction.guild
+  if gifts.find_one({"disc": id}):
+    print(f"gift found: {id}")
+    gifts.delete_one({"disc": id})
+    print("gift deleted")
+    try:
+      member = discord.utils.get(guild.members, id=id)
+      new_role = discord.utils.get(guild.roles, name="Giver of Gifts")
+      await member.remove_roles(new_role)
+      print("Gift role deleted!")
+    except Exception as e:
+      return
+  else:
+    raise Exception("ERROR: Gift giver not found in database!!")
 
 #old valentines function
 def new_cupid(dict):
