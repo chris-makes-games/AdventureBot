@@ -348,7 +348,7 @@ async def editroom(ctx, id: str,
     embed.add_field(name="----New ID----", value=f"\nOld:\n{found_room['id']}\nNew:\n{new_id}\nChanging the ID of this room will update the ID across all rooms it is connected to", inline=True)
   if description:
     new_dict["description"] = description
-    embed.add_field(name="----Description----", value=f"\nOld:\n{found_room['description']}\nNew:\n{description}", inline=False)
+    embed.add_field(name="----Description----", value=f"\nOld:\n{found_room['description'][0:200]}\nNew:\n{description[0:200]}", inline=False)
   if displayname:
     new_dict["new_displayname"] = displayname
     new_dict["displayname"] = displayname

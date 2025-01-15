@@ -33,13 +33,9 @@ async def join(ctx, adventure_name : str):
       return
   #if the correct thread does not exist anymore
   if player["play_thread"] and not permissions.thread_exists(ctx):
-    confirm = await database.confirm_embed("It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your old adventure and start a new one?", action="join", channel=None, title="Thread Deleted!")
-    embed = confirm[0]
-    view = confirm[1]
-    await ctx.reply(embed=embed, view=view)
-    return
+    await ctx.reply("It looks like you were in an adventure in a thread that no longer exists. Your old adventure is being deleted and a new one is being created...", ephemeral=True)
   #if the player is already in an adventure
-  if player["play_thread"]:
+  elif player["play_thread"]:
     play_thread = player["play_thread"]
     guild = ctx.bot.get_guild(player["guild"])
     thread = guild.get_thread(play_thread)
@@ -88,7 +84,7 @@ async def join(ctx, adventure_name : str):
       author = "Error - Unknown"
     new_keys = room["keys"]
     #embed message for all rooms
-    embed, view = await database.embed_room(player_dict=player.__dict__, new_keys=new_keys, author=author, room_dict=room, title=room["displayname"], guild=ctx.guild)
+    embed, view, leftover_list = await database.embed_room(player_dict=player.__dict__, new_keys=new_keys, author=author, room_dict=room, title=room["displayname"], guild=ctx.guild)
 
     #sends a message in the thread to begin
     #mentions the user to add them to the thread

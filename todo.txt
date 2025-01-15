@@ -2,12 +2,16 @@ TODO
   Keys
 - inventory/journal system
 - combine/deconstruct
+- /editkeys needs to truncate fields
+- /newkey needs to truncate fields
 
   Rooms
 - ending/death handling
 - remove editroom ability to add duplicate room connections
 - connectrooms needs to prevent duplicate room connects
-- preview room command to send embed
+- /preview command to send embed
+- /editroom needs to truncate fields
+- /newroom needs to truncate fields
 
   Inventory/Journal
 - need buttons which appear as player gets them

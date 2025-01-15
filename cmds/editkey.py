@@ -1,4 +1,5 @@
 import re
+import yaml
 
 import discord
 from discord import app_commands
@@ -62,6 +63,10 @@ async def editkey(ctx, id : str,
   #warnings for minor issues
   warnings = []
 
+  with open("config.yaml", "r") as file:
+    config = yaml.safe_load(file)
+    limits = config["EmbedLimits"]
+
   #error for no key found
   found_key = database.keys.find_one({"id": id})
   if not found_key:
@@ -73,16 +78,25 @@ async def editkey(ctx, id : str,
     if new_id.lower() == "none" or new_id.strip() == "":
       errors.append(f"You cannot change the ID of a key to blank! Key must have an ID. Key ID will remain `{id}`")
       new_id = None
-    elif len(new_id) < 6:
+    elif len(new_id) < limits["IDMIN"]:
       errors.append(f"Your ID must be at least six characters! Key ID will remain {id}")
+      new_id = None
+    elif len(new_id) > limits["IDMAX"]:
+      errors.append(f"Your ID cannot exceed 20 characters! Key ID will remain {id}")
       new_id = None
   if displayname:
     if displayname.lower() == "none" or displayname.strip() == "":
       errors.append(f"Display name cannot be blank! Key will keep display name of {found_key['displayname']}")
       displayname = None
+    elif len(displayname) > limits["displayname"]:
+      errors.append(f"Displayname cannot be more than 50 characters! Key will keep the display name of {found_key['displayname']}")
+      displayname = None
   if description:
     if description.lower() == "none" or description.strip() == "":
       errors.append(f"Description cannot be blank! Key description remains unchanged.")
+      description = None
+    elif len(description) > limits["key_desc"]:
+      errors.append(f"Key descriptions cannot exceed {limits['key_desc']} characters! The description will not be changed.")
       description = None
 
   #checks if user input valid unique ID

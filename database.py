@@ -260,7 +260,7 @@ class ConfirmButton(discord.ui.Button):
       await interaction.delete_original_response()
     #catch-all for any other action
     else:
-      await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction: {self.action}", ephemeral=True)
+      await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction:\n`{self.action}`", ephemeral=True)
       return
 
 #deactivated valentines function
