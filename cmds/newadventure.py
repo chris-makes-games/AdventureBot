@@ -34,7 +34,7 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool=False):
       return
   #if the player already made an adventure
   if player["owned_adventures"]:
-    embed = formatter.blank_embed(displayname, "Error", "You already have an adventure! You can only have one. Please use /editadventure to edit your adventure.", "red")
+    embed = formatter.blank_embed(displayname, "Error", "You already have an adventure! You can only have one. Please use /editadventure to edit your adventure. You can also delete your adevnture with /deleteadventure.", "red")
     await ctx.reply(embed=embed, ephemeral=True)
     return
   #if they are in giantessworld, make sure they are an architect
@@ -49,16 +49,10 @@ async def newadventure(ctx, name: str, description: str, epilogue: bool=False):
     name = name.lower()
     adventure = Adventure(name=name, start=start, rooms=[start], description=description, epilogue=epilogue, author=truename)
     database.adventures.insert_one(adventure.__dict__)
-    # Then, create a new thread for editing this adventure
-    database.pp("creating adventure edit channel as thread in channel: " + str(channel))
-    if channel and channel.type == discord.ChannelType.text:
-      thread = await channel.create_thread(name=f"{displayname} editing {name}")
-      await thread.send(ctx.author.mention + ", your adventure is ready. Use the commands to add/edit keys and rooms in this thread. A start room was automatically created for you. Use /editroom to edit it.")
-        # Update the player's editthread field with the new thread ID
-      database.update_player({'disc': truename, 'owned_adventures': [name]})
-      link = f"https://discord.com/channels/{ctx.guild.id}/{thread.id}"
-      embed = formatter.blank_embed(displayname, "Success", f"{name} was created and your edit thread is ready:\n{link}", "green")
-      await ctx.reply(embed=embed, ephemeral=True)
+    #Update the player's editthread field with the new thread ID
+    database.update_player({'disc': truename, 'owned_adventures': [name]})
+    embed = formatter.blank_embed(displayname, "Success", f"Adventure {name.title()} was created! A default room with random ID `{start_room.id}` was generated as the start room for your adventure. Use `/editroom` to edit it or `/newroom` to add another.", "green")
+    await ctx.reply(embed=embed, ephemeral=True)
 
 async def setup(bot):
   bot.add_command(newadventure)

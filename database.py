@@ -176,7 +176,7 @@ class ConfirmButton(discord.ui.Button):
       try:
         delete_adventure(self.id)
         all_players = get_players_in_adventure(self.id)
-        all_keys = keys.findall({"adventure" : self.id})
+        all_keys = keys.find({"adventure" : self.id})
         guild = interaction.guild
         if all_players:
           for player in all_players:
@@ -358,7 +358,7 @@ cupid = db.cupid
 gifts = db.gift
 
 #lists for generating a random ID
-all_numbers = ["0️", "1️", "2️", "3️", "4️", "5" ,"6️", "7️", "8️", "9️"]
+all_numbers = ["0", "1", "2", "3", "4", "5" ,"6", "7", "8", "9"]
 all_upper_letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 all_lower_letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
 
@@ -945,8 +945,7 @@ def get_key(id):
       return key
   return None
 
-#creates a blank room for testing purposes
-#useful for showing room structure to new database
+#creates a blank room for testing purposes, returns room object
 def create_blank_room(author_name, room_name="Blank Room"):
     room = Room(displayname=room_name, description="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.", author=author_name, entrance="This text is displayed when the player is in an adjescent room.", alt_entrance="This text is displayed when the room is locked")
     rooms.insert_one(room.__dict__)
@@ -1017,11 +1016,17 @@ def update_adventure(dict):
 def delete_adventure(name):
   print(f"deleting adventure: {name}")
   found_adventure = adventures.find_one({"name": name})
+  found_player = found_adventure["author"]
   if found_adventure:
     for room_id in found_adventure["rooms"]:
       delete_room(room_id)
   adventures.delete_one({"name": name})
   print("Adventure deleted!")
+  if found_player:
+    update_player({"disc": found_player, "owned_adventures" : []})
+    print("Player's owned adventures reset!")
+  else:
+    print("Error! Adventure owner not found!")
 
 #creates a room from a dict
 def create_new_room(dict):
@@ -1117,7 +1122,7 @@ def delete_room(id):
         return
       adventures.update_one({"name": adventure["name"]}, {"$set": adventure})
     else:
-      print(f"ERROR - adventure {room['adventure']} not found during deletion")
+      print(f"ERROR - adventure {adventure} not found during deletion")
       return
   else:
     print(f"ERROR - Room {id} does not exist to be deleted")
@@ -1222,9 +1227,9 @@ def delete_extra_ids(id):
   changed = False
   if found_id["type"] == "room":
     for player in all_players:
-      pp(player)
-      print("----")
-      pp(found_id)
+      #moves to next player if they're not in a room
+      if not player["room"]:
+        continue
       #resets player back to start room if they're inside the deleted room
       if player["room"].lower() == found_id["id"].lower():
         print(f"resetting player {player['displayname']} to start room, their room is being deleted!")
