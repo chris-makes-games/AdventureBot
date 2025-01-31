@@ -2,7 +2,7 @@ TODO
   Keys
 - inventory/journal system
 - combine/deconstruct
-- /editkeys needs to truncate fields
+- /editkey needs to truncate fields
 - /newkey needs to truncate fields
 
   Rooms

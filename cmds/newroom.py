@@ -9,7 +9,8 @@ import perms_interactions as permissions
 from room import Room
 
 
-#edits a room with whatever the user selects
+#creates a room with whatever the user selects
+#default values sent if no selections are made
 @commands.hybrid_command(name="newroom", description="Create a new room. Leave options blank to keep the default value")
 @app_commands.describe(
 adventure="The adventure this new room will belong to. Case agnostic.",

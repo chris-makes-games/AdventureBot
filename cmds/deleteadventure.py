@@ -38,7 +38,7 @@ async def deleteadventure(ctx, adventure_name: str):
     affected_rooms = ", ".join(adventure["rooms"])
     embed.add_field(name="Affected Rooms", value=f"These rooms will be deleted: {affected_rooms}")
     affected_keys = []
-    found_keys = database.keys.findall({"adventure" : adventure["name"]})
+    found_keys = database.keys.find({"adventure" : adventure["name"]})
     if found_keys:
       for key in found_keys:
         affected_keys.append(key["id"])

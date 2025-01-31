@@ -40,6 +40,7 @@ class RoomButton(discord.ui.Button):
     self.disabled = disabled
     self.row = row
   async def callback(self, interaction: discord.Interaction):
+    await interaction.response.defer()
     await move_player(interaction, self.destination)
 
 #button class for inventory and journal buttons
@@ -540,6 +541,11 @@ async def open_menu(interaction, playerdict, type):
 #moves player to a new room
 #sends an embed with the new room's description and buttons
 async def move_player(interaction, destination):
+  #removes button from original message
+  pp(interaction.data)
+  await interaction.edit_original_response(view=None)
+
+  #message attributes
   guild = interaction.guild
   player = get_player(interaction.user.id)
   new_room = get_room(destination)
@@ -560,6 +566,7 @@ async def move_player(interaction, destination):
     pp("ERROR - None Object during database.moveplayer()")
     pp("player: " + str(player))
     pp("room: " + str(new_room))
+    await interaction.followup.send(f"None Object during database.moveplayer(), room could not be created!\n\nplayer:\n{str(player)}\nroom:\n{str(new_room)}", ephemeral=True)
     return
   #if the room has keys, process keys
   if new_room["keys"]:
@@ -587,22 +594,29 @@ async def move_player(interaction, destination):
   update_player(dict)
   newroomname=new_room["displayname"]
   tuple = await embed_room(player, found_keys, newroomname, new_room, author, guild)
-  embed = tuple[0]
+  single_embed = tuple[0]
   view = tuple[1]
   leftovers = tuple[2]
+  #if the room description does not fit in the embed, it will have leftover
   if leftovers:
-    length = 0
+    length = 1
+    print(len(leftovers))
     for leftover in leftovers:
-      embed = discord.Embed(title="", description=leftover)
-      if length == 0:
-        await interaction.response.edit_message(embed=embed)
-      if length == len(leftovers):
-        await interaction.followup.send(embed=embed, view=view)
+      if length == 1:
+        embed = discord.Embed(title=single_embed.title, description=leftover)
       else:
+        embed = discord.Embed(title=f"{single_embed.title} continued", description=leftover)
+      #sends embed without the view/buttons if the embed isn't the last one
+      print(length)
+      if length < len(leftovers):
+        await interaction.followup.send(embed=embed)
+      else:
+        print("adding final embed")
         await interaction.followup.send(embed=embed, view=view)
       length += 1
+  #sends basic embed if no leftovers
   else:
-    await interaction.response.edit_message(embed=embed, view=view)
+    await interaction.followup.send(embed=single_embed, view=view)
   if errors:
     error_message = "ERRORS FOUND IN ROOM:\n"
     for error in errors:
@@ -662,25 +676,6 @@ async def embed_journal(interaction, player_dict):
     count += 1
   view = discord.ui.View()
   await interaction.response.edit_message(embed=embed, view=view)
-
-#room logic comparator
-async def comparator(string, keys_dict):
-  try:
-    #uses builtins to sanitize input
-    safe_dict = keys_dict.copy()
-    # Set the value of non-existent keys to 0
-    for key in set(re.findall(r'\b\w+\b', string)):
-      if key not in safe_dict:
-        safe_dict[key] = 0
-    safe_dict['__builtins__'] = None
-    string = string.replace("=", "==")
-    string = string.replace("not", "!=")
-    print(string)
-    result = eval(string, {"__builtins__": None}, safe_dict)
-    return result
-  except Exception as e:
-    print(f"Error: {e}")
-    return False
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view
@@ -1227,6 +1222,9 @@ def delete_extra_ids(id):
   changed = False
   if found_id["type"] == "room":
     for player in all_players:
+      pp(player)
+      print("----")
+      pp(found_id)
       #resets player back to start room if they're inside the deleted room
       if player["room"].lower() == found_id["id"].lower():
         print(f"resetting player {player['displayname']} to start room, their room is being deleted!")
