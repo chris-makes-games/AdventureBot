@@ -17,18 +17,38 @@ async def deleteadventure(ctx, adventure_name: str):
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
+  #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
-    return
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      return
+    else:
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
   adventure = database.adventures.find_one({"name": adventure_name})
   if not adventure:
     await ctx.reply("Error: Adventure not found! Double check your Advenutre name!", ephemeral=True)
     # Check if the room belongs to the user
     # if not, then check for maintainer
   if ctx.author.id == adventure["author"] or permissions.is_maintainer(ctx):
-    confirm = await database.confirm_embed(confirm_text=f"This will delete the adventure **{adventure['name'].title()}** permenantly, are you sure you want to do this?", title="Confirm Adventure Deletion", action="delete_adventure", channel=ctx.channel, id=adventure_name)
+    confirm = await database.confirm_embed(confirm_text=f"This will delete the adventure `{adventure['name'].title()}` **PERMENANTLY**, are you sure you want to do this? This will also delete every room in the adventure! This cannot be undone!", title="Confirm Adventure Deletion", action="delete_adventure", channel=ctx.channel, id=adventure_name)
     embed = confirm[0]
     view = confirm[1]
+    affected_rooms = ", ".join(adventure["rooms"])
+    embed.add_field(name="Affected Rooms", value=f"These rooms will be deleted: {affected_rooms}")
+    affected_keys = []
+    found_keys = database.keys.find({"adventure" : adventure["name"]})
+    if found_keys:
+      for key in found_keys:
+        affected_keys.append(key["id"])
+      affected_keys = ", ".join(affected_keys)
+    if affected_keys:
+      embed.add_field(name="Affected Keys", value=f"These keys will also be deleted: {affected_keys}")
+    affected_players = database.get_players_in_adventure(adventure["name"])
+    if affected_players:
+      affected_players = ", ".join(affected_players)
+      embed.add_field(name="Affected Players", value=f"These players will be kicked from their adventure: {affected_players}")
     await ctx.reply(embed=embed, view=view, ephemeral=True)
   else:
     await ctx.reply("Error: You do not have permission to delete this room!", ephemeral=True)

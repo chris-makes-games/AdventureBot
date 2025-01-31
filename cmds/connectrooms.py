@@ -14,28 +14,34 @@ async def connectrooms(ctx, room1: str, room2: str,
             room4: str | None = None, 
             room5: str | None = None,
             mutual: bool = False):
+  #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
-    return
-  room_1 = database.get_room(room1)
-  room_2 = database.get_room(room2)
-  room_3 = database.get_room(room3) if room3 else None
-  room_4 = database.get_room(room4) if room4 else None
-  room_5 = database.get_room(room5) if room5 else None
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      return
+    else:
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
+  found_room_1 = database.get_room(room1)
+  found_room_2 = database.get_room(room2)
+  found_room_3 = database.get_room(room3) if room3 else None
+  found_room_4 = database.get_room(room4) if room4 else None
+  found_room_5 = database.get_room(room5) if room5 else None
 
-  if not room_1:
-    await ctx.reply(f"ERROR: Room '{room1}' not found.", ephemeral=True)
-    return
-  if not room_2:
-    await ctx.reply(f"ERROR: Room '{room2}' not found.", ephemeral=True)
-    return
   player = database.get_player(ctx.author.id)
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
+  if not found_room_1:
+    await ctx.reply(f"ERROR: Room '{room1}' not found.", ephemeral=True)
+    return
+  if not found_room_2:
+    await ctx.reply(f"ERROR: Room '{room2}' not found.", ephemeral=True)
+    return
 
   perms_errors = []
-  for room in room_1, room_2, room_3, room_4, room_5:
+  for room in found_room_1, found_room_2, found_room_3, found_room_4, found_room_5:
     if room and room["author"] != player["disc"] and not permissions.is_maintainer:
       perms_errors.append(f"Room '{room['displayname']}' is not yours.\n")
   if perms_errors:
@@ -44,46 +50,55 @@ async def connectrooms(ctx, room1: str, room2: str,
 
   embed = discord.Embed(title="Update Connecttions", description="Review the changes below and confirm the new connections:")
   if mutual:
-    room_1["exits"].append(room_2["id"])
-    room_2["exits"].append(room_1["id"])
-    embed.add_field(name="Mutually Connecting...", value=f"( {room_1['displayname']} ) <----> ( {room_2['displayname']} )")
+    found_room_1["exits"].append(found_room_2["id"])
+    found_room_2["exits"].append(found_room_1["id"])
+    embed.add_field(name="Mutually Connecting...", value=f"( {found_room_1['displayname']} ) <----> ( {found_room_2['displayname']} )")
   else:
-    room_1["exits"].append(room_2["id"])
-    embed.add_field(name="Connecting...", value=f"( {room_1['displayname']} ) -----> ( {room_2['displayname']} )")
-  if room_3:
+    print("attempting to append room id...")
+    found_room_1["exits"].append(found_room_2["id"])
+    print(found_room_1["exits"])
+    embed.add_field(name="Connecting...", value=f"( {found_room_1['displayname']} ) -----> ( {found_room_2['displayname']} )")
+  if found_room_3:
     if mutual:
-      room_1["exits"].append(room_3["id"])
-      room_3["exits"].append(room_1["id"])
-      embed.add_field(name="Mutually Connecting...", value=f"( {room_1['displayname']} ) <----> ( {room_3['displayname']} )")
+      found_room_1["exits"].append(found_room_3["id"])
+      found_room_3["exits"].append(found_room_1["id"])
+      embed.add_field(name="Mutually Connecting...", value=f"( {found_room_1['displayname']} ) <----> ( {found_room_3['displayname']} )")
     else:
-      room_1["exits"].append(room_3["id"])
-      embed.add_field(name="Connecting...", value=f"( {room_1['displayname']} ) -----> ( {room_3['displayname']} ) ")
-  if room_4:
+      found_room_1["exits"].append(found_room_3["id"])
+      embed.add_field(name="Connecting...", value=f"( {found_room_1['displayname']} ) -----> ( {found_room_3['displayname']} ) ")
+  if found_room_4:
     if mutual:
-      room_1["exits"].append(room_4["id"])
-      room_4["exits"].append(room_1["id"])
-      embed.add_field(name="Mutually Connecting...", value=f"( {room_1['displayname']} ) <----> ( {room_4['displayname']}")
+      found_room_1["exits"].append(found_room_4["id"])
+      found_room_4["exits"].append(found_room_1["id"])
+      embed.add_field(name="Mutually Connecting...", value=f"( {found_room_1['displayname']} ) <----> ( {found_room_4['displayname']}")
     else:
-      room_1["exits"].append(room_4["id"])
-      embed.add_field(name="Connecting...", value=f"( {room_1['displayname']} ) -----> ( {room_4['displayname']} )")
-  if room_5:
+      found_room_1["exits"].append(found_room_4["id"])
+      embed.add_field(name="Connecting...", value=f"( {found_room_1['displayname']} ) -----> ( {found_room_4['displayname']} )")
+  if found_room_5:
     if mutual:
-      room_1["exits"].append(room_5["id"])
-      room_5["exits"].append(room_1["id"])
-      embed.add_field(name="Mutually Connecting...", value=f"( {room_1['displayname']} ) <----> ( {room_5['displayname']} )")
+      found_room_1["exits"].append(found_room_5["id"])
+      found_room_5["exits"].append(found_room_1["id"])
+      embed.add_field(name="Mutually Connecting...", value=f"( {found_room_1['displayname']} ) <----> ( {found_room_5['displayname']} )")
     else:
-      room_1["exits"].append(room_5["id"])
-      embed.add_field(name="Connecting...", value=f"( {room_1['displayname']} ) -----> ( {room_5['displayname']} )")
+      found_room_1["exits"].append(found_room_5["id"])
+      embed.add_field(name="Connecting...", value=f"( {found_room_1['displayname']} ) -----> ( {found_room_5['displayname']} )")
   if room1 in (room2, room3, room4, room5):
       embed.add_field(name="WARNING:", value="You are about to connect a room to itself! This will cause a circular loop in that room. Are you sure you want to do this?", inline=False)
 
-  dict = {}
-  for room in [room_1, room_2, room_3, room_4, room_5]:
-    if room:
-      dict[room["id"]] = room
-  confirm_button = database.ConfirmButton(label="Connect Rooms", confirm=True, action="connect", id=room_1["id"], dict=dict)
+  big_dict = {}
+  edited_rooms = []
+  for room in [found_room_1, found_room_2, found_room_3, found_room_4, found_room_5]:
+    if room and room["id"] not in edited_rooms:
+      print("adding room to dict:")
+      database.pp(room)
+      big_dict[room["id"]] = room
+      edited_rooms.append(room["id"])
+  print("big dict:")
+  for subdict in big_dict:
+    database.pp(big_dict[subdict])
+  confirm_button = database.ConfirmButton(label="Connect Rooms", confirm=True, action="connect", dict=big_dict)
   view = discord.ui.View()
-  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=room_1["id"])
+  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=found_room_1["id"])
   view.add_item(confirm_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

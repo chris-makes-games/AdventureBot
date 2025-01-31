@@ -4,15 +4,20 @@ from discord.ext import commands
 
 import database
 
-
 #command for architect details about creating content
 #works like help command but for architects
 @commands.hybrid_command(name= "architecthelp", description= "Help for architects to make adventures")
 @app_commands.describe(topic = "Optionally specify a specific architect topic")
 async def architecthelp(ctx, topic=None):
+  #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
-    return
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      return
+    else:
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
   player = database.get_player(ctx.author.id)
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
@@ -48,10 +53,10 @@ async def architecthelp(ctx, topic=None):
     embed.add_field(name="Keys", value="A list of the keys which are given to the player upon entering the room. Keys have properties which may prevent themselves from being given to the player. Type the ID of the key then a space and then the amount of that key to be given. Separate by commas.\nExample:\n`keyid1 2, keyid2 3`\nThis will attempt to give two keyid1's to the player and 3 of keyid2.\ntry /architect keys for more information.")
     embed.add_field(name="Destroy", value="Similar but opposite to keys. List of keys which are destroyed when the player enters the room. If the player does not have the keys, nothing happens. Each time the player enters the room, that ammount of those keys will be destroyed. Separate by commas.\nExample:\n`keyid1 2, keyid2 3`\nThis will attempt to destroy two keyid1's in the player's inventory and 3 of keyid2.")
     embed.add_field(name="Exits", value="A list of rooms which can be accessed from this room. Each exit is a room ID. Rooms listed as exits here will display their entrance text as buttons at the bottom of this room. Separate by commas. Maximum 4 exits.\nExample:\n`roomid1, roomid2`")
-    embed.add_field(name="Unlock", value="Logical expression. The keys the player has will be fed into the expression. If the expression is true, the room will be unlocked. If the room is not locked, this will do nothing. The expression should contain key IDs using operators and parentheses. Try `/architect operators` for more. ")
-    embed.add_field(name="Reveal", value="Logical expression. The keys the player has will be fed into the expression. If the expression is true, the room will be revealed. If the room is not hidden, this will do nothing. The expression should contain key IDs using operators and parentheses. Try `/architect operators` for more.")
-    embed.add_field(name="Hide", value="Logical expression. The keys the player has will be fed into the expression. If the expression is true, the room will be hidden. If the room is not locked, this will do nothing. The expression should contain key IDs using operators and parentheses. Try `/architect operators` for more.")
-    embed.add_field(name="Lock", value="Logical expression. The keys the player has will be fed into the expression. If the expression is true, the room will be locked. If the room is not locked, this will do nothing. The expression should contain key IDs using operators and parentheses. Try `/architect operators` for more.")
+    embed.add_field(name="Unlock", value="Logical expression. The keys the player has will be fed into the expression. If the expression is true, the room will be unlocked. If the room is not locked, this will do nothing. The expression should contain key IDs using operators. Try `/architect operators` for more. ")
+    embed.add_field(name="Reveal", value="Logical expression. The keys the player has will be fed into the expression. If the expression is true, the room will be revealed. If the room is not hidden, this will do nothing. The expression should contain key IDs using operators. Try `/architect operators` for more.")
+    embed.add_field(name="Hide", value="Logical expression. The keys the player has will be fed into the expression. If the expression is true, the room will be hidden. If the room is not locked, this will do nothing. The expression should contain key IDs using operators. Try `/architect operators` for more.")
+    embed.add_field(name="Lock", value="Logical expression. The keys the player has will be fed into the expression. If the expression is true, the room will be locked. If the room is not locked, this will do nothing. The expression should contain key IDs using operators. Try `/architect operators` for more.")
   elif topic == "keys":
   #for key information
     embed = discord.Embed(title="Keys Additional Info", description="Keys are ways to track how players are progressing through the adventure. The adventure does not change, nor do the rooms change. The keys the player has change, which may change which rooms are available to the player. Keys need not be literal keys which unlock rooms, but can be conecpts like the favor of an NPC. Keys can optionally be shown to the player, in their journal or inventory or both.")
@@ -80,18 +85,35 @@ async def architecthelp(ctx, topic=None):
     embed.add_field(name="Inventory Items", value="If a key has inventory set to true, the key will be given to the player if the player meets the requirements for the key. See /architect keys for more information. Players will be shown an inventory button only if/when they recieve a key with inventory set to true. The button will display the key's displayname, and the description if the key will be given in the inventory screen.")
     embed.add_field(name="Inventory Combinations", value="Some keys can be combined together, or deconstructed into other keys. See /architect keys for more information. Players are given the option to try and combine keys together if any keys in their inventory are combinable. If they are successful, they will recieve the new key. If they are unsuccessful, they will be given an incorrect combination message.")
     embed.add_field(name="Inventory Memory", value="Despite no longer being shown to the player, the player's data remembers which keys they have recieved in the past. Removing a key from a player's inventory won't remove it from their journal if that key has a journal entry.")
-  elif topic == "operators":
-  #for operators information
-    embed = discord.Embed(title="Operators", description="Operators are symbols used to detopicine if an expression is true or false. The operators are: `and`, `or`, `=`, `!=`, `<`, `>`, `>=`, `<=`\n you can also use parenthesis to group expressions together.\nWhen expressions are used, key IDs are used to detopicine if the expression is true or false.")
-    embed.add_field(name="and", value="The `and` operator will return true if both expressions are true. You can use `and` to bridge multiple expressions together. For example; `key1 > 1 and key2 > 1` will return true if both keys are greater than 1.")
-    embed.add_field(name="or", value="The `or` operator will return true if either expression is true. You can use `or` to bridge multiple expressions together. For example; `key1 > 1 or key2 > 1` will return true if either key is greater than 1.")
-    embed.add_field(name="=", value="The `=` operator will return true if the two expressions are equal. You can use `=` to bridge multiple expressions together. For example; `key1 = key2` will return true if key1 is equal to key2.")
-    embed.add_field(name="!=", value="The `!=` operator will return true if the two expressions are unequal. This works like the opposite of `=`. You can also use `!=` to bridge multiple expressions together. For example; `key1 != key3` will return true if key 1 is not equal to key 3.")
-    embed.add_field(name=">", value="The `>` operator will return true if the first expression is greater than the second expression. You can use `>` to bridge multiple expressions together. For example; `key1 > key2` will return true if key1 is greater than key2.")
-    embed.add_field(name="<", value="The `<` operator will return true if the first expression is less than the second expression. You can use `<` to bridge multiple expressions together. For example; `key1 < key2.")
-    embed.add_field(name=">=", value="The `>=` operator will return true if the first expression is greater than or equal to the second expression. You can use `>=` to bridge multiple expressions together. For example; `key1 >= key2` will return true if key1 is greater than or equal to key2.")
-    embed.add_field(name="<=", value="The `<=` operator will return true if the first expression is less than or equal to the second expression. You can use `<=` to bridge multiple expressions together. For example; `key1 <= key2` will return true if key1 is less than or equal to key2.")
-    embed.add_field(name="Grouping Expressions", value="Parenthesis work to enclose expression. Each enclosed expression will be evaluated separately, and all of them must evualuate true for the entire expression to be true. A few examples:\n`(key1 > 1 and key2 > 1) or key3 = 0`\nwill return true if key1 and key2 are greater than 1, or if just key3 is equal to 0.\n`(key1 > 1 or key2 > 1) or (key3 > 0 and key4 > 0`\nwill return true if either key1 or key2 is greater than 1, or if key3 and key4 are both greater than 0.", inline=False)
+  elif topic == "expressions":
+    conditions_examples = [
+  "- `key2 and key4 and key5`\n(true if player has at least one of each)",
+  "- `not key3`\n(true if the player has no key3)",
+  "- `key1 = (key1 + key3)`\n(true if amount of key1 is equal to the sum of the amounts of key1 and key3)",
+  "- `key1 = 3 and not (key2 > key3)`\n(will be true if key1 is 3 and also only if key2 is not greater than key3)",
+  "- `key1 > 10 and key1 < 20`\n(true if the amount of key1 is between 10 and 20, noninclusive)",
+  "- `((key1 - key2) + (key3 - key4)) > 5`\n(you'll need to use PEMDAS for this one)",
+  "- `key4 > 4, key5 = 2, key6 + 3 = 5`\n(the commas here split this into three expressions, all of which must be true)"
+]
+  #for expressions information
+    embed = discord.Embed(title="Expressions", description="Expressions are logical statements about keys. An expression being evaluated is known as returning. Expressions can either return as true or false. Expressions are exclusively used in these four Room fields: `lock`, `unlock`, `hide`, and `reveal`. The keys the player currently has are checked against the expression. If the expression returns true, then one of those four things happens to the room. You can separate expressions by commas or group them together with operators.")
+    embed.add_field(name="Comparative Operators", value="Operators are symbols used to decide if an expression is true or false. Some operators can be used to compare: `and`, `or`, `not`, `=`, `!=`, `>`, `<`, `>=`, `<=`\nYou can optionally separate expressions with commas, or group them together with different operators.", inline=False)
+    embed.add_field(name="Mathematic Operators", value="Operators can also be used to do math. These perform an arithmatic operation within the expression. The numbers of keys can be used together regardless of the type of key. You can add `+`, subtract `-`, multiply `*` and divide `/`\nAll math is completed before comparative operations.", inline=False)
+    embed.add_field(name="and", value="The `and` operator will return true if both expressions on both sides are true. You can use `and` to bridge multiple expressions together. For example; `key1 > 1 and key2 > 1` will return true if both keys are greater than 1.")
+    embed.add_field(name="or", value="The `or` operator will return true if either expression on either side is true. You can use `or` to bridge multiple expressions together. For example; `key1 > 1 or key2 > 1` will return true if either key is greater than 1.")
+    embed.add_field(name="not", value="The `not` operator will return true if the expression on the right is false. Not recommended unless you know your logic tables pretty well. For example, `key1 and not key3 = 2` will return true if player has and key1 AND key3 isn't 2.")
+    embed.add_field(name="=", value="The `=` operator will return true if the two expressions are equal. You can use `=` to bridge multiple expressions together. For example; `key1 = key2 + 1` will return true if key1 is equal to key2 plus one.")
+    embed.add_field(name="!=", value="The `!=` means NOT EQUAL. This will return true if the two expressions are unequal. This works like the opposite of `=`. You can also use `!=` to bridge multiple expressions together. For example; `key1 != key3` will return true if key 1 is not equal to key 3.")
+    embed.add_field(name=">", value="The `>` operator will return true if the left expression is greater than the right expression. You can use `>` to bridge multiple expressions together. For example; `key1 + 3 > key2` will return true if key1 plus three is greater than key2.")
+    embed.add_field(name="<", value="The `<` operator will return true if the first expression is less than the second expression. You can use `<` to bridge multiple expressions together. For example; `key1 < 3 + key2 will return true if key1 is less than key2 plus 3.")
+    embed.add_field(name=">=", value="The `>=` operator means greater than OR equal to. It will return true if the first expression is greater than or equal to the second expression. You can use `>=` to bridge multiple expressions together. For example; `key1 >= key2` will return true if key1 is greater than or equal to key2.")
+    embed.add_field(name="<=", value="The `<=` operator means less than OR equal to. It will return true if the first expression is less than or equal to the second expression. You can use `<=` to bridge multiple expressions together. For example; `key1 <= key2` will return true if key1 is less than or equal to key2.")
+    embed.add_field(name="Parenthesis", value="Besides using commas, you can group expressions together with parentheses to form large and complex expressions. For example, `(key1 + key2) = (key3 + key4)` will return true if key1 and key2 add up to the same amount as key3 and key4 added together. You can nest parentheses, but be cautioned against overly complex expressions.", inline=False)
+    embed.add_field(name="Missing Keys", value="If a player does not have one of the keys in the expression, that key will be treated as a zero. You can test for this with things like `key1 = 0 and not key2 = 0` which will return true if the player doesn't have key1 and has at least 1 key2. You can also add keys together that the player doesn't have, like `key1 + key2 > 3` would add 0 + 0 unless the player has those keys. If they have four of just one of those keys, it would return true.", inline=False)
+    embed.add_field(name="Lone Expressions", value="You can also input keys on their own as an expression. For example; `key2` by itself will return true if the player has any of key2. Using operators with solo keys might return unintuitive results. For example, if you use `key1 > key2 and key3` will return true if key1 is greater than key2 AND a player has at least one key3. It does not check if key1 is greater than both key2 and key3, for that you would need `key1 > key2, key1 > key3`", inline=False)
+    embed.add_field(name="Grouped Expressions", value="When entering expressions, you can enter multiple at once by separating them by commas. They will appear as bullet points in your room confirmation preview. You can think of commas like AND. For example; `key1 > 3, key2 > 3` is the same as `key1 > 3 and key2 > 3`", inline=False)
+    conditions_examples = "\n".join(conditions_examples)
+    embed.add_field(name="Examples", value=f"These are some examples of valid expressions you can input into your rooms. Substitute these keys names for your key IDs\n{conditions_examples}", inline=False)
   #incorrect topic used
   else:
     embed = discord.Embed(title="Unknown topic", description=f"The topic {topic} was not recognized. Try /architect and leave the options blank for a list of all the topics you can use with the architect command. If you are having issues, please contact Ironically-Tall.")
@@ -101,7 +123,7 @@ async def architecthelp(ctx, topic=None):
 
 @architecthelp.autocomplete("topic")
 async def autocomplete_help(interaction: discord.Interaction, current: str):
-  all_commands = ["Adventures", "Rooms", "Keys", "Journal", "Inventory", "Operators"]
+  all_commands = ["Adventures", "Rooms", "Keys", "Journal", "Inventory", "Expressions"]
   choices = []
   for cmd in all_commands:
     if current.lower() in cmd.lower():

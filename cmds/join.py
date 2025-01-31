@@ -22,18 +22,20 @@ async def join(ctx, adventure_name : str):
   if not player:
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
+  #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
-    return
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      return
+    else:
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
   #if the correct thread does not exist anymore
   if player["play_thread"] and not permissions.thread_exists(ctx):
-    confirm = await database.confirm_embed("It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your old adventure and start a new one?", action="join", channel=None, title="Thread Deleted!")
-    embed = confirm[0]
-    view = confirm[1]
-    await ctx.reply(embed=embed, view=view)
-    return
+    await ctx.reply("It looks like you were in an adventure in a thread that no longer exists. Your old adventure is being deleted and a new one is being created...", ephemeral=True)
   #if the player is already in an adventure
-  if player["play_thread"]:
+  elif player["play_thread"]:
     play_thread = player["play_thread"]
     guild = ctx.bot.get_guild(player["guild"])
     thread = guild.get_thread(play_thread)
@@ -82,7 +84,7 @@ async def join(ctx, adventure_name : str):
       author = "Error - Unknown"
     new_keys = room["keys"]
     #embed message for all rooms
-    embed, view = await database.embed_room(player_dict=player.__dict__, new_keys=new_keys, author=author, room_dict=room, title=room["displayname"], guild=ctx.guild)
+    embed, view, leftover_list = await database.embed_room(player_dict=player.__dict__, new_keys=new_keys, author=author, room_dict=room, title=room["displayname"], guild=ctx.guild)
 
     #sends a message in the thread to begin
     #mentions the user to add them to the thread
@@ -95,7 +97,7 @@ async def join(ctx, adventure_name : str):
 @join.autocomplete('adventure_name')
 async def autocomplete_join(interaction : discord.Interaction, current: str):
     adventures_query = database.get_adventures()
-    possible_adventures = [adv["name"] for adv in adventures_query if current.lower() in adv["name"].lower()]
+    possible_adventures = [adv["name"].title() for adv in adventures_query if current.lower() in adv["name"].lower()]
     return [app_commands.Choice(name=adv_name, value=adv_name) for adv_name in possible_adventures[:10]]
 
 async def setup(bot):

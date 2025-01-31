@@ -41,9 +41,15 @@ async def updateplayer(ctx, id : str,
     await ctx.reply("ERROR: You are not registered with the database. Please use /newplayer to begin.", ephemeral=True)
     return
 
+  #makes sure bot command is in registered channel
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
-    await ctx.reply("This command can only be used approved bot channels!", ephemeral=True)
-    return
+    guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
+    if guild_info:
+      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      return
+    else:
+      await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
+      return
 
   #warnings for any issues found
   warnings = []
@@ -64,7 +70,7 @@ async def updateplayer(ctx, id : str,
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
         if not database.get_key(item.strip()):
-          warnings.append(f"Key {item.strip()} does not exist. Did you enter the ID wrong or are you planning to create one later?")
+          warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
       except ValueError:
         await ctx.reply("Invalid key format. Please use this format:\n`somekey 1, otherkey 3`\n(This will set the keys to one of somekey and three of otherkey)", ephemeral=True)
         return
@@ -102,6 +108,7 @@ async def updateplayer(ctx, id : str,
       new_guild = int(guild)
     except Exception as e:
       await ctx.reply(f"Error: You must use a number for the guild ID.\n{e}", ephemeral=True)
+      print(e)
 
   #casts play_thread to int
   new_play_thread = None
@@ -110,6 +117,7 @@ async def updateplayer(ctx, id : str,
       new_play_thread = int(play_thread)
     except Exception as e:
       await ctx.reply(f"Error: You must use a number for the play thread.\n{e}", ephemeral=True)
+      print(e)
 
 
   new_dict = found_player.copy()

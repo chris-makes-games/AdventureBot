@@ -14,6 +14,8 @@ from adventure import Adventure  #adventure class
 from key import Key  #new key class, previously item
 from room import Room  #room class
 
+import ast #for safely parsing string literals
+
 #sets the parent directory of the bot
 BASE_DIR = pathlib.Path(__file__).parent
 #this is the command folder directory
@@ -21,6 +23,13 @@ CMDS_DIR = BASE_DIR / "cmds"
 
 #for .env file
 load_dotenv()
+
+#for safely parsing string literals
+allowed_nodes = {
+    ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.Load,
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod, ast.Pow, ast.Lt, ast.Gt,
+    ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.Compare, ast.BoolOp, ast.And, ast.Or, ast.Not
+}
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -31,6 +40,7 @@ class RoomButton(discord.ui.Button):
     self.disabled = disabled
     self.row = row
   async def callback(self, interaction: discord.Interaction):
+    await interaction.response.defer()
     await move_player(interaction, self.destination)
 
 #button class for inventory and journal buttons
@@ -85,7 +95,7 @@ class ConfirmButton(discord.ui.Button):
     #player wants to leave an adventure
     elif self.action == "leave":
       try:
-        update_player({"disc" : interaction.user.id, "play_thread" : None, "room" : None})
+        update_player({"disc" : interaction.user.id, "play_thread" : None, "room" : None, "history" : [], "alive" : True, "keys" : {}})
         guild = interaction.guild
         if not guild:
           await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
@@ -102,6 +112,7 @@ class ConfirmButton(discord.ui.Button):
           return
       except Exception as e:
         await interaction.followup.send(f"ERROR: Failed to leave adventure! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
     #new room is created
     elif self.action == "new_room" and self.dict:
       try:
@@ -118,6 +129,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Failed to create room! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #new key is created
     elif self.action == "new_key" and self.dict:
@@ -127,6 +139,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Failed to create key! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #key deleted
     elif self.action == "delete_key":
@@ -136,6 +149,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Key was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #room deleted
     elif self.action == "delete_room":
@@ -145,6 +159,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Room was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #adventure edited
     elif self.action == "edit_adventure":
@@ -154,15 +169,33 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Adventure was not edited! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #adventure deleted
     elif self.action == "delete_adventure":
       try:
         delete_adventure(self.id)
+        all_players = get_players_in_adventure(self.id)
+        all_keys = keys.find({"adventure" : self.id})
+        guild = interaction.guild
+        if all_players:
+          for player in all_players:
+            if guild:
+              thread = guild.get_thread(player["thread"])
+              if thread:
+                print(f"deleting game thread for player {player}...")
+                await thread.delete()
+            print(f"moving player {player} out of adventure {self.id}...")
+            update_player({"disc" : player, "play_thread" : None, "room" : None, "history" : [], "alive" : True, "keys" : {}})
+        if all_keys:
+          print("deleting all keys in adventure...")
+          for key in all_keys:
+            delete_key(key["id"])
         await interaction.followup.send(f"Adventure {self.id} deleted!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Adventure was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #player deleted
     elif self.action == "delete_player":
@@ -172,6 +205,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Player was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #edit room
     elif self.action == "edit_room":
@@ -181,6 +215,7 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Room update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #edit key
     elif self.action == "edit_key":
@@ -190,16 +225,22 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Key update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
-    #connect rooms together using edit
+    #connect one or more rooms together
     elif self.action == "connect" and self.dict:
+      print("connecting rooms...")
       try:
-        for room_id, room_data in self.dict.items():
-          rooms.update_one({"id": room_id}, {"$set": room_data})
-        await interaction.followup.send("Rooms successfully connected!", ephemeral=True)
+        rooms = connect_rooms(self.dict)
+        print("Rooms connected!")
+        if len(rooms) == 1:
+          await interaction.followup.send(f"Room {''.join(rooms)} connected to itself!", ephemeral=True)
+        else:
+          await interaction.followup.send(f"Rooms successfully connected:\n{', '.join(rooms)}", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Rooms connection failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
     #overwrite player data
     elif self.action == "overwrite_player" and self.dict:
@@ -209,28 +250,86 @@ class ConfirmButton(discord.ui.Button):
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Player update failed! There was an issue with the button press:\n{e}", ephemeral=True)
+        print(e)
         await interaction.delete_original_response()
+    #removes someone from gist exchange event
+    elif self.action == "remove_gifts":
+      try:
+        await remove_gift(self.id, interaction)
+        await interaction.followup.send("You have been successfully removed from the event!", ephemeral=True)
+      except Exception as e:
+        await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
+      await interaction.delete_original_response()
+    #removes someone from valentines event
+    elif self.action == "remove_valentines":
+      try:
+        await remove_valentine(self.id, interaction)
+        await interaction.followup.send("You have been successfully removed from the event!", ephemeral=True)
+      except Exception as e:
+        await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
+      await interaction.delete_original_response()
     #catch-all for any other action
     else:
-      await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction: {self.action}", ephemeral=True)
+      await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction:\n`{self.action}`", ephemeral=True)
       return
 
 #deactivated valentines function
 class CupidModal(discord.ui.Modal):
   def __init__(self, title="Valentines Event Sign-up"):
     super().__init__(title=title)
-    self.likes = discord.ui.TextInput(label="What short story would you like?", placeholder="remember that it should stay within 3k words", style=discord.TextStyle.long, required=True)
-    self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="these topics will not be included in the story you recieve.", style=discord.TextStyle.long, required=True)
-    self.willing = discord.ui.TextInput(label="What are you willing to write?", placeholder="please include any limits you may have.", style=discord.TextStyle.long, required=True)
+    self.likes = discord.ui.TextInput(label="What sizey things do you enjoy?", placeholder="Please include a brief description of scenarios, genders, and sizes", style=discord.TextStyle.long, required=True)
+    self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="These topics will not be included in the gift you recieve. Everything else is fair game", style=discord.TextStyle.long, required=True)
+    self.willing = discord.ui.TextInput(label="What topics are you comfortable working with?", placeholder="Please include any limits you may have in making your valentine.", style=discord.TextStyle.long, required=True)
     self.add_item(self.likes)
     self.add_item(self.limits)
     self.add_item(self.willing)
   async def on_submit(self, interaction: discord.Interaction):
     await interaction.response.defer()
     dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.willing.value}
+    edit_mode = False
+    if cupid.find_one({"disc" : interaction.user.id}):
+      edit_mode = True
     new_cupid(dict)
-    await give_role(interaction, "Valentine")
-    await interaction.followup.send(f"{interaction.user.mention} Your have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine and begin writing.", ephemeral=True)
+    if edit_mode:
+      await interaction.followup.send(f"{interaction.user.mention} Your preferences have been updated!", ephemeral=True)
+    else:
+      await give_role(interaction, "Valentine")
+      await interaction.followup.send(f"{interaction.user.mention} You have signed up for the Valentines Event! Please wait until FEB 14th to recieve your secret valentine. If you have questions, please DM Ironically-Tall. You may change your info by typing `/valentine` again. Thank you for participating!!", ephemeral=True)
+    await interaction.delete_original_response()
+
+#new gifts modal for winter event
+class GiftModal(discord.ui.Modal):
+  def __init__(self, title="Gift Exchange Event Sign-up"):
+    super().__init__(title=title)
+    self.likes = discord.ui.TextInput(label="What sizey things do you enjoy?", placeholder="Please include a brief description of scenarios, genders, and sizes", style=discord.TextStyle.long, required=True)
+    self.limits = discord.ui.TextInput(label="What do you NOT want to see in your gift?", placeholder="These topics will not be included in the gift you recieve. Everything else is fair game", style=discord.TextStyle.long, required=True)
+    self.willing = discord.ui.TextInput(label="What are you willing to create?", placeholder="Which topics/themes are you comfortable/uncomfortable working with? Ironically-tall will do his best", style=discord.TextStyle.long, required=True)
+    self.add_item(self.likes)
+    self.add_item(self.limits)
+    self.add_item(self.willing)
+  async def on_submit(self, interaction: discord.Interaction):
+    await interaction.response.defer()
+    dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.willing.value}
+    edit_mode = False
+    if gifts.find_one({"disc" : interaction.user.id}):
+      edit_mode = True
+    new_gift(dict)
+    if edit_mode:
+      await interaction.followup.send(f"{interaction.user.mention} Your preferences have been updated!", ephemeral=True)
+    else:
+      await give_role(interaction, "Giver of Gifts")
+      await interaction.followup.send(f"{interaction.user.mention} You have signed up for the gifts exchange event! Please wait until Dec 22nd to recieve your secret gifts recipient. If you have questions, please DM Ironically-Tall. You may change your info by typing `/gift` again. Thank you for participating!!", ephemeral=True)
+    await interaction.delete_original_response()
+
+#new gifts button
+class GiftButton(discord.ui.Button):
+  def __init__(self, label, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.primary)
+    self.disabled = disabled
+    self.row = row
+    self.emoji = "🎁"
+  async def callback(self, interaction: discord.Interaction):
+    await interaction.response.send_modal(GiftModal())
 
 #deactivated valentines function
 class CupidButton(discord.ui.Button):
@@ -272,37 +371,44 @@ adventures = db.adventures
 ids = db.ids
 botinfo = db.botinfo
 cupid = db.cupid
+gifts = db.gift
 
 #lists for generating a random ID
-all_numbers = ["0️", "1️", "2️", "3️", "4️", "5" ,"6️", "7️", "8️", "9️"]
+all_numbers = ["0", "1", "2", "3", "4", "5" ,"6", "7", "8", "9"]
 all_upper_letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 all_lower_letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
 
 #creates an ID that does not exist in the master ID document
 #optionally allows you to generate more IDs at once
 def generate_unique_id():
-  all_characters = all_numbers + all_upper_letters + all_lower_letters
-  id = []
-  found_id = None
   banned = ids.find_one({"id": "BANNED"})
-  finished_id = ""
-  while len(id) < 4:
-    r = rand.choice(all_characters)
-    id.append(r)
-    if len(id) < 4:
-      continue
-    if len(id) == 4:
-      finished_id = "".join(id)
-      found_id = ids.find_one({"id": finished_id})
-    if found_id:
-      print("wow, one in ~14 million chance of a duplicate id!")
-      print(id)
-      id = []
-    elif finished_id in banned["words"]:
-      print("wow, one in ~14 million chance of a swear word being generated as an ID")
-      print(id)
-      id = []
+  finished_id = random_six()
+  found_id = ids.find_one({"id": finished_id})
+  while found_id:
+    print("wow, one in ~14 million chance of a duplicate id!")
+    print(finished_id)
+    finished_id = random_six()
+    found_id = ids.find_one({"id": finished_id})
+  while finished_id in banned["words"]:
+    print("wow, one in ~14 million chance of a swear word being generated as an ID")
+    print(id)
+    finished_id = random_six()
   return finished_id
+
+def random_six():
+  r1 = rand.choice(all_numbers)
+  r2 = rand.choice(all_upper_letters)
+  r3 = rand.choice(all_lower_letters)
+  l1 = list(r1 + r2 + r3)
+  rand.shuffle(l1)
+  l1 = "".join(l1)
+  r1 = rand.choice(all_numbers)
+  r2 = rand.choice(all_upper_letters)
+  r3 = rand.choice(all_lower_letters)
+  l2 = list(r1 + r2 + r3)
+  rand.shuffle(l2)
+  l2 = "".join(l2)
+  return l1 + l2
 
 #registers the channel to restrict commands to that location
 def register_channel(channel_id, guild_id):
@@ -422,7 +528,7 @@ def process_player_keys(found_keys, current_keys, history, new_room):
     #succeeds if player has one or more keys and key is stackable/repeating
     if key["id"] in current_keys and key["stackable"]:
       #increments the keys if player can have more
-      new_amount = current_keys[key_id].value + key_amount
+      new_amount = current_keys[key_id] + key_amount
       new_keys.update({key_id : new_amount})
       new_found_keys.update({key_id : key_amount})
       if key["id"] not in history:
@@ -451,6 +557,11 @@ async def open_menu(interaction, playerdict, type):
 #moves player to a new room
 #sends an embed with the new room's description and buttons
 async def move_player(interaction, destination):
+  #removes button from original message
+  pp(interaction.data)
+  await interaction.edit_original_response(view=None)
+
+  #message attributes
   guild = interaction.guild
   player = get_player(interaction.user.id)
   new_room = get_room(destination)
@@ -471,6 +582,7 @@ async def move_player(interaction, destination):
     pp("ERROR - None Object during database.moveplayer()")
     pp("player: " + str(player))
     pp("room: " + str(new_room))
+    await interaction.followup.send(f"None Object during database.moveplayer(), room could not be created!\n\nplayer:\n{str(player)}\nroom:\n{str(new_room)}", ephemeral=True)
     return
   #if the room has keys, process keys
   if new_room["keys"]:
@@ -486,8 +598,9 @@ async def move_player(interaction, destination):
     print("destroying keys...")
     for key in destroy:
       if key in new_keys:
-        new_keys.remove(key)
-        print(f"key {key} destroyed")
+        destroy_amount = destroy[key]
+        new_keys[key] = new_keys[key] - destroy_amount
+        print(f"{destroy_amount} of {key} destroyed")
   pp(f"new keys: {new_keys}")
   pp(f"new history: {new_history}")
   #adds room to history if not in history
@@ -497,9 +610,29 @@ async def move_player(interaction, destination):
   update_player(dict)
   newroomname=new_room["displayname"]
   tuple = await embed_room(player, found_keys, newroomname, new_room, author, guild)
-  embed = tuple[0]
+  single_embed = tuple[0]
   view = tuple[1]
-  await interaction.response.edit_message(embed=embed, view=view)
+  leftovers = tuple[2]
+  #if the room description does not fit in the embed, it will have leftover
+  if leftovers:
+    length = 1
+    print(len(leftovers))
+    for leftover in leftovers:
+      if length == 1:
+        embed = discord.Embed(title=single_embed.title, description=leftover)
+      else:
+        embed = discord.Embed(title=f"{single_embed.title} continued", description=leftover)
+      #sends embed without the view/buttons if the embed isn't the last one
+      print(length)
+      if length < len(leftovers):
+        await interaction.followup.send(embed=embed)
+      else:
+        print("adding final embed")
+        await interaction.followup.send(embed=embed, view=view)
+      length += 1
+  #sends basic embed if no leftovers
+  else:
+    await interaction.followup.send(embed=single_embed, view=view)
   if errors:
     error_message = "ERRORS FOUND IN ROOM:\n"
     for error in errors:
@@ -560,25 +693,6 @@ async def embed_journal(interaction, player_dict):
   view = discord.ui.View()
   await interaction.response.edit_message(embed=embed, view=view)
 
-#room logic comparator
-async def comparator(string, keys_dict):
-  try:
-    #uses builtins to sanitize input
-    safe_dict = keys_dict.copy()
-    # Set the value of non-existent keys to 0
-    for key in set(re.findall(r'\b\w+\b', string)):
-      if key not in safe_dict:
-        safe_dict[key] = 0
-    safe_dict['__builtins__'] = None
-    string = string.replace("=", "==")
-    string = string.replace("not", "!=")
-    print(string)
-    result = eval(string, {"__builtins__": None}, safe_dict)
-    return result
-  except Exception as e:
-    print(f"Error: {e}")
-    return False
-
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view
 async def embed_room(player_dict, new_keys, title, room_dict, author, guild, color=0):
@@ -587,6 +701,9 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   keys = player_dict["keys"]
   descr = room_dict['description'].replace("\\n","\n")
   descr = descr.replace("[LIKETHIS]", "\\n")
+  leftover_list = []
+  if len(descr) > 4000:
+    descr, leftover_list = room_extender(descr)
   embed = discord.Embed(title=title, description=descr, color=color)
   embed.set_footer(text="This room was created by " + author)
   if "url" in room_dict:
@@ -594,6 +711,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   elif "URL" in room_dict:
     embed.set_image(url=room_dict["URL"])
   view = discord.ui.View()
+  adventure = get_adventure_by_room(room_dict["id"])
   if new_keys:
     for key_id in new_keys:
       found_key = get_key(key_id)
@@ -607,18 +725,17 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   if room_dict["end"]:
     if room_dict["deathnote"]:
       embed.add_field(name="You Died!", value=f"You were {room_dict['deathnote']}", inline=False)
-      adventure = get_adventure_by_room(room_dict["id"])
-      adventure_name = "Their adventure" if not adventure else adventure["name"]
+      adventure_name = "Their adventure" if not adventure else adventure["name"].title()
       guild_channel = botinfo.find_one({"guild": guild.id})
       channel = guild.get_channel(guild_channel["channel"])
       member = guild.get_member(player_dict["disc"])
       embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
       await channel.send(f"{member.mention} has died during {adventure_name}! They were ||{room_dict['deathnote']}||")
     embed.add_field(name="The End", value="Thanks for playing! You can /leave this adventure when you're ready", inline=False)
-    if room_dict["epilogue"]:
+    if adventure and adventure["epilogue"]:
       embed.add_field(name="Epilogue", value="While the adventure is concluded, you may freely explore the rooms to see what you might have missed", inline=False)
     update_player({"id" : player_dict["id"], "dead": True})
-    return (embed, view)
+    return (embed, view, leftover_list)
   #error for when a room has no exits but is also not an end
   if len(room_dict["exits"]) == 0 and not room_dict["end"]:
     embed.add_field(name="Exits", value="There are no exits from this room. This is the end of the line. Unless this room is broken? You might have to /leave this adventure to get out.", inline=False)
@@ -628,12 +745,17 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
   else:
     embed.add_field(name="Make a Choice", value="Click a button below to continue", inline=False)
   for room_id in room_dict["exits"]:
+    #puts a button on each of 4 available rows
+    current_row = 0
+    #prevents more than 4 buttons
+    if current_row > 3:
+      break
     found_room = get_room(room_id)
     #no room found in database
     if not found_room:
       print(f"ERROR - room {room_id} not found!")
       continue
-    #if room can only be seen once, do not show option
+    #if room can only be seen once, do not show option if player has been there
     if found_room["once"] and found_room["id"] in player_dict["history"]:
       continue
     #if player has items that hide the room, do not show option
@@ -642,32 +764,74 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     #if hidden, doesn't show unless they have reveal keys
     if found_room["hidden"] and not valid_exit(keys, found_room["reveal"]):
       continue
-    #if player has items to lock room, show only alt text
+    #if player has items to lock room, show alt text on locked button
     if found_room["lock"] and valid_exit(keys, found_room["lock"]):
-      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
+      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True, row=current_row)
       view.add_item(button)
       continue
-    #if locked, shows alt text unless they have unlock keys
+    #if locked, unlocks is player has the keys
     if found_room["locked"]:
       if valid_exit(keys, found_room["unlock"]):
-        button = RoomButton(label=found_room["entrance"], destination=room_id)
+        button = RoomButton(label=found_room["entrance"], destination=room_id, row=current_row)
         view.add_item(button)
         continue
-      #if locked, shows only alt text
+      #if still locked, shows alt text on locked button
       else:
-        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True)
+        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True, row=current_row)
         view.add_item(button)
         continue
-    #regular room entrance if not locked or hidden
-    button = RoomButton(label=found_room["entrance"], destination=room_id)
+    #regular room entrance if not locked or hidden or anything else
+    button = RoomButton(label=found_room["entrance"], destination=room_id, row=current_row)
     view.add_item(button)
-  return (embed, view)
+  return (embed, view, leftover_list)
 
-#returns true if the keys fit into the lock
-def valid_exit(keys, lock):
-  key_counter = Counter(keys)
-  lock_counter = Counter(lock)
-  return all(key_counter[element] >= count for element, count in lock_counter.items())
+#if room description is too long, split it into smaller pieces
+def room_extender(long_string):
+  new_long_string = long_string[:4000]
+  leftovers = []
+  paragraph_number = 0
+  while len(long_string) > 0:
+    if len(long_string) > 4000:
+      #Find the last space within the first 40 characters
+      split_index = long_string.rfind(" ", 0, 4000)
+      if split_index == -1:
+        split_index = 4000
+      leftovers.append(long_string[:split_index])
+      long_string = long_string[split_index:].lstrip() 
+    else:
+      leftovers.append(long_string)
+      break
+    paragraph_number += 1
+  return new_long_string, leftovers
+    
+#safely parse string literals
+def safe_parse(expression):
+  try:
+    node = ast.parse(expression, mode='eval')
+    return all(isinstance(n, tuple(allowed_nodes)) for n in ast.walk(node))
+  except Exception as e:
+    print(e)
+    return False
+
+#returns true if the keys in dict fit into the lock list of expressions
+def valid_exit(keys_dict, lock_list):
+  for expression in lock_list:
+    if not safe_parse(expression):
+      print(f"ERROR! Unsafe expression detected:\n{expression}")
+      return False
+    expr_with_vars = expression
+    print(f"Original expression: {expression}")
+    keys_in_expr = set(re.findall(r'\b\w+\b', expression))
+    for key in keys_in_expr:
+      #skips the key if it's a comparator or a number
+      if key == "or" or key == "and" or key.isdigit():
+        continue
+      #changes the key to its value, or zero if there is no key in dict
+      expr_with_vars = re.sub(rf'\b{key}\b', str(keys_dict.get(key, 0)), expr_with_vars)
+      print(f"Replaced expression for eval: {expr_with_vars}")
+    if not eval(expr_with_vars, {"__builtins__": {}}):
+      return False
+  return True
 
 #generic confirmation embed for yes/no
 #adds a ConfirmButton to itself at the bottom
@@ -683,18 +847,44 @@ async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id
     embed.set_image(url="https://i.kym-cdn.com/entries/icons/mobile/000/028/033/Screenshot_7.jpg")
   return (embed, view)
 
-#deactivated valentines function
-async def cupid_embed(user):
-  embed = discord.Embed(title="Valentines Event Sign-Up")
+#new gifts embed for winter event
+async def gifts_embed(user):
+  embed = discord.Embed(title="gifts Exchange Event Sign-Up")
+  view = discord.ui.View()
+  if gifts.find_one({"disc": user}):
+    embed.description = "You have already signed up for the gifts Exchange Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
+    gifts_button = GiftButton(label="I understand, I want to resubmit")
+    remove_button = ConfirmButton(label="Remove me from the event", action="remove_gifts", confirm=False, id=user)
+    cancel_button = ConfirmButton(label="Keep my already submitted info", confirm=True, action="cancel")
+    view.add_item(gifts_button)
+    view.add_item(cancel_button)
+    view.add_item(remove_button)
+  else:
+    embed.description = "Please only sign up for this event if you plan to make a gifts for someone else. It is a few hours of work over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before DEC 22nd, each time you submit the form it will re-write your preferences."
+    gifts_button = GiftButton(label="I understand, I want to sign up")
+    cancel_button = ConfirmButton(label="Never Mind", action="cancel", confirm=False)
+    view.add_item(gifts_button)
+    view.add_item(cancel_button)
+  return (embed, view)
+
+#new valentine embed for winter event
+async def valentine_embed(user):
+  embed = discord.Embed(title=":heart: Valentine's Event Sign-Up :heart:")
   view = discord.ui.View()
   if cupid.find_one({"disc": user}):
-    embed.description = "You have already signed up for the Valentines Event. If you submit this form again, it will overwrite your previous valentines sign-up."
+    embed.description = "You have already signed up for the Valentine's Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
     cupid_button = CupidButton(label="I understand, I want to resubmit")
+    remove_button = ConfirmButton(label="Remove me from the event", action="remove_valentines", confirm=False, id=user)
+    cancel_button = ConfirmButton(label="Keep my already submitted info", confirm=True, action="cancel")
     view.add_item(cupid_button)
+    view.add_item(cancel_button)
+    view.add_item(remove_button)
   else:
-    embed.description = "Please only sign up for this event if you plan to write something for someone else. It is a few thousand words over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know so a replacement can be written"
-    cupid_button = CupidButton(label="I understand, I want to sign up")
-    view.add_item(cupid_button)
+    embed.description = "Please only sign up for this event if you plan to make a valentine for someone else. It is a few hours of work over two weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before FEB 14th, each time you submit the form it will overwrite your preferences.\nPlease be explicit about what you want/don't want! Cruel? Gentle? Male? Female? Furry? Your valentine can only work with what you type!"
+    gifts_button = CupidButton(label="I understand, I want to sign up")
+    cancel_button = ConfirmButton(label="Never Mind", action="cancel", confirm=False)
+    view.add_item(gifts_button)
+    view.add_item(cancel_button)
   return (embed, view)
 
 #can be used to give any player a new discord role
@@ -705,13 +895,57 @@ async def give_role(interaction, role):
   print(f"id: {member.id}")
   print(f"member: {member}")
   new_role = discord.utils.get(guild.roles, name=role)
-  if not role:
+  if not new_role:
     print(f"ERROR - Role {role} not found")
     return
   await member.add_roles(new_role)
-  print(f"role {role.name} added to {member.name}")
+  print(f"role {new_role.name} added to {member.name}")
 
-#old valentines function
+#new gifts function
+def new_gift(dict):
+  if gifts.find_one({"disc": dict["disc"]}):
+    print(f"gifts found: {dict['disc']}")
+    gifts.update_one({"disc": dict["disc"]}, {"$set": dict})
+    print("gifts updated")
+  else:
+    gifts.insert_one(dict)
+    print("new gifts created")
+
+#remove gifts function
+async def remove_gift(id, interaction):
+  guild = interaction.guild
+  if gifts.find_one({"disc": id}):
+    print(f"gift found: {id}")
+    gifts.delete_one({"disc": id})
+    print("gift deleted")
+    try:
+      member = discord.utils.get(guild.members, id=id)
+      new_role = discord.utils.get(guild.roles, name="Giver of Gifts")
+      await member.remove_roles(new_role)
+      print("Gift role deleted!")
+    except Exception as e:
+      return
+  else:
+    raise Exception("ERROR: Gift giver not found in database!!")
+  
+#remove valentine function
+async def remove_valentine(id, interaction):
+  guild = interaction.guild
+  if cupid.find_one({"disc": id}):
+    print(f"valentine found: {id}")
+    cupid.delete_one({"disc": id})
+    print("valentine deleted")
+    try:
+      member = discord.utils.get(guild.members, id=id)
+      new_role = discord.utils.get(guild.roles, name="Valentine")
+      await member.remove_roles(new_role)
+      print("Valentine role deleted!")
+    except Exception as e:
+      return
+  else:
+    raise Exception("ERROR: Valentine not found in database!!")
+
+#valentines function
 def new_cupid(dict):
   if cupid.find_one({"disc": dict["disc"]}):
     print(f"cupid found: {dict['disc']}")
@@ -750,8 +984,7 @@ def get_key(id):
       return key
   return None
 
-#creates a blank room for testing purposes
-#useful for showing room structure to new database
+#creates a blank room for testing purposes, returns room object
 def create_blank_room(author_name, room_name="Blank Room"):
     room = Room(displayname=room_name, description="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.", author=author_name, entrance="This text is displayed when the player is in an adjescent room.", alt_entrance="This text is displayed when the room is locked")
     rooms.insert_one(room.__dict__)
@@ -820,8 +1053,19 @@ def update_adventure(dict):
 
 #deletes an adventure by name
 def delete_adventure(name):
-  print("deleting adventure:")
+  print(f"deleting adventure: {name}")
+  found_adventure = adventures.find_one({"name": name})
+  found_player = found_adventure["author"]
+  if found_adventure:
+    for room_id in found_adventure["rooms"]:
+      delete_room(room_id)
   adventures.delete_one({"name": name})
+  print("Adventure deleted!")
+  if found_player:
+    update_player({"disc": found_player, "owned_adventures" : []})
+    print("Player's owned adventures reset!")
+  else:
+    print("Error! Adventure owner not found!")
 
 #creates a room from a dict
 def create_new_room(dict):
@@ -834,6 +1078,16 @@ def create_new_room(dict):
   if adventure:
     adventure["rooms"].append(dict["id"])
     adventures.update_one({"name": dict["adventure"]}, {"$set": adventure})
+
+#connects rooms using a dict of room dicts
+#returns list of displaynames of rooms that it connected
+def connect_rooms(dict):
+  strings = []
+  for subdict in dict:
+    new_room = dict[subdict]
+    rooms.update_one({"id": new_room["id"]}, {"$set": new_room})
+    strings.append(new_room["displayname"])
+  return strings
     
 #updates room in databse
 #optionally deletes a field in the room
@@ -844,22 +1098,22 @@ def update_room(dict, delete=""):
   if "new_id" in dict:
     update_room_id(dict)
     print(f"updating room id {dict['id']} to {dict['new_id']}:")
-    pp(str(dict))
+    pp(dict)
     old_id = dict["id"]  
     new_id = dict["new_id"]
     dict["id"] = new_id
     del dict["new_id"]
-    pp(str(dict))
+    pp(dict)
     rooms.update_one({"id": old_id}, {"$set": dict})
     return
   elif delete == "":
     print("updating room:")
-    pp(str(dict))
+    pp(dict)
     rooms.update_one({"id": dict["id"]}, {"$set": dict})
     return
   else:
     print("updating room:")
-    pp(str(dict))
+    pp(dict)
     print("deleting field from room:" + delete)
     rooms.update_one({"id": dict["id"]}, {"$set": dict}, {"$unset": {delete: ""}})
 
@@ -907,7 +1161,7 @@ def delete_room(id):
         return
       adventures.update_one({"name": adventure["name"]}, {"$set": adventure})
     else:
-      print(f"ERROR - adventure {room['adventure']} not found during deletion")
+      print(f"ERROR - adventure {adventure} not found during deletion")
       return
   else:
     print(f"ERROR - Room {id} does not exist to be deleted")
@@ -928,7 +1182,7 @@ def update_key(dict, delete=""):
   if "new_displayname" in dict:
     ids.update_one({"id": dict["id"]}, {"$set": {"displayname": dict["new_displayname"]}})
   #updates new ids if ID is changed
-  if "new id" in dict:
+  if "new_id" in dict:
     update_key_id(dict["id"], dict["new_id"])
     old_id = dict["id"]
     dict["id"] = dict["new_id"]
@@ -950,7 +1204,7 @@ def update_key_id(id, new_id):
   id_check = ids.find_one({"id": new_id})
   if id_check:
     print("FATAL ERROR - ID already exists!!!")
-    return
+    raise Exception ("ERROR! Old key ID not found in database to update!")
   #updates ID in IDs collection
   ids.update_one({"id": id}, {"$set": {"id": new_id}})
   all_keys = keys.find()
@@ -958,21 +1212,21 @@ def update_key_id(id, new_id):
   #updates every subkey mention
   for key in all_keys:
     if id in key["subkeys"]:
-      old_id = key["subkeys"].pop(id)
+      old_amount = key["subkeys"].pop(id)
       #sets subkey dict to same value as old, changing the key only
-      key["subkeys"][new_id] = old_id.value
+      key["subkeys"][new_id] = old_amount
       keys.update_one({"id": key["id"]}, {"$set": key})
   #updates every room mention
   for room in all_rooms:
     need_update = False
     if room["keys"] and id in room["keys"]:
       need_update = True
-      old_id = room["keys"].pop(id)
-      room["keys"][new_id] = old_id.value
+      old_amount = room["keys"].pop(id)
+      room["keys"][new_id] = old_amount
     if room["destroy"] and id in room["destroy"]:
       need_update = True
-      old_id = room["destroy"].pop(id)
-      room["destroy"][new_id] = old_id.value
+      old_amount = room["destroy"].pop(id)
+      room["destroy"][new_id] = old_amount
     #only updates the rooms that have the key
     if need_update:
       rooms.update_one({"id": room["id"]}, {"$set": room})
@@ -1012,6 +1266,9 @@ def delete_extra_ids(id):
   changed = False
   if found_id["type"] == "room":
     for player in all_players:
+      #moves to next player if they're not in a room
+      if not player["room"]:
+        continue
       #resets player back to start room if they're inside the deleted room
       if player["room"].lower() == found_id["id"].lower():
         print(f"resetting player {player['displayname']} to start room, their room is being deleted!")
@@ -1035,18 +1292,27 @@ def delete_extra_ids(id):
       #removes the deleted key from any room's keys where it appears
       if id in room["keys"]:
         print(f"removing key {id} from room {room['displayname']}")
-        room["keys"].remove(id)
+        room["keys"].pop(id, None)
         rooms.update_one({"id": room["id"]}, {"$set": room})
     for key in all_keys:
       #removes mention of deleted key from any subkeys where it appears
       if id in key["subkeys"]:
         print(f"removing key {id} from subkey {key['displayname']}")
-        key["subkeys"].remove(id)
+        key["subkeys"].pop(id, None)
         keys.update_one({"id": key["id"]}, {"$set": key})
-  print(f"extra ids deleted for {found_id['displayname...']}")
+    #remove key from player inventories and histories
+    for player in all_players:
+      if id in player["history"]:
+        player["history"].remove(id)
+        changed = True
+      if id in player["keys"]:
+        player["keys"].pop(id, None)
+        changed = True
+      if changed:
+        users.update_one({"disc" : player["disc"]}, {"$set": player})
+        changed = False
+  print(f"extra ids deleted for {found_id['displayname']}!")
     
-  
-
 #deletes every specified field from every room
 #be careful!
 def delete_room_fields(field):

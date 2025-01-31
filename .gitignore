@@ -1,6 +1,7 @@
 
 requirements.txt
 Source.gv
+AdventureBot.code-workspace
 .env
 .breakpoints
 __pycache__/

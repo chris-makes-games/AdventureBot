@@ -2,22 +2,29 @@ TODO
   Keys
 - inventory/journal system
 - combine/deconstruct
+- /editkey needs to truncate fields
+- /newkey needs to truncate fields
 
   Rooms
 - ending/death handling
-- complex boolean testing with keys
+- remove editroom ability to add duplicate room connections
+- connectrooms needs to prevent duplicate room connects
+- /preview command to send embed
+- /editroom needs to truncate fields
+- /newroom needs to truncate fields
 
   Inventory/Journal
 - need buttons which appear as player gets them
 - recheck inventory management
 
   Misc
+- force alphanumeric IDs for rooms, keys
+- bug report command
+- coauthor command
 - Help Commands
-- ConfirmButton options
 - Mapper reconfig (deprecated)
 
   Error Handling
-- Only 5 exits
 - Character limit for exits
 - Can't have the same key twice in a room
 - Reject giving player more than one stackable key?
@@ -29,6 +36,5 @@ TODO
 - Update Formatter 
 - Dialogue Trees/quicktime events
 - player HP
-- Coauthor options
 
 ------------------------------
