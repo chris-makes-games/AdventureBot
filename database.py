@@ -252,9 +252,18 @@ class ConfirmButton(discord.ui.Button):
         await interaction.followup.send(f"ERROR: Player update failed! There was an issue with the button press:\n{e}", ephemeral=True)
         print(e)
         await interaction.delete_original_response()
+    #removes someone from gist exchange event
     elif self.action == "remove_gifts":
       try:
         await remove_gift(self.id, interaction)
+        await interaction.followup.send("You have been successfully removed from the event!", ephemeral=True)
+      except Exception as e:
+        await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
+      await interaction.delete_original_response()
+    #removes someone from valentines event
+    elif self.action == "remove_valentines":
+      try:
+        await remove_valentine(self.id, interaction)
         await interaction.followup.send("You have been successfully removed from the event!", ephemeral=True)
       except Exception as e:
         await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
@@ -268,18 +277,25 @@ class ConfirmButton(discord.ui.Button):
 class CupidModal(discord.ui.Modal):
   def __init__(self, title="Valentines Event Sign-up"):
     super().__init__(title=title)
-    self.likes = discord.ui.TextInput(label="What short story would you like?", placeholder="remember that it should stay within 3k words", style=discord.TextStyle.long, required=True)
-    self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="these topics will not be included in the story you recieve.", style=discord.TextStyle.long, required=True)
-    self.willing = discord.ui.TextInput(label="What are you willing to write?", placeholder="please include any limits you may have.", style=discord.TextStyle.long, required=True)
+    self.likes = discord.ui.TextInput(label="What sizey things do you enjoy?", placeholder="Please include a brief description of scenarios, genders, and sizes", style=discord.TextStyle.long, required=True)
+    self.limits = discord.ui.TextInput(label="What should your valentine stay away from?", placeholder="These topics will not be included in the gift you recieve. Everything else is fair game", style=discord.TextStyle.long, required=True)
+    self.willing = discord.ui.TextInput(label="What topics are you comfortable working with?", placeholder="Please include any limits you may have in making your valentine.", style=discord.TextStyle.long, required=True)
     self.add_item(self.likes)
     self.add_item(self.limits)
     self.add_item(self.willing)
   async def on_submit(self, interaction: discord.Interaction):
     await interaction.response.defer()
     dict = {"disc": interaction.user.id, "displayname" : interaction.user.display_name, "likes": self.likes.value, "limits": self.limits.value, "willing": self.willing.value}
+    edit_mode = False
+    if cupid.find_one({"disc" : interaction.user.id}):
+      edit_mode = True
     new_cupid(dict)
-    await give_role(interaction, "Valentine")
-    await interaction.followup.send(f"{interaction.user.mention} You have signed up for the valentines event! Please wait until Jan 24th to recieve your secret valentine and begin writing.", ephemeral=True)
+    if edit_mode:
+      await interaction.followup.send(f"{interaction.user.mention} Your preferences have been updated!", ephemeral=True)
+    else:
+      await give_role(interaction, "Valentine")
+      await interaction.followup.send(f"{interaction.user.mention} You have signed up for the Valentines Event! Please wait until FEB 14th to recieve your secret valentine. If you have questions, please DM Ironically-Tall. You may change your info by typing `/valentine` again. Thank you for participating!!", ephemeral=True)
+    await interaction.delete_original_response()
 
 #new gifts modal for winter event
 class GiftModal(discord.ui.Modal):
@@ -851,18 +867,24 @@ async def gifts_embed(user):
     view.add_item(cancel_button)
   return (embed, view)
 
-#old cupid embed
-async def cupid_embed(user):
-  embed = discord.Embed(title="Valentines Event Sign-Up")
+#new valentine embed for winter event
+async def valentine_embed(user):
+  embed = discord.Embed(title=":heart: Valentine's Event Sign-Up :heart:")
   view = discord.ui.View()
   if cupid.find_one({"disc": user}):
-    embed.description = "You have already signed up for the Valentines Event. If you submit this form again, it will overwrite your previous valentines sign-up."
+    embed.description = "You have already signed up for the Valentine's Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
     cupid_button = CupidButton(label="I understand, I want to resubmit")
+    remove_button = ConfirmButton(label="Remove me from the event", action="remove_valentines", confirm=False, id=user)
+    cancel_button = ConfirmButton(label="Keep my already submitted info", confirm=True, action="cancel")
     view.add_item(cupid_button)
+    view.add_item(cancel_button)
+    view.add_item(remove_button)
   else:
-    embed.description = "Please only sign up for this event if you plan to write something for someone else. It is a few thousand words over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know so a replacement can be written"
-    cupid_button = CupidButton(label="I understand, I want to sign up")
-    view.add_item(cupid_button)
+    embed.description = "Please only sign up for this event if you plan to make a valentine for someone else. It is a few hours of work over two weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before FEB 14th, each time you submit the form it will overwrite your preferences.\nPlease be explicit about what you want/don't want! Cruel? Gentle? Male? Female? Furry? Your valentine can only work with what you type!"
+    gifts_button = CupidButton(label="I understand, I want to sign up")
+    cancel_button = ConfirmButton(label="Never Mind", action="cancel", confirm=False)
+    view.add_item(gifts_button)
+    view.add_item(cancel_button)
   return (embed, view)
 
 #can be used to give any player a new discord role
@@ -905,8 +927,25 @@ async def remove_gift(id, interaction):
       return
   else:
     raise Exception("ERROR: Gift giver not found in database!!")
+  
+#remove valentine function
+async def remove_valentine(id, interaction):
+  guild = interaction.guild
+  if cupid.find_one({"disc": id}):
+    print(f"valentine found: {id}")
+    cupid.delete_one({"disc": id})
+    print("valentine deleted")
+    try:
+      member = discord.utils.get(guild.members, id=id)
+      new_role = discord.utils.get(guild.roles, name="Valentine")
+      await member.remove_roles(new_role)
+      print("Valentine role deleted!")
+    except Exception as e:
+      return
+  else:
+    raise Exception("ERROR: Valentine not found in database!!")
 
-#old valentines function
+#valentines function
 def new_cupid(dict):
   if cupid.find_one({"disc": dict["disc"]}):
     print(f"cupid found: {dict['disc']}")
