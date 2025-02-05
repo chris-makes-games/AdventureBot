@@ -7,7 +7,7 @@ from discord.ext import commands  #commands for bot
 import database  #mongodb database
 
 #token for use with discord API
-test = False #SWAP BETWEEN TEST AND LIVE
+test = True #SWAP BETWEEN TEST AND LIVE
 my_secret = os.environ['TEST_TOKEN'] if test else os.environ['TOKEN']
 
 #intents rescricts scope of discord bot
@@ -59,7 +59,7 @@ async def on_message(message):
 
 #runs the bot and throws generic errors
 try:
-  print("running")
+  print("running - codespace tests")
   database.ping()
   bot.run(my_secret)
 except Exception as e:

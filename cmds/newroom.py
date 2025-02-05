@@ -1,4 +1,5 @@
 import re
+import yaml
 
 import discord
 from discord import app_commands
@@ -84,6 +85,10 @@ async def newroom(ctx,
   #for errors in any attribute that cannot be sent to room
   errors = []
 
+  #YAML config file for character limits
+  with open("config.yaml", "r") as file:
+    config = yaml.safe_load(file)
+    char_limits = config["EmbedLimits"]
   #check for None assignment attempts in mandatory fields
   if id:
     if id.lower() == "none" or id.strip() == "":
@@ -92,6 +97,8 @@ async def newroom(ctx,
     elif len(id) < 6:
       id = database.generate_unique_id()
       errors.append(f"Your ID must be at least six characters! Random ID generated instead: {id}")
+    elif len(id) > 20:
+      id = id[20:]
   if entrance:
     if entrance.lower() == "none" or entrance.strip() == "":
       errors.append(f"Room entrance cannot be blank! Room entrance set to generic default.")
