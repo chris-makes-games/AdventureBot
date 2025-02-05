@@ -89,7 +89,6 @@ async def newroom(ctx,
   with open("config.yaml", "r") as file:
     config = yaml.safe_load(file)
     char_limits = config["EmbedLimits"]
-
   #check for None assignment attempts in mandatory fields
   if id:
     if id.lower() == "none" or id.strip() == "":
