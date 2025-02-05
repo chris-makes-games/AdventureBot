@@ -59,7 +59,7 @@ async def on_message(message):
 
 #runs the bot and throws generic errors
 try:
-  print("running")
+  print("running - codespace tests")
   database.ping()
   bot.run(my_secret)
 except Exception as e:
