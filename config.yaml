@@ -1,7 +1,7 @@
 EmbedLimits:
-  IDMIN: 6
-  IDMAX: 20
-  Displayname: 100
-  key_desc: 1000
-  room_desc: 2000
-  Entrance: 50
+  id_min: 6
+  id_max: 20
+  displayname: 100
+  description: 2000
+  entrance: 50
+  condition: 100
