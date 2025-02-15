@@ -7,7 +7,7 @@ from discord.ext import commands  #commands for bot
 import database  #mongodb database
 
 #token for use with discord API
-test = True #SWAP BETWEEN TEST AND LIVE
+test = False #SWAP BETWEEN TEST AND LIVE
 my_secret = os.environ['TEST_TOKEN'] if test else os.environ['TOKEN']
 
 #intents rescricts scope of discord bot
