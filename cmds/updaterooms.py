@@ -4,7 +4,6 @@ import database
 import perms_ctx as permissions
 from room import Room
 
-
 #pulls all rooms and updates them according to class attributes
 #can really mess things up!
 @commands.hybrid_command(description="Updates all rooms in the database according to the room class")

@@ -1,12 +1,7 @@
-import formatter
-
-import discord
 from discord.ext import commands
 
 import database
 import perms_ctx as permissions
-from player import Player
-
 
 #Leaves current adventure
 @commands.hybrid_command(name= "leave", description= "Leave your current adventure")
