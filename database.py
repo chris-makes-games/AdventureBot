@@ -772,6 +772,8 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     #if locked, unlocks is player has the keys
     if found_room["locked"]:
       if valid_exit(keys, found_room["unlock"]):
+        print("keys:")
+        pp(keys)
         button = RoomButton(label=found_room["entrance"], destination=room_id, row=current_row)
         view.add_item(button)
         continue
@@ -815,6 +817,9 @@ def safe_parse(expression):
 
 #returns true if the keys in dict fit into the lock list of expressions
 def valid_exit(keys_dict, lock_list):
+  #returns false if the room has no way to unlock
+  if not lock_list:
+    return False
   for expression in lock_list:
     if not safe_parse(expression):
       print(f"ERROR! Unsafe expression detected:\n{expression}")
