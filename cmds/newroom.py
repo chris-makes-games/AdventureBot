@@ -1,10 +1,10 @@
 import re
-import yaml
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
+import truncate
 import database
 import perms_interactions as permissions
 from room import Room
@@ -34,9 +34,10 @@ unlock= "Room will unlock if locked, if player possesses these keys. Can use mat
 hide= "Room will become hidden if player posesses these keys. Can use math expression",  
 reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression")
 async def newroom(ctx,
+                  
     #giant block of arguments!
     adventure,
-    id : str | None = None,
+    id : str | str = "",
     displayname : str= "Default Room Name",
     description : str="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.",
     entrance : str="Go into the new room",
@@ -84,28 +85,15 @@ async def newroom(ctx,
 
   #for errors in any attribute that cannot be sent to room
   errors = []
-
-  #YAML config file for character limits
-  with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-    char_limits = config["EmbedLimits"]
-    id_min = char_limits["id_min"]
-    id_max = char_limits["id_max"]
-    desc_max = char_limits["description"]
-    display_max = char_limits["display"]
-    entrance_max = char_limits["entrance"]
-    condition_max = char_limits["condition"]
   
   #check for None assignment attempts in mandatory fields
   if id:
+    id, warning = truncate.id(id)
+    if warning:
+      warnings.append(warning)
     if id.lower() == "none" or id.strip() == "":
       id = database.generate_unique_id()
       errors.append(f"You cannot have a blank room ID! Room must have an ID. Random ID generated instead: `{id}`")
-    elif len(id) < 6:
-      id = database.generate_unique_id()
-      errors.append(f"Your ID must be at least six characters! Random ID generated instead: {id}")
-    elif len(id) > 20:
-      id = id[20:]
   if entrance:
     if entrance.lower() == "none" or entrance.strip() == "":
       errors.append(f"Room entrance cannot be blank! Room entrance set to generic default.")
@@ -126,7 +114,7 @@ async def newroom(ctx,
   #checks if user input valid unique ID
   if id:
     new_id = id
-    found_id = database.get_id(id)
+    found_id = database.get_id(new_id)
     if found_id:
       new_id = database.generate_unique_id()
       warnings.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. A random ID was generated instead: `{new_id}`")
