@@ -37,7 +37,7 @@ def adventure(adventure):
     warning = None
     string, warn = truncator(adventure, adventure_max)
     if warn:
-        warning = f"Your adventure name was too long! {adventure_max} characters max. The description was reduced to only the first {adventure_max} characters."
+        warning = f"Your adventure name was too long! {adventure_max} characters max. The name was reduced to only the first {adventure_max} characters."
     return string, warning
 
 def description(desc):
@@ -51,14 +51,14 @@ def display(display):
     warning = None
     string, warn = truncator(display, display_max)
     if warn:
-        warning = f"Your displayname was too long! {display_max} characters max. The description was reduced to only the first {display_max} characters."
+        warning = f"Your displayname was too long! {display_max} characters max. The display name was reduced to only the first {display_max} characters."
     return string, warning
 
 def entrance(entrance):
     warning = None
     string, warn = truncator(entrance, entrance_max)
     if warn:
-        warning = f"Your entrance was too long! {entrance_max} characters max. The description was reduced to only the first {entrance_max} characters."
+        warning = f"Your entrance was too long! {entrance_max} characters max. The entrance text was reduced to only the first {entrance_max} characters."
     return string, warning
     
 

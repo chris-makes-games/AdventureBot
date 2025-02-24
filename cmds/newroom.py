@@ -381,7 +381,7 @@ async def newroom(ctx,
   #bool is true if every value in the given dict is None
   empty_dict = all(all_values)
   if empty_dict:
-    embed_text = "The room information you submitted was invalid. Review the errors below. If you need help, try `/help editroom`. If something is wrong, contact Ironically-Tall."
+    embed_text = "The room information you submitted was invalid. Review the errors below. If you need help, try `/help newroom`. If something is wrong, contact Ironically-Tall."
   else:
     embed_text = "Review the new room and select a button below"
   if errors:
@@ -430,7 +430,7 @@ async def newroom(ctx,
   if warnings:
     embed.add_field(name=warn_title, value=f"- {warnings}", inline=False)
   if errors:
-    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newroom`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newroom`\nTip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data, and it will remember what you typed!", inline=False)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
   view = discord.ui.View()
   if not empty_dict:
