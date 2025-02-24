@@ -1,7 +1,0 @@
-EmbedLimits:
-  id_min: 6
-  id_max: 20
-  display: 100
-  description: 2000
-  entrance: 50
-  condition: 100

@@ -85,8 +85,43 @@ async def newroom(ctx,
 
   #for errors in any attribute that cannot be sent to room
   errors = []
+
+  #entrance validation
+  if entrance:
+    entrance, warning = truncate.entrance(entrance)
+    if warning:
+      warnings.append(warning)
+    if entrance.lower() == "none" or entrance.strip() == "":
+      errors.append(f"Room entrance cannot be blank! Room entrance set to generic default.")
+      entrance = "Go into the new room"
   
-  #check for None assignment attempts in mandatory fields
+  #alt entrance validation
+  if alt_entrance:
+    alt_entrance, warning = truncate.entrance(alt_entrance)
+    if warning:
+      warnings.append(warning)
+    if alt_entrance.lower() == "none" or alt_entrance.strip() == "":
+      errors.append(f"Alt entrance cannot be blank, all rooms must have one! Room alt entrance set to generic default.")
+      alt_entrance = "This path is blocked"
+  
+  #description validation, does not need truncate
+  if description:
+    if description.lower() == "none" or description.strip() == "":
+      errors.append(f"Description cannot be blank! Room description set to default generic.")
+      description = "You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue."
+    if len(description) > 200:
+      warnings.append("Discord has strict character limits for this embed. Your room description has been preserved, only the beginning is displayed.")
+  
+  #displayname validation
+  if displayname:
+    displayname, warning = truncate.display(displayname)
+    if warning:
+      warnings.append(warning)
+    if displayname.lower() == "none" or displayname.strip() == "":
+      errors.append(f"Display name cannot be blank! Room display name set to default generic.")
+      displayname = "Default Room Name"
+
+  #checks if user input valid unique ID
   if id:
     id, warning = truncate.id(id)
     if warning:
@@ -94,25 +129,6 @@ async def newroom(ctx,
     if id.lower() == "none" or id.strip() == "":
       id = database.generate_unique_id()
       errors.append(f"You cannot have a blank room ID! Room must have an ID. Random ID generated instead: `{id}`")
-  if entrance:
-    if entrance.lower() == "none" or entrance.strip() == "":
-      errors.append(f"Room entrance cannot be blank! Room entrance set to generic default.")
-      entrance = "Go into the new room"
-  if alt_entrance:
-    if alt_entrance.lower() == "none" or alt_entrance.strip() == "":
-      errors.append(f"Alt entrance cannot be blank, all rooms must have one! Room alt entrance set to generic default.")
-      alt_entrance = "This path is blocked"
-  if description:
-    if description.lower() == "none" or description.strip() == "":
-      errors.append(f"Description cannot be blank! Room description set to default generic.")
-      description = "You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue."
-  if displayname:
-    if displayname.lower() == "none" or displayname.strip() == "":
-      errors.append(f"Display name cannot be blank! Room display name set to default generic.")
-      displayname = "Default Room Name"
-
-  #checks if user input valid unique ID
-  if id:
     new_id = id
     found_id = database.get_id(new_id)
     if found_id:
@@ -128,14 +144,7 @@ async def newroom(ctx,
     #if no ID, generates a random one
     new_id = database.generate_unique_id()
     warnings.append(f"Random ID generated for room: `{new_id}`")
-
-  if description:
-    if len(description) > 6000:
-      errors.append("The description of your room cannot exceed 6000 characters! That's only around 1,200 words.")
-    elif len(description) > 1024:
-      description_string = description[:1000]
-      description_string += "(...)"
-
+    
   #parses exits into usable list and validates the ID
   #ensures a room can have only four exits
   new_exits = []
@@ -158,12 +167,15 @@ async def newroom(ctx,
   new_keys = {}
   if keys:
     pairs = keys.split(',')
+    if len(pairs) > 5:
+      pairs = pairs[:5]
+      errors.append("Too many different keys to be given in this room! Five max, only the first five have been preserved.")
     for pair in pairs:
       try:
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
       except ValueError:
-        errors.append(f"Invalid key format: `{pair}`\n(must be in the format `key_id <number>`)")
+        errors.append(f"Invalid key format: `{pair}`\n(must be in the format `<key_id> <number>` like this: `key1 4`)")
         continue
       if not database.get_key(item.strip()):
           warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -178,6 +190,9 @@ async def newroom(ctx,
   new_destroy = {}
   if destroy:
     pairs = destroy.split(',')
+    if len(pairs) > 5:
+      pairs = pairs[:5]
+      errors.append("Too many different keys to be destroyed in this room! Five max, only the first five have been preserved.")
     for pair in pairs:
       try:
         item, quantity = pair.strip().split()
@@ -200,6 +215,9 @@ async def newroom(ctx,
     conditions = lock.split(',')
     for condition in conditions:
       new_condition = condition.strip()
+      if len(condition) > 10:
+        errors.append(f"room lock condition too long! 20 characters max! `{condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
@@ -225,6 +243,9 @@ async def newroom(ctx,
     conditions = unlock.split(',')
     for condition in conditions:
       new_condition = condition.strip()
+      if len(condition) > 10:
+        errors.append(f"room unlock condition too long! 20 characters max! `{condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
@@ -250,10 +271,13 @@ async def newroom(ctx,
     conditions = hide.split(',')
     for condition in conditions:
       new_condition = condition.strip()
+      if len(condition) > 10:
+        errors.append(f"room hide condition too long! 20 characters max! `{condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        errors.append(f"invalid hide expression syntax: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid hide condition syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_hide.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -275,10 +299,13 @@ async def newroom(ctx,
     conditions = reveal.split(',')
     for condition in conditions:
       new_condition = condition.strip()
+      if len(condition) > 10:
+        errors.append(f"room reveal condition too long! 20 characters max! `{condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid reveal condition syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_reveal.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -365,7 +392,7 @@ async def newroom(ctx,
   embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: `{new_id}`\nAny room attributes not specified have been left at their default values.", description=embed_text)
   embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
   if description:
-    embed.add_field(name="Description", value=f"{description}", inline=False)
+    embed.add_field(name="Description", value=f"{description[:200]}", inline=False)
   if entrance:
     embed.add_field(name="Entrance", value=f"{entrance}", inline=False)
   if alt_entrance:
