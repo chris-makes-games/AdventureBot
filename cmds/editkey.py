@@ -1,10 +1,10 @@
 import re
-import yaml
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
+import truncate
 import database
 
 
@@ -63,44 +63,17 @@ async def editkey(ctx, id : str,
   #warnings for minor issues
   warnings = []
 
-  with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-    limits = config["EmbedLimits"]
-
   #error for no key found
   found_key = database.keys.find_one({"id": id})
   if not found_key:
-    await ctx.reply(f"Error: No key found with id **{id}**! Double check you've selected a valid key. If you need to make a new key, try /newkey", ephemeral=True)
+    await ctx.reply(f"Error: No key found with id **{id}**! Double check you've selected a valid key. If you need to make a new key, try `/newkey`", ephemeral=True)
     return
 
-  #check for None assignment attempts in mandatory fields
+  #ID validation
   if new_id:
     if new_id.lower() == "none" or new_id.strip() == "":
       errors.append(f"You cannot change the ID of a key to blank! Key must have an ID. Key ID will remain `{id}`")
       new_id = None
-    elif len(new_id) < limits["IDMIN"]:
-      errors.append(f"Your ID must be at least six characters! Key ID will remain {id}")
-      new_id = None
-    elif len(new_id) > limits["IDMAX"]:
-      errors.append(f"Your ID cannot exceed 20 characters! Key ID will remain {id}")
-      new_id = None
-  if displayname:
-    if displayname.lower() == "none" or displayname.strip() == "":
-      errors.append(f"Display name cannot be blank! Key will keep display name of {found_key['displayname']}")
-      displayname = None
-    elif len(displayname) > limits["displayname"]:
-      errors.append(f"Displayname cannot be more than 50 characters! Key will keep the display name of {found_key['displayname']}")
-      displayname = None
-  if description:
-    if description.lower() == "none" or description.strip() == "":
-      errors.append(f"Description cannot be blank! Key description remains unchanged.")
-      description = None
-    elif len(description) > limits["key_desc"]:
-      errors.append(f"Key descriptions cannot exceed {limits['key_desc']} characters! The description will not be changed.")
-      description = None
-
-  #checks if user input valid unique ID
-  if new_id:
     found_id = database.get_id(new_id)
     if found_id:
       errors.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. Please use a different ID. Key ID will remain `{id}`")
@@ -108,12 +81,58 @@ async def editkey(ctx, id : str,
     elif new_id and new_id.isdigit():
       errors.append(f"Key ID cannot be only numbers. Please choose an ID that is easily identifiable. Key ID will remain `{id}`")
       new_id = None
+    if new_id:
+      new_id, warning = truncate.id(id)
+      if warning:
+        warnings.append(warning)
+    
+  #displayname validation
+  if displayname:
+    if displayname.lower() == "none" or displayname.strip() == "":
+      errors.append(f"Display name cannot be blank! Key will keep display name of {found_key['displayname']}")
+      displayname = None
+    displayname, warning = truncate.display(displayname)
+    if warning:
+      warnings.append(warning)
+
+  #description validation
+  if description:
+    if description.lower() == "none" or description.strip() == "":
+      errors.append(f"Description cannot be blank! Key description remains unchanged.")
+      description = None
+    description, warning = truncate.description(description)
+    if warning:
+      warnings.append(warning)
+
+  #note validation
+  if note:
+    if note.lower() == "none" or note.strip() == "":
+      warnings.append(f"Note is being removed")
+      note = None
+    else:
+      note, warning = truncate.description(note)
+      if warning:
+        warnings.append(warning)
+
+  #alt_note validation
+  if alt_note:
+    if alt_note.lower() == "none" or alt_note.strip() == "":
+      warnings.append(f"alt note is being removed")
+      alt_note = None
+    else:
+      alt_note, warning = truncate.description(alt_note)
+      if warning:
+        warnings.append(warning)
 
   #parses subkeys into dict
+  #max five subkeys
   subkeys_string = ""
   new_subkeys = {}
   if subkeys:
     pairs = subkeys.split(',')
+    if len(pairs) > 5:
+      errors.append("Too many subkeys! You cannot have more then five. Only the first five have been preserved.")
+      pairs = pairs[:5]
     for pair in pairs:
       try:
         item, quantity = pair.strip().split()

@@ -9,7 +9,6 @@ adventure_max = 100
 desc_max = 2000
 display_max = 100
 entrance_max = 50
-condition_max = 20
 
 #used for all truncations except ID
 def truncator(string, max):

@@ -37,7 +37,7 @@ async def newroom(ctx,
                   
     #giant block of arguments!
     adventure,
-    id : str | str = "",
+    id : str | None = None,
     displayname : str= "Default Room Name",
     description : str="You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue.",
     entrance : str="Go into the new room",
@@ -66,7 +66,7 @@ async def newroom(ctx,
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
     guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
     if guild_info:
-      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      await ctx.reply(f"This command can only be used in approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
       return
     else:
       await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
@@ -213,10 +213,14 @@ async def newroom(ctx,
   new_lock = []
   if lock:
     conditions = lock.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many lock conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
-      if len(condition) > 10:
-        errors.append(f"room lock condition too long! 20 characters max! `{condition}`")
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Lock condition too long! 20 characters Max\n`{new_condition}`")
         continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
@@ -241,10 +245,14 @@ async def newroom(ctx,
   new_unlock = []
   if unlock:
     conditions = unlock.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many unlock conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
-      if len(condition) > 10:
-        errors.append(f"room unlock condition too long! 20 characters max! `{condition}`")
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Unlock condition too long! 20 characters Max\n`{new_condition}`")
         continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
@@ -269,10 +277,14 @@ async def newroom(ctx,
   new_hide = []
   if hide:
     conditions = hide.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many hide conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
-      if len(condition) > 10:
-        errors.append(f"room hide condition too long! 20 characters max! `{condition}`")
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Hide condition too long! 20 characters Max\n`{new_condition}`")
         continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
@@ -297,10 +309,14 @@ async def newroom(ctx,
   new_reveal = []
   if reveal:
     conditions = reveal.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many reveal conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
-      if len(condition) > 10:
-        errors.append(f"room reveal condition too long! 20 characters max! `{condition}`")
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Reveal condition too long! 20 characters Max\n`{new_condition}`")
         continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
