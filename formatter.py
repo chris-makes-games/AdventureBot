@@ -44,68 +44,10 @@ def embed_message(disc, title, description, color):
   embed = discord.Embed(title=title, description=description, color=color)
   return embed
 
-
 def blank_embed(disc, title, description, color):
   description = disc + ", " + description
   color = color_mapping.get(color, discord.Color.default())
   embed = discord.Embed(title=title, description=description, color=color)
-  return embed
-
-#used to send the player information about the room they are in
-def embed_room(all_keys, new_keys, title, room, color):
-  color = color_mapping.get(color, discord.Color.default())
-  embed = discord.Embed(title=title, description=room["description"], color=color)
-  view = discord.ui.View()
-  if new_keys:
-    for key in new_keys:
-      found_key = database.get_key(key)
-      description = found_key["description"] if found_key else "ERROR - key HAS NO NAME"
-      embed.add_field(name="You found an key:", value=description, inline=False)
-  if len(room["exits"]) == 0:
-    embed.add_field(name="Exits", value="There are no exits from this room. This is the end of the line. Unless this room is broken?", inline=False)
-  if len(room["exits"]) == 1:
-    embed.add_field(
-    name="Click the button below to continue...", value="", inline=False)
-  else:
-    embed.add_field(name="Choose a Path:", value="Make your choice by clicking a button below:", inline=False)
-  r = 1
-  for exit in room["exits"]:
-    if room["secrets"][r - 1] == "Open":
-      button = RoomButton(label=str(exit), destination=room['exit_destination'][r - 1], row = r)
-      view.add_item(button)
-    elif room["secrets"][r - 1] == "Secret":
-      if room["unlockers"][r - 1] in all_keys:
-        button = RoomButton(label=str(exit), destination=room['exit_destination'][r - 1], row = r)
-        view.add_item(button)
-    elif room["unlockers"][r - 1] in all_keys:
-      button = RoomButton(label=str(exit), destination=room['exit_destination'][r - 1], row = r)
-      view.add_item(button)
-    else:
-      button = RoomButton(label=room["secrets"][r - 1], destination=room['exit_destination'][r - 1], disabled=True, row = r)
-      view.add_item(button)
-    r += 1
-  return (embed, view)
-
-def inventory(keys):
-  if keys:
-    if len(keys) == 1:
-      description = "You have only one key:"
-    else:
-      description = "These are the keys you currently have. You can usually only take an key from a room once, and you cannot have duplicate keys. Try !combine <#> <#> to create a new key using two or more keys. You can also try !deconstruct <key> to break down an key into its components. You can also use !discard <#> to get rid of an key."
-    embed = discord.Embed(title="Inventory", description=description, color=discord.Color.blue())
-    n = 1
-    for key in keys:
-      new_key = database.get_key(key)
-      if new_key is None:
-        name = "ERROR"
-        description = "INVALID key NAME/DESCRIPTION"
-      else:
-        name = str(n) + " - " + new_key["displayname"]
-        description = new_key["description"]
-        n += 1
-      embed.add_field(name=name, value=description, inline=False)
-  else:
-    embed = discord.Embed(title="No keys", description="You have no keys in your inventory", color=discord.Color.red())
   return embed
 
 help_info = {

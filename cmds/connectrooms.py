@@ -96,9 +96,11 @@ async def connectrooms(ctx, room1: str, room2: str,
   print("big dict:")
   for subdict in big_dict:
     database.pp(big_dict[subdict])
-  confirm_button = database.ConfirmButton(label="Connect Rooms", confirm=True, action="connect", dict=big_dict)
-  view = discord.ui.View()
-  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=found_room_1["id"])
+  #persistent view with ID group
+  view = database.PersistentView()
+  id_group = database.random_persistent_id(32)
+  confirm_button = database.ConfirmButton(random_id=id_group, label="Connect Rooms", confirm=True, action="connect", dict=big_dict)
+  cancel_button = database.ConfirmButton(random_id=id_group, label="Cancel", confirm=False, action="cancel", id=found_room_1["id"])
   view.add_item(confirm_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

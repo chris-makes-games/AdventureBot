@@ -466,7 +466,7 @@ def random_persistent_id(length):
 
 #function for persistentview unique IDs
 def new_persistentID(length, message_id):
-    new_ID = random_persistent_id(20)
+    new_ID = random_persistent_id(32)
     buttons.insert_one({"id" : new_ID,
                         "group" : message_id
                           })
@@ -721,7 +721,7 @@ async def embed_inventory(interaction, player_dict):
       else:
         embed.add_field(name=f"{found_key['name']}", value=f"{found_key['discription']}" , inline=False)
       counted_keys.append(found_key)
-  view = discord.ui.View()
+  view = PersistentView()
   await interaction.response.edit_message(embed=embed, view=view)
 
 #returns a journal of the player with view
@@ -752,14 +752,14 @@ async def embed_journal(interaction, player_dict):
       else:
         embed.add_field(name=f"Entry {count}", value=f"{found_key['note']}" , inline=False)
     count += 1
-  view = discord.ui.View()
+  view = PersistentView()
   await interaction.response.edit_message(embed=embed, view=view)
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view, with a leftover list
 #leftover list is list of strings over the character limit for embeds
 async def embed_room(player_dict, new_keys, title, room_dict, author, guild, color=0):
-  persistent_id = random_persistent_id(20)
+  persistent_id = random_persistent_id(32)
   if color == 0:
     color = discord.Color.blue()
   keys = player_dict["keys"]
@@ -907,9 +907,10 @@ def valid_exit(keys_dict, lock_list):
 #action is the action that the button will do
 async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id=None, dict=None):
   embed = discord.Embed(title=title, description=confirm_text, color=discord.Color.orange())
-  confirm_button = ConfirmButton(label="Yes", confirm=True, action=action, channel=channel, id=id, dict=dict)
-  deny_button = ConfirmButton(label="No", confirm=False, action="cancel", channel=channel)
-  view = discord.ui.View()
+  id_group = random_persistent_id(32)
+  confirm_button = ConfirmButton(random_id=id_group, label="Yes", confirm=True, action=action, channel=channel, id=id, dict=dict)
+  deny_button = ConfirmButton(random_id=id_group, label="No", confirm=False, action="cancel", channel=channel)
+  view = PersistentView()
   view.add_item(confirm_button)
   view.add_item(deny_button)
   if action == "leave":
@@ -919,19 +920,20 @@ async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id
 #new gifts embed for winter event
 async def gifts_embed(user):
   embed = discord.Embed(title="gifts Exchange Event Sign-Up")
-  view = discord.ui.View()
+  id_group = random_persistent_id(32)
+  view = PersistentView()
   if gifts.find_one({"disc": user}):
     embed.description = "You have already signed up for the gifts Exchange Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
-    gifts_button = GiftButton(label="I understand, I want to resubmit")
-    remove_button = ConfirmButton(label="Remove me from the event", action="remove_gifts", confirm=False, id=user)
-    cancel_button = ConfirmButton(label="Keep my already submitted info", confirm=True, action="cancel")
+    gifts_button = GiftButton(random_id=id_group, label="I understand, I want to resubmit")
+    remove_button = ConfirmButton(random_id=id_group, label="Remove me from the event", action="remove_gifts", confirm=False, id=user)
+    cancel_button = ConfirmButton(random_id=id_group, label="Keep my already submitted info", confirm=True, action="cancel")
     view.add_item(gifts_button)
     view.add_item(cancel_button)
     view.add_item(remove_button)
   else:
     embed.description = "Please only sign up for this event if you plan to make a gifts for someone else. It is a few hours of work over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before DEC 22nd, each time you submit the form it will re-write your preferences."
-    gifts_button = GiftButton(label="I understand, I want to sign up")
-    cancel_button = ConfirmButton(label="Never Mind", action="cancel", confirm=False)
+    gifts_button = GiftButton(random_id=id_group, label="I understand, I want to sign up")
+    cancel_button = ConfirmButton(random_id=id_group, label="Never Mind", action="cancel", confirm=False)
     view.add_item(gifts_button)
     view.add_item(cancel_button)
   return (embed, view)
@@ -939,19 +941,20 @@ async def gifts_embed(user):
 #new valentine embed for winter event
 async def valentine_embed(user):
   embed = discord.Embed(title=":heart: Valentine's Event Sign-Up :heart:")
-  view = discord.ui.View()
+  id_group = random_persistent_id(32)
+  view = PersistentView()
   if cupid.find_one({"disc": user}):
     embed.description = "You have already signed up for the Valentine's Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
-    cupid_button = CupidButton(label="I understand, I want to resubmit")
-    remove_button = ConfirmButton(label="Remove me from the event", action="remove_valentines", confirm=False, id=user)
-    cancel_button = ConfirmButton(label="Keep my already submitted info", confirm=True, action="cancel")
+    cupid_button = CupidButton(random_id=id_group, label="I understand, I want to resubmit")
+    remove_button = ConfirmButton(random_id=id_group, label="Remove me from the event", action="remove_valentines", confirm=False, id=user)
+    cancel_button = ConfirmButton(random_id=id_group, label="Keep my already submitted info", confirm=True, action="cancel")
     view.add_item(cupid_button)
     view.add_item(cancel_button)
     view.add_item(remove_button)
   else:
     embed.description = "Please only sign up for this event if you plan to make a valentine for someone else. It is a few hours of work over two weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before FEB 14th, each time you submit the form it will overwrite your preferences.\nPlease be explicit about what you want/don't want! Cruel? Gentle? Male? Female? Furry? Your valentine can only work with what you type!"
-    gifts_button = CupidButton(label="I understand, I want to sign up")
-    cancel_button = ConfirmButton(label="Never Mind", action="cancel", confirm=False)
+    gifts_button = CupidButton(random_id=id_group, label="I understand, I want to sign up")
+    cancel_button = ConfirmButton(random_id=id_group, label="Never Mind", action="cancel", confirm=False)
     view.add_item(gifts_button)
     view.add_item(cancel_button)
   return (embed, view)

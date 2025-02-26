@@ -245,10 +245,12 @@ author = ctx.author.id)
     embed.add_field(name=warn_title, value=f"- {warnings}")
   if errors:
     embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newkey`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
-  view = discord.ui.View()
+  #persistent view with ID group
+  view = database.PersistentView()
+  id_group = database.random_persistent_id(32)
   if not empty_dict:
-    edit_button = database.ConfirmButton(label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
-    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    edit_button = database.ConfirmButton(random_id=id_group, label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
+    cancel_button = database.ConfirmButton(random_id=id_group, label="Cancel", confirm=False, action="cancel", id=id)
     view.add_item(edit_button)
     view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

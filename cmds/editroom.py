@@ -485,10 +485,12 @@ async def editroom(ctx, id: str,
     embed.add_field(name="No changes", value="No changes were made. You need to select one of the options to edit the room. If you're unsure, try /help editroom")
     await ctx.reply(embed=embed, ephemeral=True)
     return
-  view = discord.ui.View()
+  #persistent view with ID group
+  view = database.PersistentView()
+  id_group = database.random_persistent_id(32)
   if not empty_dict:
-    edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
-    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    edit_button = database.ConfirmButton(random_id=id_group, label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
+    cancel_button = database.ConfirmButton(random_id=id_group, label="Cancel", confirm=False, action="cancel", id=id)
     view.add_item(edit_button)
     view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)
