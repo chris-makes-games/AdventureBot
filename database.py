@@ -31,22 +31,35 @@ allowed_nodes = {
     ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.Compare, ast.BoolOp, ast.And, ast.Or, ast.Not
 }
 
+#persistentview custom class
+
+class PersistentView(discord.ui.View):
+  def __init__(self):
+    super().__init__(timeout=None)
+    views.insert_one({"id": self.id})
+
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
 class RoomButton(discord.ui.Button):
-  def __init__(self, label, destination, disabled=False, row=0):
+  def __init__(self, label, destination, random_id, disabled=False, row=0):
     super().__init__(label=label, style=discord.ButtonStyle.primary)
     self.destination = destination
     self.disabled = disabled
     self.row = row
+    self.custom_id = new_persistentID(32, random_id)
+    self.group = random_id
   async def callback(self, interaction: discord.Interaction):
+    view = self.view
+    if view:
+      views.delete_one({"id": view.id})
+    buttons.delete_many({"group": self.group})
     await interaction.response.defer()
     await move_player(interaction, self.destination)
 
 #button class for inventory and journal buttons
 #button opens a journal or inventory and closes the current room
 class KeyButton(discord.ui.Button):
-  def __init__(self, button_type, playerdict, disabled=False, row=1,):
+  def __init__(self, button_type, playerdict, random_id, disabled=False, row=1,):
     if button_type == "inventory":
       label = "Inventory"
       emoji = "🎒"
@@ -62,14 +75,20 @@ class KeyButton(discord.ui.Button):
     self.disabled = disabled
     self.row = row
     self.playerdict = playerdict
+    self.group = random_id
+    self.custom_id = new_persistentID(32, random_id)
   async def callback(self, interaction: discord.Interaction):
+    view = self.view
+    if view:
+      views.delete_one({"id": view.id})
+    buttons.delete_many({"group": self.group})
     await open_menu(interaction, self.playerdict, self.button_type)
 
 #simple button class to confirm or cancel any action
 #can be placed on any embed that requires a confirmation
 #action is the name of the action to be taken
 class ConfirmButton(discord.ui.Button):
-  def __init__(self, label, confirm, action, channel="", id=None, disabled=False, row=0, dict=None):
+  def __init__(self, label, confirm, action, random_id, channel="", id=None, disabled=False, row=0, dict=None):
     super().__init__(label=label)
     self.id = id
     self.confirm = confirm
@@ -84,12 +103,18 @@ class ConfirmButton(discord.ui.Button):
     else:
       self.style = discord.ButtonStyle.danger
       self.emoji = "✖️"
+    self.group = random_id
+    self.custom_id = new_persistentID(32, random_id)
   #callback is for when the button is clicked
   async def callback(self, interaction: discord.Interaction):
     #must defer response or error will occur!
     await interaction.response.defer()
-    #if they hit the red x it does nothing
-    #embed that is asking the confirm is deleted
+    #removes persistent button ID
+    view = self.view
+    if view:
+      views.delete_one({"id": view.id})
+    buttons.delete_many({"group": self.group})
+    #nothing happens if they hit red X
     if self.action == "cancel":
       await interaction.delete_original_response()
     #player wants to leave an adventure
@@ -323,21 +348,33 @@ class GiftModal(discord.ui.Modal):
 
 #new gifts button
 class GiftButton(discord.ui.Button):
-  def __init__(self, label, disabled=False, row=0):
+  def __init__(self, label, random_id, disabled=False, row=0):
     super().__init__(label=label, style=discord.ButtonStyle.primary)
     self.disabled = disabled
     self.row = row
     self.emoji = "🎁"
+    self.group = random_id
+    self.custom_id = new_persistentID(32, random_id)
   async def callback(self, interaction: discord.Interaction):
+    view = self.view
+    if view:
+      views.delete_one({"id": view.id})
+    buttons.delete_many({"group": self.group})
     await interaction.response.send_modal(GiftModal())
 
 #deactivated valentines function
 class CupidButton(discord.ui.Button):
-  def __init__(self, label, disabled=False, row=0):
+  def __init__(self, label, random_id, disabled=False, row=0):
     super().__init__(label=label, style=discord.ButtonStyle.primary)
     self.disabled = disabled
     self.row = row
+    self.group = random_id
+    self.custom_id = new_persistentID(32, random_id)
   async def callback(self, interaction: discord.Interaction):
+    view = self.view
+    if view:
+      views.delete_one({"id": view.id})
+    buttons.delete_many({"group": self.group})
     await interaction.response.send_modal(CupidModal())
 
 #secrets
@@ -372,11 +409,14 @@ ids = db.ids
 botinfo = db.botinfo
 cupid = db.cupid
 gifts = db.gift
+buttons = db.buttons
+views = db.views
 
 #lists for generating a random ID
 all_numbers = ["0", "1", "2", "3", "4", "5" ,"6", "7", "8", "9"]
 all_upper_letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 all_lower_letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
+all_chars = all_numbers + all_lower_letters + all_upper_letters
 
 #creates an ID that does not exist in the master ID document
 #optionally allows you to generate more IDs at once
@@ -395,6 +435,7 @@ def generate_unique_id():
     finished_id = random_six()
   return finished_id
 
+#generates a string of six semi-random characters
 def random_six():
   r1 = rand.choice(all_numbers)
   r2 = rand.choice(all_upper_letters)
@@ -409,6 +450,27 @@ def random_six():
   rand.shuffle(l2)
   l2 = "".join(l2)
   return l1 + l2
+
+def random_persistent_id(length):
+  while True:
+    new_ID = []
+    for character in range(length):
+      character = rand.choice(all_chars)
+      new_ID.append(character)
+    found_button = buttons.find_one({"id": "".join(new_ID)})
+    found_group = buttons.find_one({"group": "".join(new_ID)})
+    if found_button or found_group:
+      continue
+    else:
+      return "".join(new_ID)
+
+#function for persistentview unique IDs
+def new_persistentID(length, message_id):
+    new_ID = random_persistent_id(20)
+    buttons.insert_one({"id" : new_ID,
+                        "group" : message_id
+                          })
+    return new_ID
 
 #registers the channel to restrict commands to that location
 def register_channel(channel_id, guild_id):
@@ -694,8 +756,10 @@ async def embed_journal(interaction, player_dict):
   await interaction.response.edit_message(embed=embed, view=view)
 
 #sends an embed with room information and buttons for player to traverse
-#returns a tuple of embed and view
+#returns a tuple of embed and view, with a leftover list
+#leftover list is list of strings over the character limit for embeds
 async def embed_room(player_dict, new_keys, title, room_dict, author, guild, color=0):
+  persistent_id = random_persistent_id(20)
   if color == 0:
     color = discord.Color.blue()
   keys = player_dict["keys"]
@@ -710,7 +774,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     embed.set_image(url=room_dict["url"])
   elif "URL" in room_dict:
     embed.set_image(url=room_dict["URL"])
-  view = discord.ui.View()
+  view = PersistentView()
   adventure = get_adventure_by_room(room_dict["id"])
   if new_keys:
     for key_id in new_keys:
@@ -766,7 +830,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
       continue
     #if player has items to lock room, show alt text on locked button
     if found_room["lock"] and valid_exit(keys, found_room["lock"]):
-      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True, row=current_row)
+      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, random_id=persistent_id, disabled=True, row=current_row)
       view.add_item(button)
       continue
     #if locked, unlocks is player has the keys
@@ -774,16 +838,16 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
       if valid_exit(keys, found_room["unlock"]):
         print("keys:")
         pp(keys)
-        button = RoomButton(label=found_room["entrance"], destination=room_id, row=current_row)
+        button = RoomButton(label=found_room["entrance"], destination=room_id, random_id=persistent_id, row=current_row)
         view.add_item(button)
         continue
       #if still locked, shows alt text on locked button
       else:
-        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, disabled=True, row=current_row)
+        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, random_id=persistent_id, disabled=True, row=current_row)
         view.add_item(button)
         continue
     #regular room entrance if not locked or hidden or anything else
-    button = RoomButton(label=found_room["entrance"], destination=room_id, row=current_row)
+    button = RoomButton(label=found_room["entrance"], destination=room_id, random_id=persistent_id, row=current_row)
     view.add_item(button)
   return (embed, view, leftover_list)
 
