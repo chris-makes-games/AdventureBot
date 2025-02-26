@@ -2,38 +2,36 @@ TODO
   Keys
 - inventory/journal system
 - combine/deconstruct
-- /editkey needs to truncate fields
-- /newkey needs to truncate fields
 
   Rooms
 - ending/death handling
-- remove editroom ability to add duplicate room connections
 - connectrooms needs to prevent duplicate room connects
 - /preview command to send embed
-- /editroom needs to truncate fields
-- /newroom needs to truncate fields
 
   Inventory/Journal
 - need buttons which appear as player gets them
 - recheck inventory management
 
   Misc
-- force alphanumeric IDs for rooms, keys
+- High priority: persistent buttons
+  - all new buttons need to ingest message interaction ID
+  - PersistentView class needs message contents sent for __init__
+  - buttons need to share message IDs
+  - database store button data in bulk - not just IDs
+  - rebuild all views from scratch upon bot start
 - bug report command
 - coauthor command
 - Help Commands
 - Mapper reconfig (deprecated)
 
   Error Handling
-- Character limit for exits
 - Can't have the same key twice in a room
 - Reject giving player more than one stackable key?
 
 ------------------------------
 
   Future
-- Persistent Buttons
-- Update Formatter 
+- Update/delete Formatter 
 - Dialogue Trees/quicktime events
 - player HP
 

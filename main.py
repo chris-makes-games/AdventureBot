@@ -39,14 +39,28 @@ async def on_ready():
     except Exception as e:
       print(f"Failed to load command: /{cmd_file.name[:-3]}")
       print(e)
-  #No longer sync commmands on startup!
-  #use /sync when needed
-  # try: 
-  #   synced = await bot.tree.sync()
-  #   print(f'Synced {len(synced)} commands.')
-  # except Exception as e:
-  #   print(e)
-  print("Commands loaded! Bot is ready!")
+  views = database.views.find({})
+  print("Loading views...")
+  for view in views:
+    print(f"loading view...")
+    print(view["id"])
+    PersistentView = database.PersistentView(id=view["id"], message_id=view["message"])
+    buttons = database.buttons.find({"message" : view["message"]})
+    #need to add button data to database, load them in by type
+    for button in buttons:
+      if button["type"] == "room":
+        pass
+      elif button["type"] == "confirm":
+        pass
+      elif button["type"] == "key":
+        pass
+      elif button["type"] == "cupid":
+        pass
+      elif button["type"] == "gift":
+        pass
+    bot.add_view(PersistentView)
+
+  print("Bot is ready!")
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels

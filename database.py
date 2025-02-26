@@ -32,11 +32,16 @@ allowed_nodes = {
 }
 
 #persistentview custom class
-
 class PersistentView(discord.ui.View):
-  def __init__(self):
+  def __init__(self, message_id, id=None):
     super().__init__(timeout=None)
-    views.insert_one({"id": self.id})
+    self.message_id = message_id
+    if id:
+      self.id = id
+    if not views.find_one({"id": self.id}):
+      views.insert_one({"id": self.id,
+                        "message" : self.message_id
+      })
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -457,12 +462,13 @@ def random_persistent_id(length):
     for character in range(length):
       character = rand.choice(all_chars)
       new_ID.append(character)
-    found_button = buttons.find_one({"id": "".join(new_ID)})
-    found_group = buttons.find_one({"group": "".join(new_ID)})
+    new_ID = "AdventureBot" + "".join(new_ID)
+    found_button = buttons.find_one({"id": new_ID})
+    found_group = buttons.find_one({"group": new_ID})
     if found_button or found_group:
       continue
     else:
-      return "".join(new_ID)
+      return new_ID
 
 #function for persistentview unique IDs
 def new_persistentID(length, message_id):
