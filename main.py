@@ -39,14 +39,16 @@ async def on_ready():
     except Exception as e:
       print(f"Failed to load command: /{cmd_file.name[:-3]}")
       print(e)
-  #No longer sync commmands on startup!
-  #use /sync when needed
-  # try: 
-  #   synced = await bot.tree.sync()
-  #   print(f'Synced {len(synced)} commands.')
-  # except Exception as e:
-  #   print(e)
-  print("Commands loaded! Bot is ready!")
+  views = database.views.find()
+  if views:
+    print("Loading views...")
+    for view in views:
+      print(f"loading view...")
+      print(view["id"])
+      new_PersistentView = database.PersistentView(id=view["id"], message_id=view["message_id"])
+      bot.add_view(new_PersistentView)
+
+  print("Bot is ready!")
 
 #prevents bot from answering its own messages
 #requires messages stay in specific channels
@@ -59,7 +61,7 @@ async def on_message(message):
 
 #runs the bot and throws generic errors
 try:
-  print("running - codespace tests")
+  print("running")
   database.ping()
   bot.run(my_secret)
 except Exception as e:

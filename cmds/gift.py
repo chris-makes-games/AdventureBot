@@ -19,7 +19,7 @@ async def gift(ctx):
         embed.add_field(name=key, value=value)
       await ctx.reply(embed=embed, ephemeral=True)
     return
-  tuple = await database.gifts_embed(truename)
+  tuple = await database.gifts_embed(ctx.interaction.id, truename)
   embed = tuple[0]
   view = tuple[1]
   await ctx.reply(embed=embed, view=view, ephemeral=True)

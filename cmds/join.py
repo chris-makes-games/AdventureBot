@@ -84,7 +84,7 @@ async def join(ctx, adventure_name : str):
       author = "Error - Unknown"
     new_keys = room["keys"]
     #embed message for all rooms
-    embed, view, leftover_list = await database.embed_room(player_dict=player.__dict__, new_keys=new_keys, author=author, room_dict=room, title=room["displayname"], guild=ctx.guild)
+    embed, view, leftover_list = await database.embed_room(ctx.interaction.id, player_dict=player.__dict__, new_keys=new_keys, author=author, room_dict=room, title=room["displayname"], guild=ctx.guild)
 
     #sends a message in the thread to begin
     #mentions the user to add them to the thread

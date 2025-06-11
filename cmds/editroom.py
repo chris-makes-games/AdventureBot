@@ -4,10 +4,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+import truncate
 import database
-
-from room import Room
-
 
 #edits a room with whatever the user selects
 @commands.hybrid_command(name="editroom", description="Edit room attributes. Leave options blank to keep the current value")
@@ -82,33 +80,15 @@ async def editroom(ctx, id: str,
   #for errors in any attribute that cannot be sent to room
   errors = []
 
-  #check for None assignment attempts in mandatory fields
+  #ID validation
   if new_id:
     if new_id.lower() == "none" or new_id.strip() == "":
       errors.append(f"You cannot change the ID of a room to blank! Room must have an ID. Room ID will remain `{id}`")
       new_id = None
-    elif len(new_id) < 6:
-      errors.append(f"Your ID must be at least six characters! Room ID will remain {id}")
-      new_id =None
-  if entrance:
-    if entrance.lower() == "none" or entrance.strip() == "":
-      errors.append(f"Room entrance cannot be blank! Room entrance remains unchanged.")
-      entrance = None
-  if alt_entrance:
-    if alt_entrance.lower() == "none" or alt_entrance.strip() == "":
-      errors.append(f"Alt entrance cannot be blank, all rooms must have one! Alt entrance remains unchanged.")
-      alt_entrance = None
-  if description:
-    if description.lower() == "none" or description.strip() == "":
-      errors.append(f"Description cannot be blank! Room description remains unchanged.")
-      description = None
-  if displayname:
-    if displayname.lower() == "none" or displayname.strip() == "":
-      errors.append(f"Display name cannot be blank! Room will keep display name of {found_room['displayname']}")
-      displayname = None
-
-  #checks if user input valid unique ID
-  if new_id:
+    new_id, warning = truncate.id(new_id)
+    if warning:
+      warnings.append(warning)
+      warning = None
     found_id = database.get_id(new_id)
     if found_id:
       errors.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. Please use a different ID. Room ID will remain `{id}`")
@@ -116,6 +96,46 @@ async def editroom(ctx, id: str,
     elif new_id and new_id.isdigit():
       errors.append(f"Room ID cannot be only numbers. Please choose an ID that is easily identifiable. Room ID will remain `{id}`")
       new_id = None
+    
+  #entrance validation
+  if entrance:
+    if entrance.lower() == "none" or entrance.strip() == "":
+      errors.append(f"Room entrance cannot be blank! Room entrance remains unchanged.")
+      entrance = None
+    entrance, warning = truncate.entrance(entrance)
+    if warning:
+      warnings.append(warning)
+      warning = None
+
+  #alt entrance validation
+  if alt_entrance:
+    if alt_entrance.lower() == "none" or alt_entrance.strip() == "":
+      errors.append(f"Alt entrance cannot be blank, all rooms must have one! Alt entrance remains unchanged.")
+      alt_entrance = None
+    alt_entrance, warning = truncate.entrance(alt_entrance)
+    if warning:
+      warnings.append(warning)
+      warning = None
+
+  #description validation
+  if description:
+    if description.lower() == "none" or description.strip() == "":
+      errors.append(f"Description cannot be blank! Room description remains unchanged.")
+      description = None
+    description, warning = truncate.description(description)
+    if warning:
+      warnings.append(warning)
+      warning = None
+
+  #displayname validation
+  if displayname:
+    if displayname.lower() == "none" or displayname.strip() == "":
+      errors.append(f"Display name cannot be blank! Room will keep display name of {found_room['displayname']}")
+      displayname = None
+    displayname, warning = truncate.display(displayname)
+    if warning:
+      warnings.append(warning)
+      warning = None
 
   #parses exits into usable list and validates the ID
   #ensures a room can have only four exits
@@ -140,6 +160,9 @@ async def editroom(ctx, id: str,
   new_keys_string = ""
   if keys:
     pairs = keys.split(',')
+    if len(pairs) > 5:
+      errors.append("Too many keys to be given to the player! Only five different keys can be given per room. Only the first five were kept.")
+      pairs = pairs[:5]
     for pair in pairs:
       try:
         item, quantity = pair.strip().split()
@@ -171,6 +194,9 @@ async def editroom(ctx, id: str,
   new_destroy_string = ""
   if destroy:
     pairs = destroy.split(',')
+    if len(pairs) > 5:
+      errors.append("Too many keys to be destroyed in this room! Only five different keys can be destroyed per room. Only the first five were kept.")
+      pairs = pairs[:5]
     for pair in pairs:
       try:
         item, quantity = pair.strip().split()
@@ -201,8 +227,15 @@ async def editroom(ctx, id: str,
   new_lock = []
   if lock:
     conditions = lock.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many lock conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Lock condition too long! 20 characters Max\n`{new_condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
@@ -226,8 +259,15 @@ async def editroom(ctx, id: str,
   new_unlock = []
   if unlock:
     conditions = unlock.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many unlock conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Unlock condition too long! 20 characters Max\n`{new_condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
@@ -251,8 +291,15 @@ async def editroom(ctx, id: str,
   new_hide = []
   if hide:
     conditions = hide.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many hide conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Hide condition too long! 20 characters Max\n`{new_condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
@@ -276,8 +323,15 @@ async def editroom(ctx, id: str,
   new_reveal = []
   if reveal:
     conditions = reveal.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many reveal conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Reveal condition too long! 20 characters Max\n`{new_condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
@@ -431,10 +485,11 @@ async def editroom(ctx, id: str,
     embed.add_field(name="No changes", value="No changes were made. You need to select one of the options to edit the room. If you're unsure, try /help editroom")
     await ctx.reply(embed=embed, ephemeral=True)
     return
-  view = discord.ui.View()
+  #persistent view with ID group
+  view = database.PersistentView(ctx.interaction.id)
   if not empty_dict:
-    edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
-    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    edit_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Make Changes", confirm=True, action="edit_room", id=id, dict=new_dict)
+    cancel_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Cancel", confirm=False, action="cancel", id=id)
     view.add_item(edit_button)
     view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

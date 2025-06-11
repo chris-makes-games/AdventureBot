@@ -21,7 +21,7 @@ async def resend(ctx):
   if not thread:
     await ctx.reply(f"{ctx.author.mention} It seems the thread you were playing in was deleted... Creating a new thread...", ephemeral=True)
     thread = await ctx.channel.create_thread(name=f"{ctx.author.display_name} playing {room['adventure']}")
-  embed, view = await database.embed_room(player_dict=player, new_keys=[], title=room["displayname"], room_dict=room, author=author, guild=ctx.guild)
+  embed, view, leftover = await database.embed_room(ctx.interaction.id, player_dict=player, new_keys=[], title=room["displayname"], room_dict=room, author=author, guild=ctx.guild)
   await thread.send(f"Resending embed for {ctx.author.mention}...")
   await thread.send(embed=embed, view=view)
 

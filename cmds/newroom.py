@@ -1,10 +1,10 @@
 import re
-import yaml
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
+import truncate
 import database
 import perms_interactions as permissions
 from room import Room
@@ -34,6 +34,7 @@ unlock= "Room will unlock if locked, if player possesses these keys. Can use mat
 hide= "Room will become hidden if player posesses these keys. Can use math expression",  
 reveal= "Room will be revealed if hidden, if player posesses these keys. Can use math expression")
 async def newroom(ctx,
+                  
     #giant block of arguments!
     adventure,
     id : str | None = None,
@@ -65,7 +66,7 @@ async def newroom(ctx,
   if not database.check_channel(ctx.channel.id, ctx.guild.id):
     guild_info = database.botinfo.find_one({"guild" : ctx.guild.id})
     if guild_info:
-      await ctx.reply(f"This command can only be used approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
+      await ctx.reply(f"This command can only be used in approved bot channels! Use this channel:\nhttps://discord.com/channels/{ctx.guild.id}/{guild_info['channel']}", ephemeral=True)
       return
     else:
       await ctx.reply("This command can only be used approved bot channels! No channel found in this guild, try using `/register` as an admin.", ephemeral=True)
@@ -85,48 +86,51 @@ async def newroom(ctx,
   #for errors in any attribute that cannot be sent to room
   errors = []
 
-  #YAML config file for character limits
-  with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-    char_limits = config["EmbedLimits"]
-    id_min = char_limits["id_min"]
-    id_max = char_limits["id_max"]
-    desc_max = char_limits["description"]
-    display_max = char_limits["display"]
-    entrance_max = char_limits["entrance"]
-    condition_max = char_limits["condition"]
-  
-  #check for None assignment attempts in mandatory fields
-  if id:
-    if id.lower() == "none" or id.strip() == "":
-      id = database.generate_unique_id()
-      errors.append(f"You cannot have a blank room ID! Room must have an ID. Random ID generated instead: `{id}`")
-    elif len(id) < 6:
-      id = database.generate_unique_id()
-      errors.append(f"Your ID must be at least six characters! Random ID generated instead: {id}")
-    elif len(id) > 20:
-      id = id[20:]
+  #entrance validation
   if entrance:
+    entrance, warning = truncate.entrance(entrance)
+    if warning:
+      warnings.append(warning)
     if entrance.lower() == "none" or entrance.strip() == "":
       errors.append(f"Room entrance cannot be blank! Room entrance set to generic default.")
       entrance = "Go into the new room"
+  
+  #alt entrance validation
   if alt_entrance:
+    alt_entrance, warning = truncate.entrance(alt_entrance)
+    if warning:
+      warnings.append(warning)
     if alt_entrance.lower() == "none" or alt_entrance.strip() == "":
       errors.append(f"Alt entrance cannot be blank, all rooms must have one! Room alt entrance set to generic default.")
       alt_entrance = "This path is blocked"
+  
+  #description validation, does not need truncate
   if description:
     if description.lower() == "none" or description.strip() == "":
       errors.append(f"Description cannot be blank! Room description set to default generic.")
       description = "You have wandered into a dark place. It is pitch black. You are likely to be eaten by a grue."
+    if len(description) > 200:
+      warnings.append("Discord has strict character limits for this embed. Your room description has been preserved, only the beginning is displayed.")
+  
+  #displayname validation
   if displayname:
+    displayname, warning = truncate.display(displayname)
+    if warning:
+      warnings.append(warning)
     if displayname.lower() == "none" or displayname.strip() == "":
       errors.append(f"Display name cannot be blank! Room display name set to default generic.")
       displayname = "Default Room Name"
 
   #checks if user input valid unique ID
   if id:
+    id, warning = truncate.id(id)
+    if warning:
+      warnings.append(warning)
+    if id.lower() == "none" or id.strip() == "":
+      id = database.generate_unique_id()
+      errors.append(f"You cannot have a blank room ID! Room must have an ID. Random ID generated instead: `{id}`")
     new_id = id
-    found_id = database.get_id(id)
+    found_id = database.get_id(new_id)
     if found_id:
       new_id = database.generate_unique_id()
       warnings.append(f"ID `{found_id['id']}` already exists from author {found_id['author']}. A random ID was generated instead: `{new_id}`")
@@ -140,14 +144,7 @@ async def newroom(ctx,
     #if no ID, generates a random one
     new_id = database.generate_unique_id()
     warnings.append(f"Random ID generated for room: `{new_id}`")
-
-  if description:
-    if len(description) > 6000:
-      errors.append("The description of your room cannot exceed 6000 characters! That's only around 1,200 words.")
-    elif len(description) > 1024:
-      description_string = description[:1000]
-      description_string += "(...)"
-
+    
   #parses exits into usable list and validates the ID
   #ensures a room can have only four exits
   new_exits = []
@@ -170,12 +167,15 @@ async def newroom(ctx,
   new_keys = {}
   if keys:
     pairs = keys.split(',')
+    if len(pairs) > 5:
+      pairs = pairs[:5]
+      errors.append("Too many different keys to be given in this room! Five max, only the first five have been preserved.")
     for pair in pairs:
       try:
         item, quantity = pair.strip().split()
         new_keys[item.strip()] = int(quantity)
       except ValueError:
-        errors.append(f"Invalid key format: `{pair}`\n(must be in the format `key_id <number>`)")
+        errors.append(f"Invalid key format: `{pair}`\n(must be in the format `<key_id> <number>` like this: `key1 4`)")
         continue
       if not database.get_key(item.strip()):
           warnings.append(f"Key `{item.strip()}` does not exist. Did you enter the ID wrong or are you planning to create one later?")
@@ -190,6 +190,9 @@ async def newroom(ctx,
   new_destroy = {}
   if destroy:
     pairs = destroy.split(',')
+    if len(pairs) > 5:
+      pairs = pairs[:5]
+      errors.append("Too many different keys to be destroyed in this room! Five max, only the first five have been preserved.")
     for pair in pairs:
       try:
         item, quantity = pair.strip().split()
@@ -210,8 +213,15 @@ async def newroom(ctx,
   new_lock = []
   if lock:
     conditions = lock.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many lock conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Lock condition too long! 20 characters Max\n`{new_condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
@@ -235,8 +245,15 @@ async def newroom(ctx,
   new_unlock = []
   if unlock:
     conditions = unlock.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many unlock conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Unlock condition too long! 20 characters Max\n`{new_condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
@@ -260,12 +277,19 @@ async def newroom(ctx,
   new_hide = []
   if hide:
     conditions = hide.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many hide conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Hide condition too long! 20 characters Max\n`{new_condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        errors.append(f"invalid hide expression syntax: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid hide condition syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_hide.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -285,12 +309,19 @@ async def newroom(ctx,
   new_reveal = []
   if reveal:
     conditions = reveal.split(',')
+    if len(conditions) > 5:
+      errors.append("Too many reveal conditions! Only the first five were kept.")
+      conditions = conditions[:5]
     for condition in conditions:
       new_condition = condition.strip()
+      if len(new_condition) > 20:
+        new_condition = new_condition[:5] + "..."
+        errors.append(f"Reveal condition too long! 20 characters Max\n`{new_condition}`")
+        continue
       new_condition = re.sub(r'\s*([<>!=]=?|[+\-*/])\s*', r' \1 ', new_condition)
       new_condition = re.sub(r'(?<![!<>])=(?!=)', '==', new_condition)
       if not database.safe_parse(new_condition):
-        errors.append(f"reveal condition: `{new_condition.replace('==', '=')}`")
+        errors.append(f"invalid reveal condition syntax: `{new_condition.replace('==', '=')}`")
         continue
       new_reveal.append(new_condition)
       new_string = "`" + new_condition.replace('==', '=') + "`"
@@ -366,7 +397,7 @@ async def newroom(ctx,
   #bool is true if every value in the given dict is None
   empty_dict = all(all_values)
   if empty_dict:
-    embed_text = "The room information you submitted was invalid. Review the errors below. If you need help, try `/help editroom`. If something is wrong, contact Ironically-Tall."
+    embed_text = "The room information you submitted was invalid. Review the errors below. If you need help, try `/help newroom`. If something is wrong, contact Ironically-Tall."
   else:
     embed_text = "Review the new room and select a button below"
   if errors:
@@ -377,7 +408,7 @@ async def newroom(ctx,
   embed = discord.Embed(title=f"New room: {dict['displayname']}\nID: `{new_id}`\nAny room attributes not specified have been left at their default values.", description=embed_text)
   embed.add_field(name="Displayname", value=f"{displayname}", inline=False)
   if description:
-    embed.add_field(name="Description", value=f"{description}", inline=False)
+    embed.add_field(name="Description", value=f"{description[:200]}", inline=False)
   if entrance:
     embed.add_field(name="Entrance", value=f"{entrance}", inline=False)
   if alt_entrance:
@@ -415,12 +446,13 @@ async def newroom(ctx,
   if warnings:
     embed.add_field(name=warn_title, value=f"- {warnings}", inline=False)
   if errors:
-    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newroom`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
+    embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newroom`\nTip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data, and it will remember what you typed!", inline=False)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
-  view = discord.ui.View()
+  #persistent view with ID group
+  view = database.PersistentView(ctx.interaction.id)
   if not empty_dict:
-    edit_button = database.ConfirmButton(label="Create Room", confirm=True, action="new_room", dict=dict)
-    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel")
+    edit_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Create Room", confirm=True, action="new_room", dict=dict)
+    cancel_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Cancel", confirm=False, action="cancel")
     view.add_item(edit_button)
     view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

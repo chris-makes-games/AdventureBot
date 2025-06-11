@@ -1,5 +1,3 @@
-import re
-
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -162,9 +160,11 @@ async def updateplayer(ctx, id : str,
     return
   if warnings:
     embed.add_field(name="**WARNING**", value="\n".join(warnings), inline=False)
-  edit_button = database.ConfirmButton(label="Make Changes", confirm=True, action="overwrite_player", id=id, dict=new_dict)
-  cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
-  view = discord.ui.View()
+  
+  #persistent view with ID group
+  view = database.PersistentView(ctx.interaction.id)
+  edit_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Make Changes", confirm=True, action="overwrite_player", id=id, dict=new_dict)
+  cancel_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Cancel", confirm=False, action="cancel", id=id)
   view.add_item(edit_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

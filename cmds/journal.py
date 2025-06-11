@@ -8,11 +8,10 @@ import database
 async def journal(ctx):
   player = database.users.find_one({"disc": ctx.author.id})
   if player:
-    embed, view = await database.embed_journal(player)
+    pass
   else:
     print("ERROR!!!!")
     return
-  await ctx.reply(embed=embed, view=view, ephemeral=True)
 
 async def setup(bot):
   bot.add_command(journal)

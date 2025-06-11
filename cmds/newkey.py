@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
+import truncate
 import database
 from key import Key
 
@@ -31,10 +32,10 @@ async def newkey(ctx,
     #giant block of arguments!
     adventure,
     id : str | None = None,
-    displayname : str="Default Key Name",
-    description : str="Default Description",
-    note : str | None=None,
-    alt_note : str | None=None,
+    displayname : str = "A blank key",
+    description : str | None = None,
+    note : str | None = None,
+    alt_note : str | None = None,
     subkeys : str | None = None,
     combine : bool | None = None,
     deconstruct : bool | None = None,
@@ -68,8 +69,10 @@ async def newkey(ctx,
   else:
     adventure_of_key = found_adventure["name"].title()
 
+  #errors for big issues
   errors = []
 
+  #warnings for minor issues
   warnings = []
   
   #checks if user input valid unique ID
@@ -85,16 +88,60 @@ async def newkey(ctx,
     elif id and id.isdigit():
       new_id = database.generate_unique_id()
       warnings.append(f"Key ID cannot be only numbers. Random ID generated instead: `{new_id}`")
+    new_id, warning = truncate.id(id)
+    if warning:
+      warnings.append(warning)
   else:
     #if no ID, generates a random one
     new_id = database.generate_unique_id()
     warnings.append(f"Random ID generated for key: `{new_id}`")
+
+  #displayname validation
+  if displayname:
+    if displayname.lower() == "none" or displayname.strip() == "":
+      errors.append(f"Display name cannot be blank! Key will retain defalt name")
+      displayname = "A shiny new key"
+    displayname, warning = truncate.display(displayname)
+    if warning:
+      warnings.append(warning)
+
+  #description validation
+  if description:
+    if description.lower() == "none" or description.strip() == "":
+      errors.append(f"Description cannot be blank! Key description remains the default.")
+      description = "They are guarding all the doors, they are holding all the keys, which means that sooner or later, someone is going to have to fight them."
+    description, warning = truncate.description(description)
+    if warning:
+      warnings.append(warning)
+
+  #note validation
+  if note:
+    if note.lower() == "none" or note.strip() == "":
+      warnings.append(f"Note is already blank")
+      note = None
+    else:
+      note, warning = truncate.description(note)
+      if warning:
+        warnings.append(warning)
+
+  #alt_note validation
+  if alt_note:
+    if alt_note.lower() == "none" or alt_note.strip() == "":
+      warnings.append(f"Alt Note already blank")
+      alt_note = None
+    else:
+      alt_note, warning = truncate.description(alt_note)
+      if warning:
+        warnings.append(warning)
 
   #parses subkeys into dict
   subkeys_string = ""
   new_subkeys = {}
   if subkeys:
     pairs = subkeys.split(',')
+    if len(pairs) > 5:
+      errors.append("Too many subkeys! You cannot have more then five. Only the first five have been preserved.")
+      pairs = pairs[:5]
     for pair in pairs:
       try:
         item, quantity = pair.strip().split()
@@ -198,10 +245,11 @@ author = ctx.author.id)
     embed.add_field(name=warn_title, value=f"- {warnings}")
   if errors:
     embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newkey`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
-  view = discord.ui.View()
+  #persistent view with ID group
+  view = database.PersistentView(ctx.interaction.id)
   if not empty_dict:
-    edit_button = database.ConfirmButton(label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
-    cancel_button = database.ConfirmButton(label="Cancel", confirm=False, action="cancel", id=id)
+    edit_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
+    cancel_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Cancel", confirm=False, action="cancel", id=id)
     view.add_item(edit_button)
     view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

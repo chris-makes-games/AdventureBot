@@ -32,7 +32,7 @@ async def deleteplayer(ctx, user: discord.User):
     return
   #allows players to delete themselves, bypasses permissions check
   if ctx.author.id == deletedplayer["disc"]:
-    confirm = await database.confirm_embed(confirm_text="This will delete all of your data, are you sure you want to do this?", title="Confirm Deletion", action="delete_player", channel=ctx.channel, id=ctx.author.id)
+    confirm = await database.confirm_embed(ctx.interaction.id, confirm_text="This will delete all of your data, are you sure you want to do this?", title="Confirm Deletion", action="delete_player", channel=ctx.channel, id=ctx.author.id)
     embed = confirm[0]
     view = confirm[1]
     await ctx.send(embed=embed, view=view, ephemeral=True)
@@ -44,7 +44,7 @@ async def deleteplayer(ctx, user: discord.User):
     return
   else:
   #send the confirmation embed with buttons to click
-    confirm = await database.confirm_embed(confirm_text=f"This will delete all of {user.display_name}'s data, are you sure you want to do this?", title="Confirm Deletion", action="delete_player", channel=ctx.channel, id=deletedplayer["disc"])
+    confirm = await database.confirm_embed(ctx.interaction.id, confirm_text=f"This will delete all of {user.display_name}'s data, are you sure you want to do this?", title="Confirm Deletion", action="delete_player", channel=ctx.channel, id=deletedplayer["disc"])
     embed = confirm[0]
     view = confirm[1]
     await ctx.send(embed=embed, view=view, ephemeral=True)

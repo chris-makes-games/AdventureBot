@@ -32,7 +32,7 @@ async def deleteroom(ctx, room_id: str):
     # Check if the room belongs to the user
     # if not, then check for maintainer
   if ctx.author.id == room["author"] or permissions.is_maintainer(ctx):
-    confirm = await database.confirm_embed(confirm_text=f"This will delete the room **{room['displayname']}** permenantly, are you sure you want to do this?\n**THIS CANNOT BE UNDONE!**", title="Confirm Room Deletion", action="delete_room", channel=ctx.channel, id=room_id)
+    confirm = await database.confirm_embed(ctx.interaction.id, confirm_text=f"This will delete the room **{room['displayname']}** permenantly, are you sure you want to do this?\n**THIS CANNOT BE UNDONE!**", title="Confirm Room Deletion", action="delete_room", channel=ctx.channel, id=room_id)
     embed = confirm[0]
     view = confirm[1]
     await ctx.reply(embed=embed, view=view, ephemeral=True)
