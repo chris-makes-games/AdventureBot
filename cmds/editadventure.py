@@ -37,7 +37,7 @@ async def editadventure(ctx, name: str, attribute: app_commands.Choice[str], new
     await ctx.reply("Error: Adventure not found! Double check your adventure ID!", ephemeral=True)
     return
   if ctx.author.id == adventure["author"] or permissions.is_maintainer:
-    embed, view = await database.confirm_embed(confirm_text=f"This will edit the {attribute.name} to:\n'{new_value}'\nThe epilogue will be set to {epilogue}", title="Confirm Adventure Edit", action="edit_adventure", channel=ctx.channel, id=name)
+    embed, view = await database.confirm_embed(ctx.interaction.id, confirm_text=f"This will edit the {attribute.name} to:\n'{new_value}'\nThe epilogue will be set to {epilogue}", title="Confirm Adventure Edit", action="edit_adventure", channel=ctx.channel, id=name)
     players_in_adventure = database.get_players_in_adventure(name)
     if players_in_adventure:
       embed.add_field(name="Warning! Players are in this adventure!", value=f"Changing things while they're in it might cause issues for them, but the adventure will be fine. Players in this adventure: {str(players_in_adventure)}", inline=False)

@@ -97,10 +97,9 @@ async def connectrooms(ctx, room1: str, room2: str,
   for subdict in big_dict:
     database.pp(big_dict[subdict])
   #persistent view with ID group
-  view = database.PersistentView()
-  id_group = database.random_persistent_id(32)
-  confirm_button = database.ConfirmButton(random_id=id_group, label="Connect Rooms", confirm=True, action="connect", dict=big_dict)
-  cancel_button = database.ConfirmButton(random_id=id_group, label="Cancel", confirm=False, action="cancel", id=found_room_1["id"])
+  view = database.PersistentView(ctx.interaction.id)
+  confirm_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Connect Rooms", confirm=True, action="connect", dict=big_dict)
+  cancel_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Cancel", confirm=False, action="cancel", id=found_room_1["id"])
   view.add_item(confirm_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

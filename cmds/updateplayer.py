@@ -162,10 +162,9 @@ async def updateplayer(ctx, id : str,
     embed.add_field(name="**WARNING**", value="\n".join(warnings), inline=False)
   
   #persistent view with ID group
-  view = database.PersistentView()
-  id_group = database.random_persistent_id(32)
-  edit_button = database.ConfirmButton(random_id=id_group, label="Make Changes", confirm=True, action="overwrite_player", id=id, dict=new_dict)
-  cancel_button = database.ConfirmButton(random_id=id_group, label="Cancel", confirm=False, action="cancel", id=id)
+  view = database.PersistentView(ctx.interaction.id)
+  edit_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Make Changes", confirm=True, action="overwrite_player", id=id, dict=new_dict)
+  cancel_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Cancel", confirm=False, action="cancel", id=id)
   view.add_item(edit_button)
   view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

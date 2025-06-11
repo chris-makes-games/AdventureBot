@@ -32,7 +32,7 @@ async def deleteadventure(ctx, adventure_name: str):
     # Check if the room belongs to the user
     # if not, then check for maintainer
   if ctx.author.id == adventure["author"] or permissions.is_maintainer(ctx):
-    confirm = await database.confirm_embed(confirm_text=f"This will delete the adventure `{adventure['name'].title()}` **PERMENANTLY**, are you sure you want to do this? This will also delete every room in the adventure! This cannot be undone!", title="Confirm Adventure Deletion", action="delete_adventure", channel=ctx.channel, id=adventure_name)
+    confirm = await database.confirm_embed(ctx.interaction.id, confirm_text=f"This will delete the adventure `{adventure['name'].title()}` **PERMENANTLY**, are you sure you want to do this? This will also delete every room in the adventure! This cannot be undone!", title="Confirm Adventure Deletion", action="delete_adventure", channel=ctx.channel, id=adventure_name)
     embed = confirm[0]
     view = confirm[1]
     affected_rooms = ", ".join(adventure["rooms"])

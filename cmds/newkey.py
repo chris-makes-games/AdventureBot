@@ -246,11 +246,10 @@ author = ctx.author.id)
   if errors:
     embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newkey`\ntip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data", inline=False)
   #persistent view with ID group
-  view = database.PersistentView()
-  id_group = database.random_persistent_id(32)
+  view = database.PersistentView(ctx.interaction.id)
   if not empty_dict:
-    edit_button = database.ConfirmButton(random_id=id_group, label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
-    cancel_button = database.ConfirmButton(random_id=id_group, label="Cancel", confirm=False, action="cancel", id=id)
+    edit_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Create Key", confirm=True, action="new_key", id=id, dict=dict)
+    cancel_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Cancel", confirm=False, action="cancel", id=id)
     view.add_item(edit_button)
     view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

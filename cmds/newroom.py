@@ -449,11 +449,10 @@ async def newroom(ctx,
     embed.add_field(name=error_title, value=f"- {errors}\nIf you need help, try `/help newroom`\nTip: you can press the 'up' key on a desktop keyboard to quickly re-enter the data, and it will remember what you typed!", inline=False)
   embed.set_footer(text=f"This room will be added to {adventure_of_room}.")
   #persistent view with ID group
-  view = database.PersistentView()
-  id_group = database.random_persistent_id(32)
+  view = database.PersistentView(ctx.interaction.id)
   if not empty_dict:
-    edit_button = database.ConfirmButton(random_id=id_group, label="Create Room", confirm=True, action="new_room", dict=dict)
-    cancel_button = database.ConfirmButton(random_id=id_group, label="Cancel", confirm=False, action="cancel")
+    edit_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Create Room", confirm=True, action="new_room", dict=dict)
+    cancel_button = database.ConfirmButton(message_id=ctx.interaction.id, label="Cancel", confirm=False, action="cancel")
     view.add_item(edit_button)
     view.add_item(cancel_button)
   await ctx.reply(embed=embed, view=view, ephemeral=True)

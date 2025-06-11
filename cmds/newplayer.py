@@ -29,7 +29,7 @@ async def newplayer(ctx, user: discord.User):
     old_guild = ctx.client.get_guild(player["guild"])
     if old_guild:
       player = Player(discord=user.id, displayname=user.display_name, room=None, guild=guild)
-      confirm = await database.confirm_embed(confirm_text=f"That user is already a player in another server! Do you want to start fresh in this server? Click below to overwrite the player data. This will delete the player data from the following server:\n{old_guild.name}", action="overwrite_player", channel=ctx.channel.id, title="Overwrite Player Data?", dict=player.__dict__)
+      confirm = await database.confirm_embed(ctx.interaction.id, confirm_text=f"That user is already a player in another server! Do you want to start fresh in this server? Click below to overwrite the player data. This will delete the player data from the following server:\n{old_guild.name}", action="overwrite_player", channel=ctx.channel.id, title="Overwrite Player Data?", dict=player.__dict__)
       embed = confirm[0]
       view = confirm[1]
       await ctx.send(embed=embed, view=view, ephemeral=True)

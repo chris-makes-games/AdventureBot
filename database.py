@@ -40,31 +40,55 @@ class PersistentView(discord.ui.View):
       self.id = id
     if not views.find_one({"id": self.id}):
       views.insert_one({"id": self.id,
-                        "message" : self.message_id
+                        "message_id" : self.message_id
       })
+    else:
+      all_buttons = buttons.find({"message_id" : self.message_id})
+    #need to add button data to database, load them in by type
+      if all_buttons:
+        new_button = None
+        for button in all_buttons:
+          print(f"adding button: {button.type}")
+          if button["type"] == "room":
+            continue
+            new_button = RoomButton()
+          elif button["type"] == "confirm":
+            continue
+            new_button = ConfirmButton()
+          elif button["type"] == "key":
+            continue
+            new_button = KeyButton()
+          elif button["type"] == "cupid":
+            continue
+            new_button = CupidButton()
+          elif button["type"] == "gift":
+            continue
+            new_button = GiftButton()
+          if new_button:
+            self.add_item(new_button)
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
 class RoomButton(discord.ui.Button):
-  def __init__(self, label, destination, random_id, disabled=False, row=0):
+  def __init__(self, label, destination, message_id, disabled=False, row=0):
     super().__init__(label=label, style=discord.ButtonStyle.primary)
     self.destination = destination
     self.disabled = disabled
     self.row = row
-    self.custom_id = new_persistentID(32, random_id)
-    self.group = random_id
+    self.custom_id = new_persistent_button("room", message_id)
+    self.message_id = message_id
   async def callback(self, interaction: discord.Interaction):
     view = self.view
     if view:
       views.delete_one({"id": view.id})
-    buttons.delete_many({"group": self.group})
+    buttons.delete_many({"message_id": self.message_id})
     await interaction.response.defer()
     await move_player(interaction, self.destination)
 
 #button class for inventory and journal buttons
 #button opens a journal or inventory and closes the current room
 class KeyButton(discord.ui.Button):
-  def __init__(self, button_type, playerdict, random_id, disabled=False, row=1,):
+  def __init__(self, button_type, playerdict, message_id, disabled=False, row=1,):
     if button_type == "inventory":
       label = "Inventory"
       emoji = "🎒"
@@ -80,20 +104,20 @@ class KeyButton(discord.ui.Button):
     self.disabled = disabled
     self.row = row
     self.playerdict = playerdict
-    self.group = random_id
-    self.custom_id = new_persistentID(32, random_id)
+    self.message_id = message_id
+    self.custom_id = new_persistent_button("key", message_id)
   async def callback(self, interaction: discord.Interaction):
     view = self.view
     if view:
       views.delete_one({"id": view.id})
-    buttons.delete_many({"group": self.group})
+    buttons.delete_many({"message_id": self.message_id})
     await open_menu(interaction, self.playerdict, self.button_type)
 
 #simple button class to confirm or cancel any action
 #can be placed on any embed that requires a confirmation
 #action is the name of the action to be taken
 class ConfirmButton(discord.ui.Button):
-  def __init__(self, label, confirm, action, random_id, channel="", id=None, disabled=False, row=0, dict=None):
+  def __init__(self, label, confirm, action, message_id, channel="", id=None, disabled=False, row=0, dict=None):
     super().__init__(label=label)
     self.id = id
     self.confirm = confirm
@@ -108,8 +132,8 @@ class ConfirmButton(discord.ui.Button):
     else:
       self.style = discord.ButtonStyle.danger
       self.emoji = "✖️"
-    self.group = random_id
-    self.custom_id = new_persistentID(32, random_id)
+    self.message_id = message_id
+    self.custom_id = new_persistent_button("confirm", message_id)
   #callback is for when the button is clicked
   async def callback(self, interaction: discord.Interaction):
     #must defer response or error will occur!
@@ -118,7 +142,7 @@ class ConfirmButton(discord.ui.Button):
     view = self.view
     if view:
       views.delete_one({"id": view.id})
-    buttons.delete_many({"group": self.group})
+    buttons.delete_many({"message_id": self.message_id})
     #nothing happens if they hit red X
     if self.action == "cancel":
       await interaction.delete_original_response()
@@ -302,6 +326,55 @@ class ConfirmButton(discord.ui.Button):
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction:\n`{self.action}`", ephemeral=True)
       return
+    
+#modal to suggest featured stories
+class FeatureModal(discord.ui.Modal):
+  def __init__(self, title="Suggest a story to be featured"):
+    super().__init__(title=title)
+    self.number = discord.ui.TextInput(label="Story Number", placeholder="Only input the numbers at the end of the URL!", style=discord.TextStyle.short, required=True)
+    self.desc = discord.ui.TextInput(label="Share why the story should be featured", placeholder="", style=discord.TextStyle.long, required=True)
+    self.add_item(self.number)
+    self.add_item(self.desc)
+  async def on_submit(self, interaction: discord.Interaction):
+    await interaction.response.defer()
+    info = feature.find_one({"info" : "admin"})
+    if not self.number.value.isdigit():
+      await interaction.followup.send(f"{interaction.user.mention}, that is not a valid story number! Please just enter the numbers at the end of the story URL.", ephemeral=True)
+      await interaction.delete_original_response()
+      return
+    found_user = list(feature.find({"user" : interaction.user.id}))
+    submissions = len(found_user)
+    if self.number.value in info["current_features"]:
+      await interaction.followup.send(f"{interaction.user.mention}, that story is currently being featured! Please submit a different story.", ephemeral=True)
+      await interaction.delete_original_response()
+      return
+    if self.number.value in info["last_features"]:
+      await interaction.followup.send(f"{interaction.user.mention}, that story was featured recently, please submit a different story!", ephemeral=True)
+      await interaction.delete_original_response()
+      return
+    if found_user:
+      if submissions > 2:
+        await interaction.followup.send(f"{interaction.user.mention}, you have already submitted three stories to be featured, please wait until the next feature cycle!", ephemeral=True)
+        await interaction.delete_original_response()
+        return
+      for story in found_user:
+        if self.number.value == story["number"]:
+          await interaction.followup.send(f"{interaction.user.mention}, you have already submitted that story to be featured, please submit a different story!", ephemeral=True)
+          await interaction.delete_original_response()
+          return
+    dict = {"user": interaction.user.id, "number": self.number.value, "desc": self.desc.value}
+    new_feature(dict)
+    if submissions < 3:
+      limit = 2 - submissions
+      if limit == 1:
+        limit_string = f"You may submit {limit} more story to be featured"
+      else:
+        limit_string = f"You may submit {limit} more stories to be featured"
+    else:
+      limit_string = "You have now suggested three stories, you cannot suggest any more"
+    await give_role(interaction, "Feature Suggester")
+    await interaction.followup.send(f"{interaction.user.mention} You have successfully added this story to the suggestions:\nhttps://sizefiction.net/story/show/{self.number.value}\nStories will be collected and voted on within two weeks. {limit_string}. Thank you for participating!", ephemeral=True)
+    await interaction.delete_original_response()
 
 #deactivated valentines function
 class CupidModal(discord.ui.Modal):
@@ -351,35 +424,50 @@ class GiftModal(discord.ui.Modal):
       await interaction.followup.send(f"{interaction.user.mention} You have signed up for the gifts exchange event! Please wait until Dec 22nd to recieve your secret gifts recipient. If you have questions, please DM Ironically-Tall. You may change your info by typing `/gift` again. Thank you for participating!!", ephemeral=True)
     await interaction.delete_original_response()
 
+#featured stories submission button
+class FeatureButton(discord.ui.Button):
+  def __init__(self, label, message_id, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.primary)
+    self.disabled = disabled
+    self.row = row
+    self.message_id = message_id
+    self.custom_id = new_persistent_button("feature", message_id)
+  async def callback(self, interaction: discord.Interaction):
+    view = self.view
+    if view:
+      views.delete_one({"id": view.id})
+    buttons.delete_many({"message_id": self.message_id})
+    await interaction.response.send_modal(FeatureModal())
+
 #new gifts button
 class GiftButton(discord.ui.Button):
-  def __init__(self, label, random_id, disabled=False, row=0):
+  def __init__(self, label, message_id, disabled=False, row=0):
     super().__init__(label=label, style=discord.ButtonStyle.primary)
     self.disabled = disabled
     self.row = row
     self.emoji = "🎁"
-    self.group = random_id
-    self.custom_id = new_persistentID(32, random_id)
+    self.message_id = message_id
+    self.custom_id = new_persistent_button("gift", message_id)
   async def callback(self, interaction: discord.Interaction):
     view = self.view
     if view:
       views.delete_one({"id": view.id})
-    buttons.delete_many({"group": self.group})
+    buttons.delete_many({"message_id": self.message_id})
     await interaction.response.send_modal(GiftModal())
 
 #deactivated valentines function
 class CupidButton(discord.ui.Button):
-  def __init__(self, label, random_id, disabled=False, row=0):
+  def __init__(self, label, message_id, disabled=False, row=0):
     super().__init__(label=label, style=discord.ButtonStyle.primary)
     self.disabled = disabled
     self.row = row
-    self.group = random_id
-    self.custom_id = new_persistentID(32, random_id)
+    self.message_id = message_id
+    self.custom_id = new_persistent_button("cupid", message_id)
   async def callback(self, interaction: discord.Interaction):
     view = self.view
     if view:
       views.delete_one({"id": view.id})
-    buttons.delete_many({"group": self.group})
+    buttons.delete_many({"message_id": self.message_id})
     await interaction.response.send_modal(CupidModal())
 
 #secrets
@@ -411,6 +499,7 @@ users = db.users
 keys = db.keys
 adventures = db.adventures
 ids = db.ids
+feature = db.feature
 botinfo = db.botinfo
 cupid = db.cupid
 gifts = db.gift
@@ -464,17 +553,18 @@ def random_persistent_id(length):
       new_ID.append(character)
     new_ID = "AdventureBot" + "".join(new_ID)
     found_button = buttons.find_one({"id": new_ID})
-    found_group = buttons.find_one({"group": new_ID})
-    if found_button or found_group:
+    if found_button:
+      print("Wow! You generated a duplicate ID somehow!")
       continue
     else:
       return new_ID
 
-#function for persistentview unique IDs
-def new_persistentID(length, message_id):
+#function for persistent button unique IDs
+def new_persistent_button(type, message_id):
     new_ID = random_persistent_id(32)
-    buttons.insert_one({"id" : new_ID,
-                        "group" : message_id
+    buttons.insert_one({"button_id" : new_ID,
+                        "message_id" : message_id,
+                        "type" : type
                           })
     return new_ID
 
@@ -677,7 +767,7 @@ async def move_player(interaction, destination):
   dict = {"disc": player["disc"],"room": newroomname, "keys": new_keys, "history": new_history}
   update_player(dict)
   newroomname=new_room["displayname"]
-  tuple = await embed_room(player, found_keys, newroomname, new_room, author, guild)
+  tuple = await embed_room(interaction.id, player, found_keys, newroomname, new_room, author, guild)
   single_embed = tuple[0]
   view = tuple[1]
   leftovers = tuple[2]
@@ -727,7 +817,7 @@ async def embed_inventory(interaction, player_dict):
       else:
         embed.add_field(name=f"{found_key['name']}", value=f"{found_key['discription']}" , inline=False)
       counted_keys.append(found_key)
-  view = PersistentView()
+  view = PersistentView(interaction.id)
   await interaction.response.edit_message(embed=embed, view=view)
 
 #returns a journal of the player with view
@@ -758,14 +848,13 @@ async def embed_journal(interaction, player_dict):
       else:
         embed.add_field(name=f"Entry {count}", value=f"{found_key['note']}" , inline=False)
     count += 1
-  view = PersistentView()
+  view = PersistentView(interaction.id)
   await interaction.response.edit_message(embed=embed, view=view)
 
 #sends an embed with room information and buttons for player to traverse
 #returns a tuple of embed and view, with a leftover list
 #leftover list is list of strings over the character limit for embeds
-async def embed_room(player_dict, new_keys, title, room_dict, author, guild, color=0):
-  persistent_id = random_persistent_id(32)
+async def embed_room(interaction_id, player_dict, new_keys, title, room_dict, author, guild, color=0):
   if color == 0:
     color = discord.Color.blue()
   keys = player_dict["keys"]
@@ -780,7 +869,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
     embed.set_image(url=room_dict["url"])
   elif "URL" in room_dict:
     embed.set_image(url=room_dict["URL"])
-  view = PersistentView()
+  view = PersistentView(interaction_id)
   adventure = get_adventure_by_room(room_dict["id"])
   if new_keys:
     for key_id in new_keys:
@@ -836,7 +925,7 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
       continue
     #if player has items to lock room, show alt text on locked button
     if found_room["lock"] and valid_exit(keys, found_room["lock"]):
-      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, random_id=persistent_id, disabled=True, row=current_row)
+      button = RoomButton(label=found_room["alt_entrance"], destination=room_id, message_id=interaction_id, disabled=True, row=current_row)
       view.add_item(button)
       continue
     #if locked, unlocks is player has the keys
@@ -844,16 +933,16 @@ async def embed_room(player_dict, new_keys, title, room_dict, author, guild, col
       if valid_exit(keys, found_room["unlock"]):
         print("keys:")
         pp(keys)
-        button = RoomButton(label=found_room["entrance"], destination=room_id, random_id=persistent_id, row=current_row)
+        button = RoomButton(label=found_room["entrance"], destination=room_id, message_id=interaction_id, row=current_row)
         view.add_item(button)
         continue
       #if still locked, shows alt text on locked button
       else:
-        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, random_id=persistent_id, disabled=True, row=current_row)
+        button = RoomButton(label=found_room["alt_entrance"], destination=room_id, message_id=interaction_id, disabled=True, row=current_row)
         view.add_item(button)
         continue
     #regular room entrance if not locked or hidden or anything else
-    button = RoomButton(label=found_room["entrance"], destination=room_id, random_id=persistent_id, row=current_row)
+    button = RoomButton(label=found_room["entrance"], destination=room_id, message_id=interaction_id, row=current_row)
     view.add_item(button)
   return (embed, view, leftover_list)
 
@@ -911,56 +1000,65 @@ def valid_exit(keys_dict, lock_list):
 #generic confirmation embed for yes/no
 #adds a ConfirmButton to itself at the bottom
 #action is the action that the button will do
-async def confirm_embed(confirm_text, action, channel, title="Are you Sure?", id=None, dict=None):
+async def confirm_embed(interaction_id, confirm_text, action, channel, title="Are you Sure?", id=None, dict=None):
   embed = discord.Embed(title=title, description=confirm_text, color=discord.Color.orange())
-  id_group = random_persistent_id(32)
-  confirm_button = ConfirmButton(random_id=id_group, label="Yes", confirm=True, action=action, channel=channel, id=id, dict=dict)
-  deny_button = ConfirmButton(random_id=id_group, label="No", confirm=False, action="cancel", channel=channel)
-  view = PersistentView()
+  confirm_button = ConfirmButton(message_id=interaction_id, label="Yes", confirm=True, action=action, channel=channel, id=id, dict=dict)
+  deny_button = ConfirmButton(message_id=interaction_id, label="No", confirm=False, action="cancel", channel=channel)
+  view = PersistentView(interaction_id)
   view.add_item(confirm_button)
   view.add_item(deny_button)
   if action == "leave":
     embed.set_image(url="https://i.kym-cdn.com/entries/icons/mobile/000/028/033/Screenshot_7.jpg")
   return (embed, view)
 
+#new valentine embed for winter event
+async def feature_embed(interaction_id, user):
+  embed = discord.Embed(title="Story Feature Suggestion")
+  view = PersistentView(interaction_id)
+  embed.description = "To be featured on the front page of sizefiction, we are taking suggestions from anyone to then vote on. Anyone may suggest a story to be featured, and you can even suggest your own stories. All suggestions will be collected, and stories can be suggested multiple times by different people. This process is anonymous, but Ironically-Tall can access the discord data. Limit to 3 suggestions per person, per feature cycle. Please report any issues with this bot to Ironically-Tall. He coded it, so it's his fault."
+  embed.add_field(name="Submission Format", value="When submitting a suggestion to be featured, please only input the story number. This is the number at the very end of the URL")
+  feature_button = FeatureButton(message_id=interaction_id, label="Suggest Story")
+  cancel_button = ConfirmButton(message_id=interaction_id, label="Cancel", confirm=False, action="cancel")
+  view.add_item(feature_button)
+  view.add_item(cancel_button)
+  return (embed, view)
+
 #new gifts embed for winter event
-async def gifts_embed(user):
+async def gifts_embed(interaction_id, user):
   embed = discord.Embed(title="gifts Exchange Event Sign-Up")
-  id_group = random_persistent_id(32)
-  view = PersistentView()
+  view = PersistentView(interaction_id)
   if gifts.find_one({"disc": user}):
     embed.description = "You have already signed up for the gifts Exchange Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
-    gifts_button = GiftButton(random_id=id_group, label="I understand, I want to resubmit")
-    remove_button = ConfirmButton(random_id=id_group, label="Remove me from the event", action="remove_gifts", confirm=False, id=user)
-    cancel_button = ConfirmButton(random_id=id_group, label="Keep my already submitted info", confirm=True, action="cancel")
+    gifts_button = GiftButton(message_id=interaction_id, label="I understand, I want to resubmit")
+    remove_button = ConfirmButton(message_id=interaction_id, label="Remove me from the event", action="remove_gifts", confirm=False, id=user)
+    cancel_button = ConfirmButton(message_id=interaction_id, label="Keep my already submitted info", confirm=True, action="cancel")
     view.add_item(gifts_button)
     view.add_item(cancel_button)
     view.add_item(remove_button)
   else:
     embed.description = "Please only sign up for this event if you plan to make a gifts for someone else. It is a few hours of work over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before DEC 22nd, each time you submit the form it will re-write your preferences."
-    gifts_button = GiftButton(random_id=id_group, label="I understand, I want to sign up")
-    cancel_button = ConfirmButton(random_id=id_group, label="Never Mind", action="cancel", confirm=False)
+    gifts_button = GiftButton(message_id=interaction_id, label="I understand, I want to sign up")
+    cancel_button = ConfirmButton(message_id=interaction_id, label="Never Mind", action="cancel", confirm=False)
     view.add_item(gifts_button)
     view.add_item(cancel_button)
   return (embed, view)
 
 #new valentine embed for winter event
-async def valentine_embed(user):
+async def valentine_embed(interaction_id, user):
   embed = discord.Embed(title=":heart: Valentine's Event Sign-Up :heart:")
-  id_group = random_persistent_id(32)
-  view = PersistentView()
+  view = PersistentView(interaction_id)
   if cupid.find_one({"disc": user}):
     embed.description = "You have already signed up for the Valentine's Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
-    cupid_button = CupidButton(random_id=id_group, label="I understand, I want to resubmit")
-    remove_button = ConfirmButton(random_id=id_group, label="Remove me from the event", action="remove_valentines", confirm=False, id=user)
-    cancel_button = ConfirmButton(random_id=id_group, label="Keep my already submitted info", confirm=True, action="cancel")
+    cupid_button = CupidButton(message_id=interaction_id, label="I understand, I want to resubmit")
+    remove_button = ConfirmButton(message_id=interaction_id, label="Remove me from the event", action="remove_valentines", confirm=False, id=user)
+    cancel_button = ConfirmButton(message_id=interaction_id, label="Keep my already submitted info", confirm=True, action="cancel")
     view.add_item(cupid_button)
     view.add_item(cancel_button)
     view.add_item(remove_button)
   else:
     embed.description = "Please only sign up for this event if you plan to make a valentine for someone else. It is a few hours of work over two weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before FEB 14th, each time you submit the form it will overwrite your preferences.\nPlease be explicit about what you want/don't want! Cruel? Gentle? Male? Female? Furry? Your valentine can only work with what you type!"
-    gifts_button = CupidButton(random_id=id_group, label="I understand, I want to sign up")
-    cancel_button = ConfirmButton(random_id=id_group, label="Never Mind", action="cancel", confirm=False)
+    gifts_button = CupidButton(message_id=interaction_id, label="I understand, I want to sign up")
+    cancel_button = ConfirmButton(message_id=interaction_id, label="Never Mind", action="cancel", confirm=False)
     view.add_item(gifts_button)
     view.add_item(cancel_button)
   return (embed, view)
@@ -1032,6 +1130,11 @@ def new_cupid(dict):
   else:
     cupid.insert_one(dict)
     print("new cupid created")
+
+#add featured story to database
+def new_feature(dict):
+  feature.insert_one(dict)
+  print("new feature created")
 
 #deletes a given thread by id
 async def delete_thread(interaction, thread_id):

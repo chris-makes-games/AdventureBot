@@ -20,7 +20,7 @@ async def leave(ctx):
     return
   #if the proper thread does not exist
   if not permissions.thread_exists(ctx):
-    confirm = await database.confirm_embed("It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your adventure and erase your adventure data?", action="leave", channel=None)
+    confirm = await database.confirm_embed(ctx.interaction.id, "It looks like you were in an adventure in a thread that no longer exists. Do you want to leave your adventure and erase your adventure data?", action="leave", channel=None)
     embed = confirm[0]
     view = confirm[1]
     await ctx.defer(ephemeral=True)
@@ -35,7 +35,7 @@ async def leave(ctx):
     return
   #the command is successful
   channel = ctx.channel.id
-  tuple = await database.confirm_embed("Leaving the adventure will erase your adventure progress. Are you sure you want to do this?", "leave" , channel=channel, id=channel)
+  tuple = await database.confirm_embed(ctx.interaction.id, "Leaving the adventure will erase your adventure progress. Are you sure you want to do this?", "leave" , channel=channel, id=channel)
   embed = tuple[0]
   view = tuple[1]
   await ctx.defer(ephemeral=True)

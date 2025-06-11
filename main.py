@@ -39,26 +39,14 @@ async def on_ready():
     except Exception as e:
       print(f"Failed to load command: /{cmd_file.name[:-3]}")
       print(e)
-  views = database.views.find({})
-  print("Loading views...")
-  for view in views:
-    print(f"loading view...")
-    print(view["id"])
-    PersistentView = database.PersistentView(id=view["id"], message_id=view["message"])
-    buttons = database.buttons.find({"message" : view["message"]})
-    #need to add button data to database, load them in by type
-    for button in buttons:
-      if button["type"] == "room":
-        pass
-      elif button["type"] == "confirm":
-        pass
-      elif button["type"] == "key":
-        pass
-      elif button["type"] == "cupid":
-        pass
-      elif button["type"] == "gift":
-        pass
-    bot.add_view(PersistentView)
+  views = database.views.find()
+  if views:
+    print("Loading views...")
+    for view in views:
+      print(f"loading view...")
+      print(view["id"])
+      new_PersistentView = database.PersistentView(id=view["id"], message_id=view["message_id"])
+      bot.add_view(new_PersistentView)
 
   print("Bot is ready!")
 
