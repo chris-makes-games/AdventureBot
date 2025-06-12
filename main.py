@@ -39,14 +39,12 @@ async def on_ready():
     except Exception as e:
       print(f"Failed to load command: /{cmd_file.name[:-3]}")
       print(e)
-  views = database.views.find()
-  if views:
-    print("Loading views...")
-    for view in views:
-      print(f"loading view...")
-      print(view["id"])
-      new_PersistentView = database.PersistentView(id=view["id"], message_id=view["message_id"])
-      bot.add_view(new_PersistentView)
+  
+  feature_view = database.views.find_one({"feature" : "AdventureBotFeatureView"})
+  if feature_view:
+    featured = database.FeatureView()
+    featured.add_item(database.FeatureButton(custom_id="AdventureBotFeatureButton",label="Suggest a Story to be featured"))
+    bot.add_view(featured)
 
   print("Bot is ready!")
 
