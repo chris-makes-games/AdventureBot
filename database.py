@@ -408,26 +408,6 @@ class FeatureModal(discord.ui.Modal):
     new_view.add_item(new_button)
     new_view.add_item(cancel_button)
     await interaction.followup.send(f"{interaction.user.mention} You are about to suggest this story to be featured:\nhttps://sizefiction.net/story/show/{story_number}\nDiscord should automatically load a preview, otherwise you may have entered the wrong URL. Is this the correct story? Confirm using the buttons below. {limit_string}.", view=new_view, ephemeral=True)
-        await interaction.delete_original_response()
-        return
-      for story in found_user:
-        if self.number.value == story["number"]:
-          await interaction.followup.send(f"{interaction.user.mention}, you have already submitted that story to be featured, please submit a different story!", ephemeral=True)
-          await interaction.delete_original_response()
-          return
-    dict = {"user": interaction.user.id, "number": self.number.value, "desc": self.desc.value}
-    new_feature(dict)
-    if submissions < 3:
-      limit = 2 - submissions
-      if limit == 1:
-        limit_string = f"You may submit {limit} more story to be featured"
-      else:
-        limit_string = f"You may submit {limit} more stories to be featured"
-    else:
-      limit_string = "You have now suggested three stories, you cannot suggest any more"
-    await give_role(interaction, "Feature Suggester")
-    await interaction.followup.send(f"{interaction.user.mention} You have successfully added this story to the suggestions:\nhttps://sizefiction.net/story/show/{self.number.value}\nStories will be collected and voted on within two weeks. {limit_string}. Thank you for participating!", ephemeral=True)
-    await interaction.delete_original_response()
 
 #deactivated valentines function
 class CupidModal(discord.ui.Modal):
