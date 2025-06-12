@@ -31,6 +31,7 @@ allowed_nodes = {
     ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.Compare, ast.BoolOp, ast.And, ast.Or, ast.Not
 }
 
+
 #persistent view for featured suggestion button
 class FeatureView(discord.ui.View):
   def __init__(self):
@@ -40,6 +41,8 @@ class FeatureView(discord.ui.View):
       views.insert_one({"id": self.id,
                         "feature" : "AdventureBotFeatureView"
       })
+
+
 
 #persistentview custom class
 class PersistentView(discord.ui.View):
@@ -58,7 +61,9 @@ class PersistentView(discord.ui.View):
       if all_buttons:
         new_button = None
         for button in all_buttons:
+
           print(f"adding button: {button["type"]}")
+
           if button["type"] == "room":
             continue
             new_button = RoomButton()
@@ -77,8 +82,7 @@ class PersistentView(discord.ui.View):
           elif button["type"] == "feature":
             continue
             new_button = FeatureButton()
-          if new_button:
-            self.add_item(new_button)
+
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -352,6 +356,7 @@ class ConfirmButton(discord.ui.Button):
 class FeatureModal(discord.ui.Modal):
   def __init__(self, title="Suggest a story to be featured"):
     super().__init__(title=title)
+
     self.story = discord.ui.TextInput(label="Story URL", placeholder="Paste the story URL", style=discord.TextStyle.short, required=True)
     self.desc = discord.ui.TextInput(label="Share why the story should be featured", placeholder="", style=discord.TextStyle.long, required=True)
     self.add_item(self.story)
@@ -403,6 +408,26 @@ class FeatureModal(discord.ui.Modal):
     new_view.add_item(new_button)
     new_view.add_item(cancel_button)
     await interaction.followup.send(f"{interaction.user.mention} You are about to suggest this story to be featured:\nhttps://sizefiction.net/story/show/{story_number}\nDiscord should automatically load a preview, otherwise you may have entered the wrong URL. Is this the correct story? Confirm using the buttons below. {limit_string}.", view=new_view, ephemeral=True)
+        await interaction.delete_original_response()
+        return
+      for story in found_user:
+        if self.number.value == story["number"]:
+          await interaction.followup.send(f"{interaction.user.mention}, you have already submitted that story to be featured, please submit a different story!", ephemeral=True)
+          await interaction.delete_original_response()
+          return
+    dict = {"user": interaction.user.id, "number": self.number.value, "desc": self.desc.value}
+    new_feature(dict)
+    if submissions < 3:
+      limit = 2 - submissions
+      if limit == 1:
+        limit_string = f"You may submit {limit} more story to be featured"
+      else:
+        limit_string = f"You may submit {limit} more stories to be featured"
+    else:
+      limit_string = "You have now suggested three stories, you cannot suggest any more"
+    await give_role(interaction, "Feature Suggester")
+    await interaction.followup.send(f"{interaction.user.mention} You have successfully added this story to the suggestions:\nhttps://sizefiction.net/story/show/{self.number.value}\nStories will be collected and voted on within two weeks. {limit_string}. Thank you for participating!", ephemeral=True)
+    await interaction.delete_original_response()
 
 #deactivated valentines function
 class CupidModal(discord.ui.Modal):
@@ -1037,6 +1062,7 @@ async def confirm_embed(interaction_id, confirm_text, action, channel, title="Ar
 
 #new valentine embed for winter event
 async def feature_embed(interaction_id, user):
+
   embed = discord.Embed(title="Featured Story Suggestions")
   view = FeatureView()
   embed.description = "To be featured on the front page of sizefiction, we are taking suggestions from everyone! We will then create a poll for everyone to vote on the ones suggested. Anyone may suggest a story to be featured, and you can even suggest your own stories. All suggestions will be collected, and stories can be suggested multiple times by different people. This process is anonymous, but Ironically-Tall can access the discord data. Limit to 3 suggestions per person, per feature cycle. Please report any issues with this bot to <@267389442409496578>. He coded it, so it's his fault."
