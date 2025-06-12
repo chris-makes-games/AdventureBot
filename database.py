@@ -31,6 +31,19 @@ allowed_nodes = {
     ast.LtE, ast.GtE, ast.Eq, ast.NotEq, ast.Compare, ast.BoolOp, ast.And, ast.Or, ast.Not
 }
 
+
+#persistent view for featured suggestion button
+class FeatureView(discord.ui.View):
+  def __init__(self):
+    super().__init__(timeout=None)
+    self.id = "AdventureBotFeatureView"
+    if not views.find_one({"id": self.id}):
+      views.insert_one({"id": self.id,
+                        "feature" : "AdventureBotFeatureView"
+      })
+
+
+
 #persistentview custom class
 class PersistentView(discord.ui.View):
   def __init__(self, message_id, id=None):
@@ -48,7 +61,9 @@ class PersistentView(discord.ui.View):
       if all_buttons:
         new_button = None
         for button in all_buttons:
-          print(f"adding button: {button.type}")
+
+          print(f"adding button: {button["type"]}")
+
           if button["type"] == "room":
             continue
             new_button = RoomButton()
@@ -64,8 +79,10 @@ class PersistentView(discord.ui.View):
           elif button["type"] == "gift":
             continue
             new_button = GiftButton()
-          if new_button:
-            self.add_item(new_button)
+          elif button["type"] == "feature":
+            continue
+            new_button = FeatureButton()
+
 
 #button class for allowing the player to traverse rooms
 #button sends player to destination room when clicked
@@ -322,6 +339,14 @@ class ConfirmButton(discord.ui.Button):
       except Exception as e:
         await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
       await interaction.delete_original_response()
+    elif self.action == "feature":
+      try:
+        await new_feature(self.dict)
+        await give_role(interaction=interaction, role="Feature Suggester")
+        await interaction.followup.send("Your story suggestion was a success! Stay tuned for the voting process.", ephemeral=True)
+      except Exception as e:
+        await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
+      await interaction.delete_original_response()
     #catch-all for any other action
     else:
       await interaction.followup.send(f"ERROR: That button has no interaction yet! Check database/confirmbutton\nAction:\n`{self.action}`", ephemeral=True)
@@ -331,30 +356,58 @@ class ConfirmButton(discord.ui.Button):
 class FeatureModal(discord.ui.Modal):
   def __init__(self, title="Suggest a story to be featured"):
     super().__init__(title=title)
-    self.number = discord.ui.TextInput(label="Story Number", placeholder="Only input the numbers at the end of the URL!", style=discord.TextStyle.short, required=True)
+
+    self.story = discord.ui.TextInput(label="Story URL", placeholder="Paste the story URL", style=discord.TextStyle.short, required=True)
     self.desc = discord.ui.TextInput(label="Share why the story should be featured", placeholder="", style=discord.TextStyle.long, required=True)
-    self.add_item(self.number)
+    self.add_item(self.story)
     self.add_item(self.desc)
+    self.words = ["https:", "sizefiction.net", "story", "show"]
   async def on_submit(self, interaction: discord.Interaction):
     await interaction.response.defer()
+    url_parsed = self.story.value.split("/")
+    story_number = url_parsed[-1]
+    url_parsed.remove(story_number)
+    for word in url_parsed:
+      if word == "":
+        continue
+      if word not in self.words:
+        await interaction.followup.send(f"{interaction.user.mention}, that does not appear to be a valid sizefiction story. Please copy-paste a story URL.", ephemeral=True)
+        return
     info = feature.find_one({"info" : "admin"})
-    if not self.number.value.isdigit():
-      await interaction.followup.send(f"{interaction.user.mention}, that is not a valid story number! Please just enter the numbers at the end of the story URL.", ephemeral=True)
-      await interaction.delete_original_response()
+    if not story_number.isdigit():
+      await interaction.followup.send(f"{interaction.user.mention}, that does not appear to be a valid sizefiction story. Please copy-paste a story URL.", ephemeral=True)
       return
     found_user = list(feature.find({"user" : interaction.user.id}))
     submissions = len(found_user)
-    if self.number.value in info["current_features"]:
+    if story_number in info["current_features"]:
       await interaction.followup.send(f"{interaction.user.mention}, that story is currently being featured! Please submit a different story.", ephemeral=True)
-      await interaction.delete_original_response()
       return
-    if self.number.value in info["last_features"]:
+    if story_number in info["last_features"]:
       await interaction.followup.send(f"{interaction.user.mention}, that story was featured recently, please submit a different story!", ephemeral=True)
-      await interaction.delete_original_response()
       return
     if found_user:
       if submissions > 2:
         await interaction.followup.send(f"{interaction.user.mention}, you have already submitted three stories to be featured, please wait until the next feature cycle!", ephemeral=True)
+        return
+      for found_story in found_user:
+        if story_number == found_story["number"]:
+          await interaction.followup.send(f"{interaction.user.mention}, you have already submitted that story to be featured, please submit a different story!", ephemeral=True)
+          return
+    dict = {"user": interaction.user.id, "number": story_number, "desc": self.desc.value}
+    if submissions < 3:
+      limit = 2 - submissions
+      if limit == 1:
+        limit_string = f"You will be able to submit {limit} more story after this one"
+      else:
+        limit_string = f"You will be able to submit {limit} more stories after this one"
+    else:
+      limit_string = "This will be your final submission for the featured section vote"
+    new_view = PersistentView(interaction.id)
+    new_button = ConfirmButton(message_id=interaction.id, label="Looks good, submit!", confirm=True, action="feature", dict=dict)
+    cancel_button = ConfirmButton(message_id=interaction.id, label="Cancel", confirm=False, action="cancel")
+    new_view.add_item(new_button)
+    new_view.add_item(cancel_button)
+    await interaction.followup.send(f"{interaction.user.mention} You are about to suggest this story to be featured:\nhttps://sizefiction.net/story/show/{story_number}\nDiscord should automatically load a preview, otherwise you may have entered the wrong URL. Is this the correct story? Confirm using the buttons below. {limit_string}.", view=new_view, ephemeral=True)
         await interaction.delete_original_response()
         return
       for story in found_user:
@@ -426,17 +479,13 @@ class GiftModal(discord.ui.Modal):
 
 #featured stories submission button
 class FeatureButton(discord.ui.Button):
-  def __init__(self, label, message_id, disabled=False, row=0):
-    super().__init__(label=label, style=discord.ButtonStyle.primary)
+  def __init__(self, label, custom_id, disabled=False, row=0):
+    super().__init__(label=label, style=discord.ButtonStyle.success)
+    self.custom_id = "AdventureBotFeatureButton"
     self.disabled = disabled
+    self.emoji = "🔎"
     self.row = row
-    self.message_id = message_id
-    self.custom_id = new_persistent_button("feature", message_id)
   async def callback(self, interaction: discord.Interaction):
-    view = self.view
-    if view:
-      views.delete_one({"id": view.id})
-    buttons.delete_many({"message_id": self.message_id})
     await interaction.response.send_modal(FeatureModal())
 
 #new gifts button
@@ -1013,14 +1062,13 @@ async def confirm_embed(interaction_id, confirm_text, action, channel, title="Ar
 
 #new valentine embed for winter event
 async def feature_embed(interaction_id, user):
-  embed = discord.Embed(title="Story Feature Suggestion")
-  view = PersistentView(interaction_id)
-  embed.description = "To be featured on the front page of sizefiction, we are taking suggestions from anyone to then vote on. Anyone may suggest a story to be featured, and you can even suggest your own stories. All suggestions will be collected, and stories can be suggested multiple times by different people. This process is anonymous, but Ironically-Tall can access the discord data. Limit to 3 suggestions per person, per feature cycle. Please report any issues with this bot to Ironically-Tall. He coded it, so it's his fault."
-  embed.add_field(name="Submission Format", value="When submitting a suggestion to be featured, please only input the story number. This is the number at the very end of the URL")
-  feature_button = FeatureButton(message_id=interaction_id, label="Suggest Story")
-  cancel_button = ConfirmButton(message_id=interaction_id, label="Cancel", confirm=False, action="cancel")
+
+  embed = discord.Embed(title="Featured Story Suggestions")
+  view = FeatureView()
+  embed.description = "To be featured on the front page of sizefiction, we are taking suggestions from everyone! We will then create a poll for everyone to vote on the ones suggested. Anyone may suggest a story to be featured, and you can even suggest your own stories. All suggestions will be collected, and stories can be suggested multiple times by different people. This process is anonymous, but Ironically-Tall can access the discord data. Limit to 3 suggestions per person, per feature cycle. Please report any issues with this bot to <@267389442409496578>. He coded it, so it's his fault."
+  embed.add_field(name="Submission Format", value="When you click the button below, you will be prompted to input the URL of the story. Simply copy-paste the story URL into the field.")
+  feature_button = FeatureButton(custom_id="AdventureBotFeatureButton", label="Suggest a Story to be featured")
   view.add_item(feature_button)
-  view.add_item(cancel_button)
   return (embed, view)
 
 #new gifts embed for winter event
@@ -1132,7 +1180,7 @@ def new_cupid(dict):
     print("new cupid created")
 
 #add featured story to database
-def new_feature(dict):
+async def new_feature(dict):
   feature.insert_one(dict)
   print("new feature created")
 
