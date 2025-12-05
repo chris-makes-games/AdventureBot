@@ -134,9 +134,9 @@ class KeyButton(discord.ui.Button):
 #can be placed on any embed that requires a confirmation
 #action is the name of the action to be taken
 class ConfirmButton(discord.ui.Button):
-  def __init__(self, label, confirm, action, message_id, channel="", id=None, disabled=False, row=0, dict=None):
+  def __init__(self, label, confirm, action, message_id, channel="", user_action=None, disabled=False, row=0, dict=None):
     super().__init__(label=label)
-    self.id = id
+    self.user_action = user_action
     self.confirm = confirm
     self.action = action
     self.disabled = disabled
@@ -172,7 +172,7 @@ class ConfirmButton(discord.ui.Button):
           await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
           await interaction.delete_original_response()
           return
-        thread_id = self.id
+        thread_id = self.user_action
         if not thread_id:
           await interaction.followup.send("Your adventure data has been cleared!", ephemeral=True)
           await interaction.delete_original_response()
@@ -215,8 +215,8 @@ class ConfirmButton(discord.ui.Button):
     #key deleted
     elif self.action == "delete_key":
       try:
-        delete_key(self.id)
-        await interaction.followup.send(f"Key {self.id} Deleted!", ephemeral=True)
+        delete_key(self.user_action)
+        await interaction.followup.send(f"Key {self.user_action} Deleted!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Key was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
@@ -225,8 +225,8 @@ class ConfirmButton(discord.ui.Button):
     #room deleted
     elif self.action == "delete_room":
       try:
-        delete_room(self.id)
-        await interaction.followup.send(f"Room {self.id} deleted!", ephemeral=True)
+        delete_room(self.user_action)
+        await interaction.followup.send(f"Room {self.user_action} deleted!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Room was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
@@ -235,8 +235,8 @@ class ConfirmButton(discord.ui.Button):
     #adventure edited
     elif self.action == "edit_adventure":
       try:
-        edit_adventure(self.id, self.dict)
-        await interaction.followup.send(f"Adventure {self.id} edited!", ephemeral=True)
+        edit_adventure(self.user_action, self.dict)
+        await interaction.followup.send(f"Adventure {self.user_action} edited!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Adventure was not edited! There was an issue with the button press:\n{e}", ephemeral=True)
@@ -245,9 +245,9 @@ class ConfirmButton(discord.ui.Button):
     #adventure deleted
     elif self.action == "delete_adventure":
       try:
-        delete_adventure(self.id)
-        all_players = get_players_in_adventure(self.id)
-        all_keys = keys.find({"adventure" : self.id})
+        delete_adventure(self.user_action)
+        all_players = get_players_in_adventure(self.user_action)
+        all_keys = keys.find({"adventure" : self.user_action})
         guild = interaction.guild
         if all_players:
           for player in all_players:
@@ -256,13 +256,13 @@ class ConfirmButton(discord.ui.Button):
               if thread:
                 print(f"deleting game thread for player {player}...")
                 await thread.delete()
-            print(f"moving player {player} out of adventure {self.id}...")
+            print(f"moving player {player} out of adventure {self.user_action}...")
             update_player({"disc" : player, "play_thread" : None, "room" : None, "history" : [], "alive" : True, "keys" : {}})
         if all_keys:
           print("deleting all keys in adventure...")
           for key in all_keys:
             delete_key(key["id"])
-        await interaction.followup.send(f"Adventure {self.id} deleted!", ephemeral=True)
+        await interaction.followup.send(f"Adventure {self.user_action} deleted!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Adventure was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
@@ -271,8 +271,8 @@ class ConfirmButton(discord.ui.Button):
     #player deleted
     elif self.action == "delete_player":
       try:
-        delete_player(self.id)
-        await interaction.followup.send(f"Player {self.id} successfully deleted!", ephemeral=True)
+        delete_player(self.user_action)
+        await interaction.followup.send(f"Player {self.user_action} successfully deleted!", ephemeral=True)
         await interaction.delete_original_response()
       except Exception as e:
         await interaction.followup.send(f"ERROR: Player was not deleted! There was an issue with the button press:\n{e}", ephemeral=True)
@@ -326,7 +326,7 @@ class ConfirmButton(discord.ui.Button):
     #removes someone from gist exchange event
     elif self.action == "remove_gifts":
       try:
-        await remove_gift(self.id, interaction)
+        await remove_gift(self.user_action, interaction)
         await interaction.followup.send("You have been successfully removed from the event!", ephemeral=True)
       except Exception as e:
         await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
@@ -334,7 +334,7 @@ class ConfirmButton(discord.ui.Button):
     #removes someone from valentines event
     elif self.action == "remove_valentines":
       try:
-        await remove_valentine(self.id, interaction)
+        await remove_valentine(self.user_action, interaction)
         await interaction.followup.send("You have been successfully removed from the event!", ephemeral=True)
       except Exception as e:
         await interaction.followup.send(f"Error!\n{e}", ephemeral=True)
@@ -435,11 +435,11 @@ class CupidModal(discord.ui.Modal):
 
 #new gifts modal for winter event
 class GiftModal(discord.ui.Modal):
-  def __init__(self, title="Gift Exchange Event Sign-up"):
+  def __init__(self, title="SizeFiction Gift Exchange Sign-up"):
     super().__init__(title=title)
     self.likes = discord.ui.TextInput(label="What sizey things do you enjoy?", placeholder="Please include a brief description of scenarios, genders, and sizes", style=discord.TextStyle.long, required=True)
     self.limits = discord.ui.TextInput(label="What do you NOT want to see in your gift?", placeholder="These topics will not be included in the gift you recieve. Everything else is fair game", style=discord.TextStyle.long, required=True)
-    self.willing = discord.ui.TextInput(label="What are you willing to create?", placeholder="Which topics/themes are you comfortable/uncomfortable working with? Ironically-tall will do his best", style=discord.TextStyle.long, required=True)
+    self.willing = discord.ui.TextInput(label="What are you willing to create?", placeholder="Which topics/themes are you comfortable/uncomfortable working with?", style=discord.TextStyle.long, required=True)
     self.add_item(self.likes)
     self.add_item(self.limits)
     self.add_item(self.willing)
@@ -454,7 +454,7 @@ class GiftModal(discord.ui.Modal):
       await interaction.followup.send(f"{interaction.user.mention} Your preferences have been updated!", ephemeral=True)
     else:
       await give_role(interaction, "Giver of Gifts")
-      await interaction.followup.send(f"{interaction.user.mention} You have signed up for the gifts exchange event! Please wait until Dec 22nd to recieve your secret gifts recipient. If you have questions, please DM Ironically-Tall. You may change your info by typing `/gift` again. Thank you for participating!!", ephemeral=True)
+      await interaction.followup.send(f"{interaction.user.mention} You have signed up for the gifts exchange event! Please wait until after Jan 14th to recieve your secret gifts recipient. If you have questions, please DM Ironically-Tall. You may change your info by typing `/gift` again. Thank you for participating!!", ephemeral=True)
     await interaction.delete_original_response()
 
 #featured stories submission button
@@ -1031,7 +1031,7 @@ def valid_exit(keys_dict, lock_list):
 #action is the action that the button will do
 async def confirm_embed(interaction_id, confirm_text, action, channel, title="Are you Sure?", id=None, dict=None):
   embed = discord.Embed(title=title, description=confirm_text, color=discord.Color.orange())
-  confirm_button = ConfirmButton(message_id=interaction_id, label="Yes", confirm=True, action=action, channel=channel, id=id, dict=dict)
+  confirm_button = ConfirmButton(message_id=interaction_id, label="Yes", confirm=True, action=action, channel=channel, user_action=id, dict=dict)
   deny_button = ConfirmButton(message_id=interaction_id, label="No", confirm=False, action="cancel", channel=channel)
   view = PersistentView(interaction_id)
   view.add_item(confirm_button)
@@ -1053,18 +1053,18 @@ async def feature_embed(interaction_id, user):
 
 #new gifts embed for winter event
 async def gifts_embed(interaction_id, user):
-  embed = discord.Embed(title="gifts Exchange Event Sign-Up")
+  embed = discord.Embed(title=":gift: SizeFiction Gift Exchange Sign-Up :gift:")
   view = PersistentView(interaction_id)
   if gifts.find_one({"disc": user}):
-    embed.description = "You have already signed up for the gifts Exchange Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
+    embed.description = "You have already signed up for the gifts Exchange Event. If you submit this form again, it will overwrite your previous gift event sign-up.\n\nOtherwise, you may opt out of the event using the button below."
     gifts_button = GiftButton(message_id=interaction_id, label="I understand, I want to resubmit")
-    remove_button = ConfirmButton(message_id=interaction_id, label="Remove me from the event", action="remove_gifts", confirm=False, id=user)
+    remove_button = ConfirmButton(message_id=interaction_id, label="Remove me from the event", action="remove_gifts", confirm=False, user_action=user)
     cancel_button = ConfirmButton(message_id=interaction_id, label="Keep my already submitted info", confirm=True, action="cancel")
     view.add_item(gifts_button)
     view.add_item(cancel_button)
     view.add_item(remove_button)
   else:
-    embed.description = "Please only sign up for this event if you plan to make a gifts for someone else. It is a few hours of work over three weeks, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\nYou can use this command any number of times before DEC 22nd, each time you submit the form it will re-write your preferences."
+    embed.description = "**Please Read First**\n\nThis event will involve making a single creative thing for another person, and having a thing made for you. You don't get to know who is making your thing until the end.\n\nOnly sign up for this event if you plan to make a gift for someone else. It is a few hours of work, and if you're not up for that please don't sign up. If something comes up, that's OK just let Ironically-Tall know ASAP so a replacement can be created.\n\nPlease also respect the time and efforts of the others signing up, and if you're going to be sending something last minute at least let Ironically-Tall know. Communication is key! Any issues can be forgiven, but dissapearing will make Ironically-Tall very sad.\n\nYou can use this command any number of times before JAN 14th, each time you submit the form it will re-write your preferences.\n\nIf you don't put anything into your likes/limits then whoever makes your present has nothing to work with! Please give them something even if it's a little. Ironically-Tall is trying very hard this year to avoid asking anyone for clarification on anything they enter into the following forms.\n\nIronically-Tall will do his best to pair people together based on their prefernces!"
     gifts_button = GiftButton(message_id=interaction_id, label="I understand, I want to sign up")
     cancel_button = ConfirmButton(message_id=interaction_id, label="Never Mind", action="cancel", confirm=False)
     view.add_item(gifts_button)
@@ -1078,7 +1078,7 @@ async def valentine_embed(interaction_id, user):
   if cupid.find_one({"disc": user}):
     embed.description = "You have already signed up for the Valentine's Event. If you submit this form again, it will overwrite your previous valentines sign-up.\nOtherwise, you may opt out of the event using the button below."
     cupid_button = CupidButton(message_id=interaction_id, label="I understand, I want to resubmit")
-    remove_button = ConfirmButton(message_id=interaction_id, label="Remove me from the event", action="remove_valentines", confirm=False, id=user)
+    remove_button = ConfirmButton(message_id=interaction_id, label="Remove me from the event", action="remove_valentines", confirm=False, user_action=user)
     cancel_button = ConfirmButton(message_id=interaction_id, label="Keep my already submitted info", confirm=True, action="cancel")
     view.add_item(cupid_button)
     view.add_item(cancel_button)
