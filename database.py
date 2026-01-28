@@ -393,7 +393,7 @@ class FeatureModal(discord.ui.Modal):
         if story_number == found_story["number"]:
           await interaction.followup.send(f"{interaction.user.mention}, you have already submitted that story to be featured, please submit a different story!", ephemeral=True)
           return
-    dict = {"user": interaction.user.id, "number": story_number, "desc": self.desc.value}
+    dict = {"user": interaction.user.id, "number": story_number, "desc": self.desc.value, "date": interaction.created_at.date}
     if submissions < 3:
       limit = 2 - submissions
       if limit == 1:
